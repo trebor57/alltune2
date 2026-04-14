@@ -8,6 +8,10 @@ require_once dirname(__DIR__) . '/app/Support/Config.php';
 use App\Support\Config;
 
 $config = new Config(dirname(__DIR__) . '/config.ini');
+$myNode = trim((string) $config->get('MYNODE', ''));
+$nodeStatsUrl = $myNode !== ''
+    ? 'https://stats.allstarlink.org/stats/' . rawurlencode($myNode)
+    : 'https://stats.allstarlink.org/';
 
 function e(mixed $value): string
 {
@@ -226,7 +230,7 @@ $formMode = $editFavorite['mode'] ?? 'BM';
 $navItems = [
     ['label' => 'Dashboard', 'href' => '/alltune2/public/index.php', 'active' => false],
     ['label' => 'Favorites', 'href' => '/alltune2/public/favorites.php', 'active' => true],
-    ['label' => 'Allscan', 'href' => '/allscan/', 'active' => false, 'target' => '_blank'],
+    ['label' => 'Node Stats', 'href' => $nodeStatsUrl, 'active' => false, 'target' => '_blank'],
     ['label' => 'DVSwitch', 'href' => '/dvswitch/', 'active' => false, 'target' => '_blank'],
 ];
 

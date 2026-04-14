@@ -102,10 +102,14 @@ $dmrNetwork = strtoupper((string) ($_SESSION['dmr_network'] ?? ''));
 $dmrReady = !empty($_SESSION['dmr_ready']);
 $dvswitchLinkActive = !empty($_SESSION['dvswitch_autoloaded']) || $dmrReady || $lastMode === 'YSF';
 
+$nodeStatsUrl = $hasRealMyNode
+    ? 'https://stats.allstarlink.org/stats/' . rawurlencode($myNode)
+    : 'https://stats.allstarlink.org/';
+
 $navItems = [
     ['label' => 'Dashboard', 'href' => '/alltune2/public/index.php', 'active' => true],
     ['label' => 'Favorites', 'href' => '/alltune2/public/favorites.php', 'active' => false],
-    ['label' => 'Allscan', 'href' => '/allscan/', 'active' => false, 'target' => '_blank'],
+    ['label' => 'Node Stats', 'href' => $nodeStatsUrl, 'active' => false, 'target' => '_blank'],
     ['label' => 'DVSwitch', 'href' => '/dvswitch/', 'active' => false, 'target' => '_blank'],
 ];
 
