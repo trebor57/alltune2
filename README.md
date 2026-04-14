@@ -1,6 +1,6 @@
 # AllTune2
 
-**Version 1.20.3**
+**Version 1.20.5**
 
 AllTune2 is a web-based control and status dashboard for **AllStarLink 3 / Debian / DVSwitch** systems. It is designed to make day-to-day switching between BM, TGIF, YSF, AllStarLink, and EchoLink simpler and faster, while keeping the original app separate so you can test safely.
 
