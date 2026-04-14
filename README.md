@@ -320,6 +320,15 @@ If BM helper actions fail after a pull or restore, the first thing to check is w
 
 ---
 
+## BM recovery note
+
+If BrandMeister shows `BM RECEIVE FAILED` after a reboot or possible upgrade, verify that `analog_bridge.service` is running:
+
+```bash
+systemctl status analog_bridge.service --no-pager -l
+sudo systemctl start analog_bridge.service
+```
+
 ## BM helper note
 
 BrandMeister receive is now handled by an AllTune2-owned helper and local runtime copy instead of depending on the older separate STFU web workflow.
