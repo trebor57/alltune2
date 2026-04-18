@@ -80,8 +80,16 @@ if re.search(r'(?m)^OPTIONS:\s*', body):
 else:
     body = body.rstrip('\n') + '\n' + new_options + '\n'
 
+if re.search(r'(?m)^USE_ACL:\s*', body):
+    body = re.sub(r'(?m)^USE_ACL:\s*.*$', 'USE_ACL: True', body)
+else:
+    if re.search(r'(?m)^SUB_ACL:\s*', body):
+        body = re.sub(r'(?m)^SUB_ACL:\s*.*$', 'USE_ACL: True\nSUB_ACL: PERMIT:ALL', body, count=1)
+    else:
+        body = body.rstrip('\n') + '\nUSE_ACL: True\nSUB_ACL: PERMIT:ALL\n'
+
 text = text[:match.start('body')] + body + text[match.end('body'):]
 cfg_path.write_text(text)
 PY
 
-echo "Updated ${HB_CFG} [REPEATER-1] LOOSE=True and OPTIONS to StartRef=${TG};RelinkTime=${RELINK_TIME}"
+echo "Updated ${HB_CFG} [REPEATER-1] LOOSE=True, USE_ACL=True, and OPTIONS to StartRef=${TG};RelinkTime=${RELINK_TIME}"
