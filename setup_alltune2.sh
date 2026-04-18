@@ -172,6 +172,7 @@ EOF
 create_tgif_hblink_cfg_example() {
     if [[ -f "$TGIF_HBLINK_CFG_EXAMPLE" ]]; then
         log "hblink.cfg.example already exists."
+        sed -i '/^\[REPEATER-1\]/,/^\[/ s/^LOOSE: False/LOOSE: True/' "$TGIF_HBLINK_CFG_EXAMPLE"
         chmod 0644 "$TGIF_HBLINK_CFG_EXAMPLE"
         chown root:root "$TGIF_HBLINK_CFG_EXAMPLE"
         return
