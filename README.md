@@ -1,125 +1,143 @@
-# AllTune2
+# 🔧 AllTune2
 
-A web-based control center for DVSwitch / AllStarLink systems.
+A modern, simple control panel for **AllStarLink 3 + DVSwitch**.
 
-AllTune2 provides one UI for:
+AllTune2 gives you one place to control:
 
-- BrandMeister (BM)
-- TGIF (through integrated HBLink)
-- YSF
-- AllStarLink
-- EchoLink
+- **BrandMeister**
+- **TGIF**
+- **YSF**
+- **AllStarLink**
+- **EchoLink**
 
-The main goal of this project is simple:
-
-- keep the backend reliable
-- make switching between modes easier
-- avoid fragile manual terminal work for normal use
+It is built to be easier to use than the older tools, while still keeping the power needed for real radio use.
 
 ---
 
-## Current status
+# 🚀 Why Use AllTune2?
 
-As of April 2026, these paths are working in the project:
+With AllTune2, you can:
 
-- BrandMeister through the AllTune2 local BM/STFU-style helper path
-- TGIF through the integrated HBLink helper path
-- YSF through the normal DVSwitch path
-- AllStarLink / EchoLink through Asterisk
-- TGIF connect / disconnect / retune from the AllTune2 web UI
-
-TGIF was the hardest part of this project.
-
-The critical TGIF fix was:
-
-- `LOOSE: True` in the `REPEATER-1` section of `tgif-hblink/hblink.cfg`
-- dynamic `OPTIONS: StartRef=<TG>;RelinkTime=60` written by the helper when a TGIF talkgroup is selected
-
-Do **not** hardcode a personal startup talkgroup into the public repo.
-
-The public/safe design is:
-
-- `hblink.cfg.example` keeps `LOOSE: True`
-- `hblink.cfg.example` leaves `OPTIONS:` blank
-- `set_hblink_tg.sh` writes the selected TG dynamically when the user connects from the UI
+- Connect to **BrandMeister** talkgroups
+- Connect to **TGIF** talkgroups
+- Use **YSF**
+- Connect to **AllStarLink** nodes
+- Connect to **EchoLink**
+- Save and use **Favorites**
+- Watch **live status**
+- Use one screen instead of jumping around between tools
 
 ---
 
-## Directory layout
+# ⚠️ Before You Install
 
-Main project directory:
+This project assumes your system already has:
 
-```text
-/var/www/html/alltune2
-```
+- A working **AllStarLink 3** node
+- A working **DVSwitch** install
+- **Analog_Bridge** installed
+- **MMDVM_Bridge** installed
+- A node that already works normally before AllTune2 is added
 
-Important subpaths:
-
-```text
-/var/www/html/alltune2/config.ini
-/var/www/html/alltune2/public/
-/var/www/html/alltune2/api/
-/var/www/html/alltune2/tgif-hblink/
-/var/www/html/alltune2/logs/
-/var/www/html/alltune2/run/
-```
-
-Important TGIF/HBLink files:
-
-```text
-/var/www/html/alltune2/tgif-hblink/hblink.cfg
-/var/www/html/alltune2/tgif-hblink/hblink.cfg.example
-/var/www/html/alltune2/tgif-hblink/MMDVM_Bridge.hblink.ini
-/var/www/html/alltune2/tgif-hblink/MMDVM_Bridge.hblink.ini.example
-/var/www/html/alltune2/tgif-hblink/set_hblink_tg.sh
-/var/www/html/alltune2/tgif-hblink/alltune2-hblink-audio-helper.sh
-/var/www/html/alltune2/tgif-hblink/rules.py.template
-```
-
-External system files that must already exist and be sane:
-
-```text
-/opt/MMDVM_Bridge/MMDVM_Bridge.ini
-/opt/MMDVM_Bridge/DVSwitch.ini
-/opt/Analog_Bridge/Analog_Bridge.ini
-```
+If your base node is not working yet, fix that first.
 
 ---
 
-## Requirements
+# 📥 First-Time Install
 
-- Debian 12 Bookworm or Debian 13 Trixie
-- DVSwitch installed and basically working before AllTune2 is installed
-- Asterisk / AllStarLink installed and working
-- Analog_Bridge installed and working
-- MMDVM_Bridge installed and working
-- web server with PHP
-- sudo access for setup and service control
-
-AllTune2 is not meant to replace a broken base DVSwitch install. It assumes the radio/audio stack already works.
-
----
-
-## Installation
-
-For a brand-new install:
+## 1) Go to your web directory
 
 ```bash
 cd /var/www/html
-git clone https://github.com/YOUR-ACCOUNT/alltune2.git
+```
+
+## 2) Clone the repo
+
+```bash
+git clone https://github.com/TerryClaiborne/alltune2.git
 cd alltune2
+```
+
+## 3) Run the setup script
+
+```bash
 sudo ./setup_alltune2.sh
 ```
 
-After setup, review the local configuration files before trying the UI.
+That script does the heavy lifting for you.
+
+It will:
+
+- create needed folders and files
+- prepare permissions
+- create or preserve your config files
+- set up the TGIF/HBLink helper environment
+- install Python requirements for TGIF/HBLink
+- install needed sudoers entries
+- run checks on important files
 
 ---
 
-## Updating an existing installation
+# ✏️ Files You Must Review After Setup
 
-If AllTune2 is already installed, do not clone the repo again.
+This is the part that needs to be very clear.
 
-Use this process instead:
+After setup finishes, you **must review these files**.
+
+## 1) Main AllTune2 config
+
+```bash
+nano /var/www/html/alltune2/config.ini
+```
+
+This is the main file you will edit.
+
+Make sure these values are correct for **your** system:
+
+- `MYNODE`
+- `DVSWITCH_NODE`
+- `BM_SelfcarePassword`
+- `TGIF_HotspotSecurityKey`
+
+Do not leave placeholder values in this file.
+
+---
+
+## 2) TGIF / HBLink config
+
+```bash
+nano /var/www/html/alltune2/tgif-hblink/hblink.cfg
+```
+
+Check:
+
+- your node number
+- your TGIF key
+- any values that are specific to your system
+
+If you do not fully understand the ports, leave them alone unless you know your system needs something different.
+
+---
+
+## 3) Optional advanced file
+
+```bash
+nano /var/www/html/alltune2/tgif-hblink/MMDVM_Bridge.hblink.ini
+```
+
+Most users should **leave this alone**.
+
+Only edit this file if your system uses custom port settings or a special layout.
+
+---
+
+# 🔁 Updating an Existing Install
+
+This is very important.
+
+A normal `git pull` by itself is **not enough**.
+
+After every update, do this:
 
 ```bash
 cd /var/www/html/alltune2
@@ -127,442 +145,185 @@ git pull origin main
 sudo ./setup_alltune2.sh
 ```
 
-Important notes for updates:
+Why?
 
-- `git pull` alone is not enough
-- rerun `setup_alltune2.sh` after updates
-- your local config files should be preserved
-- do not overwrite your working live files with example files
+Because setup may need to:
 
-Do not replace these live local files with repo example files unless you intentionally mean to rebuild them:
+- refresh permissions
+- refresh sudoers files
+- refresh helper files
+- preserve and reuse your current config
+- keep the install in sync with new code
 
-```text
-/var/www/html/alltune2/config.ini
-/var/www/html/alltune2/tgif-hblink/hblink.cfg
-/var/www/html/alltune2/tgif-hblink/MMDVM_Bridge.hblink.ini
-```
+So the rule is simple:
 
-The setup script is intended to:
-
-- validate required repo files
-- preserve existing local config where possible
-- prepare TGIF/HBLink support
-- create missing example files if needed
-- correct stale `hblink.cfg.example` files to `LOOSE: True`
-- check permissions and syntax
+> **After every pull, run setup again.**
 
 ---
 
-## Required local configuration files
+# 📡 TGIF Notes (Plain English)
 
-This is the part that matters most.
+TGIF does **not** behave exactly like BrandMeister.
 
-### 1) AllTune2 main app config
+BrandMeister usually feels faster.
 
-File:
+TGIF uses the built-in **HBLink helper path**, and it can take longer to connect to a talkgroup.
 
-```text
-/var/www/html/alltune2/config.ini
-```
+That slower connect time is normal.
 
-At minimum, confirm these keys are correct for your node:
+So when using TGIF:
 
-```ini
-MYNODE=YOUR_ALLSTAR_NODE
-DVSWITCH_NODE=YOUR_DVSWITCH_NODE
-BM_SelfcarePassword=YOUR_BM_PASSWORD
-TGIF_HotspotSecurityKey=YOUR_TGIF_SECURITY_KEY
-```
+1. choose TGIF
+2. enter the talkgroup
+3. press **Connect**
+4. wait a little longer than you would for BM
 
-What they are used for:
+If BM feels quick and TGIF feels slower, that is expected.
 
-- `MYNODE` = your main local AllStar node
-- `DVSWITCH_NODE` = the local node used for DVSwitch audio/linking
-- `BM_SelfcarePassword` = BrandMeister helper/login control path
-- `TGIF_HotspotSecurityKey` = TGIF/HBLink side authentication input used by the helper/config path
-
-If `MYNODE` or `DVSWITCH_NODE` is wrong, the web UI may appear to work while the real audio/link path fails.
-
-### 2) TGIF / HBLink live runtime config
-
-File:
-
-```text
-/var/www/html/alltune2/tgif-hblink/hblink.cfg
-```
-
-This is the live TGIF/HBLink runtime file.
-
-You must review:
-
-- `CALLSIGN`
-- `RADIO_ID`
-- `PASSPHRASE`
-- `MASTER_IP`
-- `MASTER_PORT`
-- `PORT`
-
-For the TGIF `REPEATER-1` section, the important working values are:
-
-```ini
-[REPEATER-1]
-MODE: PEER
-ENABLED: True
-LOOSE: True
-IP:
-PORT: 62034
-MASTER_IP: tgif.network
-MASTER_PORT: 62031
-OPTIONS:
-```
-
-Important notes:
-
-- `LOOSE: True` is required for proper inbound TGIF audio behavior in this project
-- `OPTIONS:` should not be permanently hardcoded to your personal TG in the public repo
-- the helper script writes `StartRef=<TG>;RelinkTime=60` dynamically when the user connects or retunes TGIF
-- after a live TGIF connect, the runtime `hblink.cfg` will no longer remain blank on `OPTIONS:` because the helper updates it
-
-If `LOOSE` is false, TGIF may appear to half-work or pass packets without proper usable inbound audio.
-
-### 3) TGIF / HBLink example config
-
-File:
-
-```text
-/var/www/html/alltune2/tgif-hblink/hblink.cfg.example
-```
-
-This is the repo-safe example file.
-
-This file should be generic and sanitized.
-
-Safe public behavior:
-
-```ini
-LOOSE: True
-OPTIONS:
-```
-
-Do not publish:
-
-- your real passphrase
-- your real callsign if you want the example generic
-- your real radio ID if you want the example generic
-- your personal startup TG
-
-The helper fills in the runtime TG dynamically.
-
-### 4) Local HBLink-side MMDVM bridge file
-
-File:
-
-```text
-/var/www/html/alltune2/tgif-hblink/MMDVM_Bridge.hblink.ini
-```
-
-This file is the local bridge between HBLink and the node’s MMDVM/Analog_Bridge side.
-
-The key working values are:
-
-```ini
-[DMR Network]
-Enable=1
-Address=127.0.0.1
-Port=62033
-Local=62032
-Password=homebrew
-Slot1=0
-Slot2=1
-```
-
-These must match the `MASTER-1` section in `hblink.cfg`.
-
-In this project, the working relationship is:
-
-- `hblink.cfg` `MASTER-1` listens on `62033`
-- `MMDVM_Bridge.hblink.ini` points to `127.0.0.1:62033`
-- local side uses `62032`
-- password must match (`homebrew` in the working project layout)
-
-If these values do not match, TGIF/HBLink will not pass audio correctly.
-
-### 5) External system `MMDVM_Bridge.ini`
-
-File:
-
-```text
-/opt/MMDVM_Bridge/MMDVM_Bridge.ini
-```
-
-This is part of the normal DVSwitch system stack.
-
-AllTune2 does not replace your need for a sane base DVSwitch configuration.
-
-You should verify at minimum:
-
-- your normal DMR/DVSwitch settings are correct
-- your local ports do not conflict with the HBLink side files
-- your existing DVSwitch path still works before you start blaming AllTune2
-
-This file matters especially for:
-
-- BM path
-- YSF path
-- general DMR runtime behavior outside the dedicated TGIF HBLink sidecar path
-
-### 6) External system `DVSwitch.ini`
-
-File:
-
-```text
-/opt/MMDVM_Bridge/DVSwitch.ini
-```
-
-This file must also already be valid.
-
-It affects the wider DVSwitch stack and mode changes.
-
-If DVSwitch itself is not configured correctly, AllTune2 may show misleading state while the underlying audio/link chain is wrong.
-
-### 7) External system `Analog_Bridge.ini`
-
-File:
-
-```text
-/opt/Analog_Bridge/Analog_Bridge.ini
-```
-
-This file is extremely important.
-
-It controls the local audio side used by this project.
-
-At minimum, verify:
-
-- the service is installed and running
-- the local TG value is sane
-- the audio and TLV side match your working DVSwitch layout
-
-This project also benefited from these audio-related adjustments during testing:
-
-```ini
-usrpAudio = AUDIO_UNITY
-usrpGain = 1.35
-```
-
-Those values were used to reduce loud click/pop behavior while keeping audio usable.
-
-If Analog_Bridge is not running correctly, TGIF may log activity but you still will not hear good local audio.
+The important thing is that TGIF audio is working both ways.
 
 ---
 
-## How TGIF works in AllTune2
+# 🔊 Audio Notes
 
-TGIF is handled differently from BM and YSF.
+If audio is not working correctly, check the basics first.
 
-The TGIF path uses:
+A common recovery step is:
 
-- `api/connect.php`
-- `tgif-hblink/alltune2-hblink-audio-helper.sh`
-- `tgif-hblink/set_hblink_tg.sh`
-- `tgif-hblink/hblink.cfg`
-- `tgif-hblink/MMDVM_Bridge.hblink.ini`
-- `tgif-hblink/rules.py`
-
-When the user selects TGIF from the web UI:
-
-- the UI calls the helper
-- the helper starts or retunes HBLink
-- `set_hblink_tg.sh` updates:
-  - `rules.py`
-  - `hblink.cfg OPTIONS:`
-  - `hblink.cfg LOOSE: True`
-- the local DVSwitch/AllStar audio link is reloaded
-- TGIF audio is bridged through the local HBLink path
-
-The important design choice is that the startup TG is dynamic, not hardcoded in the public repo.
-
----
-
-## Safe public defaults
-
-These are the recommended public repo defaults.
-
-### `hblink.cfg.example`
-
-Keep this generic:
-
-```ini
-LOOSE: True
-OPTIONS:
+```bash
+sudo systemctl restart analog_bridge
 ```
 
-### `set_hblink_tg.sh`
+Also remember:
 
-This script should:
+- TGIF and BM do not use the exact same path
+- TGIF may take longer to fully come up
+- some helper services need a little time before audio is ready
 
-- force `LOOSE: True`
-- write `OPTIONS: StartRef=<TG>;RelinkTime=60`
-
-Do not hardcode:
-
-- your personal TG like `19570`
-- someone else’s preferred startup TG like `4000`
-- your real TGIF passphrase
-- your BM password
-- your node-specific live config
+So do not judge TGIF by BM speed alone.
 
 ---
 
-## Web UI path
+# ⭐ Main Features
 
-The TGIF web UI path is in:
+- one-screen control center
+- BrandMeister support
+- TGIF support
+- YSF support
+- AllStarLink support
+- EchoLink support
+- Favorites
+- manual target entry
+- status display
+- activity display
+- optional audio alerts
 
-```text
-/var/www/html/alltune2/api/connect.php
+---
+
+# ⚠️ Important Rules
+
+## Rule 1
+If you update from GitHub, always run:
+
+```bash
+sudo ./setup_alltune2.sh
 ```
 
-The working behavior is:
+## Rule 2
+Do not guess at config values.
 
-- if TGIF is already active, `tune()` is used
-- if TGIF is not active, `start()` is used
-- the local DVSwitch audio link is reloaded after TGIF start/tune
-- the UI session state is updated to show TGIF as active
+If you are not sure what a value is, stop and check before changing things.
 
-This part was already wired correctly.
+## Rule 3
+Do not start editing random files just because something does not work.
 
-The real fix was in the HBLink runtime behavior, not the basic UI call path.
-
----
-
-## Testing checklist
-
-After configuration, open the UI:
-
-```text
-http://YOUR-NODE-IP/alltune2/public/
-```
-
-Recommended tests:
-
-### BrandMeister
-- connect to BM
-- confirm audio both ways
-- retune to another TG without disconnecting first
-
-### TGIF
-- connect to TGIF from the web UI
-- confirm audio both ways on a known active TG
-- retune from the web UI to another known active TG
-- confirm `set_hblink_tg.sh` updates the runtime config correctly
-
-### YSF
-- connect to a known YSF target
-- confirm audio and clean mode switching
-
-### Mode switching
-Test switching between:
-
-- BM → TGIF
-- TGIF → BM
-- YSF → TGIF
-- TGIF → YSF
-- Disconnect DVSwitch
-- Disconnect All
-
-Do not trust logs alone. Real audio is the final test.
-
----
-
-## Security and GitHub safety
-
-Never commit live secrets.
-
-Do not track these live files with real values:
+Most of the time, the important files are only:
 
 - `config.ini`
 - `tgif-hblink/hblink.cfg`
+
+And sometimes:
+
 - `tgif-hblink/MMDVM_Bridge.hblink.ini`
-- backup files like `*.bak`
-- ad-hoc copied system configs with real secrets
-
-If secrets were ever exposed in past commits or shared files, rotate them before making the repo public again.
-
-Recommended rotations if exposed:
-
-- TGIF hotspot security key / passphrase
-- BrandMeister password or key
-- any other service credential that was copied into the repo or a shared file
-
-History cleanup helps, but rotation is still the safe move.
 
 ---
 
-## What to commit from the TGIF fix
+# 🧠 Simple Way to Think About It
 
-The minimal repo-side fix from this work is:
+If you are new to AllTune2, think of it like this:
 
-- `tgif-hblink/hblink.cfg.example`
-- `tgif-hblink/set_hblink_tg.sh`
-- `setup_alltune2.sh`
-- `.gitignore`
+- `config.ini` = your main app settings
+- `hblink.cfg` = your TGIF settings
+- `setup_alltune2.sh` = the script that puts everything in the right place
 
-Be careful not to commit:
-
-- live `hblink.cfg`
-- live `MMDVM_Bridge.hblink.ini`
-- `DVSwitch.ini` copies in the project tree
-- `dmr_utils3/` if it is only a local unpacked dependency tree and not intended as tracked source
-- temporary backup files such as:
-  - `hblink.cfg.before-step1`
-  - `set_hblink_tg.sh.before-step5`
+That is the core idea.
 
 ---
 
-## Troubleshooting notes
+# ✅ Basic First-Time Checklist
 
-### TGIF works one-way or no-way
+After install, make sure you have done this:
 
-Check these first:
-
-- `hblink.cfg` has `LOOSE: True`
-- `set_hblink_tg.sh` is writing:
-  - `OPTIONS: StartRef=<TG>;RelinkTime=60`
-- `MMDVM_Bridge.hblink.ini` still points to:
-  - `Address=127.0.0.1`
-  - `Port=62033`
-  - `Local=62032`
-  - `Password=homebrew`
-- `Analog_Bridge` is active
-- the TG you are testing is actually active
-
-### Parrot works but normal TG does not
-
-That usually means the TGIF/HBLink side is only partially working. Check `LOOSE` and dynamic `OPTIONS` first.
-
-### UI says connected but audio is wrong
-
-Verify the real backend state, not only the UI state:
-
-- helper status
-- HBLink logs
-- actual audible receive/transmit audio
+- ran `sudo ./setup_alltune2.sh`
+- edited `config.ini`
+- reviewed `tgif-hblink/hblink.cfg`
+- left advanced files alone unless needed
+- opened AllTune2 in your browser
+- tested **BrandMeister**
+- tested **TGIF**
+- tested **YSF**
+- tested **AllStarLink / EchoLink**
 
 ---
 
-## Final notes
+# ✅ Basic Update Checklist
 
-This project has several backend paths and can look simple from the browser while doing a lot underneath.
+When updating an existing system:
 
-The safest way to work on it is:
-
-- one file at a time
-- keep the original live system protected
-- make only minimal changes
-- test real audio, not just log output
+- run `git pull origin main`
+- run `sudo ./setup_alltune2.sh`
+- review your config if needed
+- test BM
+- test TGIF
+- test other modes
 
 ---
 
-## License
+# ❤️ Final Notes
 
-Provided as-is for amateur radio use.
+AllTune2 is meant to make node control easier, not harder.
+
+If you already know how painful mixed radio tools can be, the goal here is simple:
+
+**one cleaner screen, one easier workflow, less confusion.**
+
+If something seems complicated, the answer usually is not to edit more files.
+
+The answer is usually to go back to the main config, check the TGIF config, and run setup again.
+
+---
+
+# GitHub Safety
+
+This repo is set up so live/private files like local configs, backups, and runtime files should stay out of GitHub when used correctly.
+
+Still, always double-check before committing.
+
+Especially avoid uploading:
+
+- live passwords
+- live keys
+- personal config files
+- backup files
+
+---
+
+# Enjoy AllTune2
+
+Take it one step at a time.
+
+Install it.
+Set your config.
+Test BM.
+Test TGIF.
+Then enjoy having everything in one place.
