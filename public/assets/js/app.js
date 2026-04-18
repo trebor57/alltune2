@@ -1017,7 +1017,7 @@
         }
 
         if (mode === 'TGIF' && status.includes('(TGIF)')) {
-            return false;
+            return true;
         }
         
         if (mode === 'YSF' && status.includes('CONNECTED: YSF TARGET')) {
@@ -1170,8 +1170,8 @@
 
         if (mode === 'TGIF') {
             return disconnectFirst
-                ? 'TGIF is a one-step connect. Enter or load a talkgroup and press CONNECT once. Wait for the status to confirm the connection. DISCONNECT removes the current TGIF connection. DISCONNECT DVSWITCH removes only the configured DVSwitch link. DISCONNECT ALL does a full reset. With Disconnect before Connect on, the next managed DVSwitch connect clears the earlier managed DVSwitch session first.'
-                : 'TGIF is a one-step connect. Enter or load a talkgroup and press CONNECT once. Wait for the status to confirm the connection. DISCONNECT removes the current TGIF connection. DISCONNECT DVSWITCH removes only the configured DVSwitch link. DISCONNECT ALL does a full reset. With Disconnect before Connect off, TGIF can stay up while you add direct AllStarLink or EchoLink connections.';
+                ? 'TGIF is a one-step connect. Enter or load a talkgroup and press CONNECT once. Wait for the status to confirm the connection. After TGIF is connected, you can change to another TGIF talkgroup by entering or loading the new talkgroup and pressing CONNECT again without disconnecting first. DISCONNECT removes the current TGIF connection. DISCONNECT DVSWITCH removes only the configured DVSwitch link. DISCONNECT ALL does a full reset. With Disconnect before Connect on, the next managed DVSwitch connect clears the earlier managed DVSwitch session first.'
+                : 'TGIF is a one-step connect. Enter or load a talkgroup and press CONNECT once. Wait for the status to confirm the connection. After TGIF is connected, you can change to another TGIF talkgroup by entering or loading the new talkgroup and pressing CONNECT again without disconnecting first. DISCONNECT removes the current TGIF connection. DISCONNECT DVSWITCH removes only the configured DVSwitch link. DISCONNECT ALL does a full reset. With Disconnect before Connect off, TGIF can stay up while you add direct AllStarLink or EchoLink connections.';
         }
 
         if (mode === 'YSF') {

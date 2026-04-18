@@ -1,31 +1,64 @@
-# Local runtime config
+# -----------------------------
+# AllTune2 Git ignore rules
+# -----------------------------
+
+# Secrets / live local config
 config.ini
+tgif-hblink/hblink.cfg
 
-# Runtime data
-data/favorites.txt
+# Runtime-local TGIF/HBLink files
+tgif-hblink/MMDVM_Bridge.pre-hblink.ini
+tgif-hblink/rules.py
+tgif-hblink/peer_ids.json
+tgif-hblink/subscriber_ids.json
 
-# OS / editor noise
-.DS_Store
-Thumbs.db
-*~
+# Python runtime / caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+
+# TGIF/HBLink local runtime environment
+tgif-hblink/venv/
+
+# Optional upstream/dev leftovers that should not be committed
+tgif-hblink/.git/
+tgif-hblink/HBmonitor/
+
+# Logs / runtime state
+logs/
+run/
+*.log
+*.pid
+*.state
+
+# Backup / restore clutter
+*.bak
+*.bak-*
+*.beforeHBLinkInstall
+*.orig
+*.old
+*.tmp
 *.swp
 *.swo
+*~
 
-# Logs / temp
-*.log
-tmp/
-temp/
-.cache/
+# Project backup folders / drafts / scratch
+backups/
+draft/
 
-# Backup files
-*.bak
-*.old
-*.orig
-*.save
-*.BeforeLocalMonitor
-# Local backup and runtime files
-*.bak
-*.BeforeSTFU
-*.BeforeAllConnections
-*.STFU_Mod
-stfu/DVSwitch.ini
+# Editor / OS clutter
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Screenshots / local artifacts
+screenshot.png
+
+# Keep example/template configs and core source files tracked
+!config.ini.example
+!tgif-hblink/hblink.cfg.example
+!tgif-hblink/rules.py.template
+!tgif-hblink/MMDVM_Bridge.hblink.ini
+tgif-hblink/MMDVM_Bridge.hblink.ini

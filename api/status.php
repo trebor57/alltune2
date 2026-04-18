@@ -608,6 +608,61 @@ function read_bm_receive_helper_status(): array
     ];
 }
 
+
+function read_hblink_tgif_helper_status(): array
+{
+    $script = dirname(__DIR__) . '/tgif-hblink/alltune2-hblink-audio-helper.sh';
+
+    $fallback = [
+        'available' => false,
+        'ok' => false,
+        'active' => false,
+        'target' => '',
+        'message' => '',
+        'tgif_running' => false,
+        'mmdvm_bridge' => '',
+        'analog_bridge' => '',
+        'pid' => '',
+        'raw_output' => '',
+    ];
+
+    if (!is_file($script)) {
+        return $fallback;
+    }
+
+    $command = 'sudo ' . escapeshellarg($script) . ' status';
+    $output = shell_run($command);
+
+    if ($output === '') {
+        return array_merge($fallback, [
+            'available' => true,
+            'message' => 'TGIF helper returned no output.',
+        ]);
+    }
+
+    $decoded = json_decode($output, true);
+    if (!is_array($decoded)) {
+        return array_merge($fallback, [
+            'available' => true,
+            'message' => 'TGIF helper returned invalid JSON.',
+            'raw_output' => $output,
+        ]);
+    }
+
+    return [
+        'available' => true,
+        'ok' => !empty($decoded['ok']),
+        'active' => !empty($decoded['active']),
+        'target' => trim((string) ($decoded['target'] ?? '')),
+        'message' => trim((string) ($decoded['message'] ?? '')),
+        'tgif_running' => !empty($decoded['tgif_running']),
+        'mmdvm_bridge' => trim((string) ($decoded['mmdvm_bridge'] ?? '')),
+        'analog_bridge' => trim((string) ($decoded['analog_bridge'] ?? '')),
+        'pid' => trim((string) ($decoded['pid'] ?? '')),
+        'raw_output' => $output,
+    ];
+}
+
 $favorites = load_favorites_file(dirname(__DIR__) . '/data/favorites.txt');
 
 $selectedMode = normalize_mode((string) ($_SESSION['selected_mode'] ?? 'BM'));
@@ -645,6 +700,7 @@ $dvSwitchNode = $config->getString('DVSWITCH_NODE', '');
 $dvswitchLinkActive = !empty($_SESSION['dvswitch_autoloaded']) || $dmrReady || $lastMode === 'YSF';
 
 $bmReceive = read_bm_receive_helper_status();
+$hblinkTgif = read_hblink_tgif_helper_status();
 
 if ($bmReceive['active']) {
     $dmrNetwork = 'BM';
@@ -652,6 +708,20 @@ if ($bmReceive['active']) {
     $dmrActiveNetwork = 'BM';
     $dmrActiveTarget = $bmReceive['target'];
     $dvswitchLinkActive = true;
+}
+
+if ($hblinkTgif['active']) {
+    $dmrNetwork = 'TGIF';
+    $dmrReady = true;
+    $dmrActiveNetwork = 'TGIF';
+    $dmrActiveTarget = $hblinkTgif['target'];
+    $dvswitchLinkActive = true;
+    $lastMode = 'TGIF';
+    if ($hblinkTgif['target'] !== '') {
+        $lastTarget = $hblinkTgif['target'];
+        $pendingTarget = $hblinkTgif['target'];
+        $lastStatus = 'CONNECTED: TG ' . $hblinkTgif['target'] . ' (TGIF)';
+    }
 }
 
 $bmState = 'Idle';
@@ -669,7 +739,9 @@ if ($bmReceive['active'] && $bmReceive['target'] !== '') {
     $bmState = 'Preparing';
 }
 
-if ($dmrActiveNetwork === 'TGIF' && $dmrActiveTarget !== '') {
+if ($hblinkTgif['active'] && $hblinkTgif['target'] !== '') {
+    $tgifState = 'Connected: TG ' . $hblinkTgif['target'];
+} elseif ($dmrActiveNetwork === 'TGIF' && $dmrActiveTarget !== '') {
     $tgifState = 'Connected: TG ' . $dmrActiveTarget;
 } elseif ($dmrNetwork === 'TGIF' && $dmrReady && str_starts_with(strtoupper($lastStatus), 'WAITING: TGIF READY')) {
     $tgifState = 'Ready';
@@ -817,6 +889,19 @@ $payload = [
         'mmdvm_bridge' => $bmReceive['mmdvm_bridge'],
         'pid' => $bmReceive['pid'],
         'version' => $bmReceive['version'],
+    ],
+
+
+    'tgif_hblink' => [
+        'available' => $hblinkTgif['available'],
+        'ok' => $hblinkTgif['ok'],
+        'active' => $hblinkTgif['active'],
+        'target' => $hblinkTgif['target'],
+        'message' => $hblinkTgif['message'],
+        'tgif_running' => $hblinkTgif['tgif_running'],
+        'mmdvm_bridge' => $hblinkTgif['mmdvm_bridge'],
+        'analog_bridge' => $hblinkTgif['analog_bridge'],
+        'pid' => $hblinkTgif['pid'],
     ],
 
     'config' => [
