@@ -1,10 +1,9 @@
-# -----------------------------
-# AllTune2 Git ignore rules
-# -----------------------------
-
 # Secrets / live local config
 config.ini
 tgif-hblink/hblink.cfg
+DVSwitch.ini
+stfu/DVSwitch.ini
+tgif-hblink/MMDVM_Bridge.hblink.ini
 
 # Runtime-local TGIF/HBLink files
 tgif-hblink/MMDVM_Bridge.pre-hblink.ini
@@ -18,11 +17,12 @@ __pycache__/
 *$py.class
 .pytest_cache/
 .mypy_cache/
+dmr_utils3/
 
 # TGIF/HBLink local runtime environment
 tgif-hblink/venv/
 
-# Optional upstream/dev leftovers that should not be committed
+# Optional upstream/dev leftovers
 tgif-hblink/.git/
 tgif-hblink/HBmonitor/
 
@@ -36,6 +36,7 @@ run/
 # Backup / restore clutter
 *.bak
 *.bak-*
+*.before-step*
 *.beforeHBLinkInstall
 *.orig
 *.old
@@ -60,5 +61,4 @@ screenshot.png
 !config.ini.example
 !tgif-hblink/hblink.cfg.example
 !tgif-hblink/rules.py.template
-!tgif-hblink/MMDVM_Bridge.hblink.ini
-tgif-hblink/MMDVM_Bridge.hblink.ini
+!tgif-hblink/MMDVM_Bridge.hblink.ini.example
