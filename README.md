@@ -111,34 +111,6 @@ The setup script helps:
 
 ---
 
-# 🌐 OPEN ALLTUNE2 IN YOUR BROWSER
-
-Once AllTune2 is installed and configured, open it in your web browser.
-
-Example:
-
-```text
-http://192.168.1.120/alltune2/public/
-```
-
-The full path also works:
-
-```text
-http://192.168.1.120/alltune2/public/index.php
-```
-
-Replace `192.168.1.120` with the IP address or hostname of your own node.
-
-Example:
-
-```text
-http://node67040.local/alltune2/public/
-```
-
-The shorter `/public/` address is usually easier and works fine.
-
----
-
 # ✏️ FILES YOU MUST EDIT
 
 ## 1. Main Config
@@ -306,6 +278,34 @@ These files must already be working correctly on your system:
 - `/opt/Analog_Bridge/Analog_Bridge.ini`
 
 If those files are broken, AllTune2 will not work correctly.
+
+---
+
+# 🌐 OPEN ALLTUNE2 IN YOUR BROWSER
+
+Once AllTune2 is installed and configured, open it in your web browser.
+
+Example:
+
+```text
+http://192.168.1.120/alltune2/public/
+```
+
+The full path also works:
+
+```text
+http://192.168.1.120/alltune2/public/index.php
+```
+
+Replace `192.168.1.120` with the IP address or hostname of your own node.
+
+Example:
+
+```text
+http://node67040.local/alltune2/public/
+```
+
+The shorter `/public/` address is usually easier and works fine.
 
 ---
 
