@@ -1,143 +1,94 @@
-# 🔧 AllTune2
+# 🚀 AllTune2
 
-A modern, simple control panel for **AllStarLink 3 + DVSwitch**.
+## One Dashboard. All Your Networks.
 
-AllTune2 gives you one place to control:
+AllTune2 is a modern control panel for **AllStarLink 3 + DVSwitch**.
+
+It gives you one place to work with:
 
 - **BrandMeister**
 - **TGIF**
 - **YSF**
 - **AllStarLink**
 - **EchoLink**
+- **Local Monitor**
+- **Transceiver**
+- **Favorites**
+- **Live status and activity**
 
-It is built to be easier to use than the older tools, while still keeping the power needed for real radio use.
-
----
-
-# 🚀 Why Use AllTune2?
-
-With AllTune2, you can:
-
-- Connect to **BrandMeister** talkgroups
-- Connect to **TGIF** talkgroups
-- Use **YSF**
-- Connect to **AllStarLink** nodes
-- Connect to **EchoLink**
-- Save and use **Favorites**
-- Watch **live status**
-- Use one screen instead of jumping around between tools
+Simple. Clean. Powerful.
 
 ---
 
-# ⚠️ Before You Install
+# ✨ WHAT ALLTUNE2 CAN DO
 
-This project assumes your system already has:
+AllTune2 is meant to be a **one-screen radio control center**.
 
-- A working **AllStarLink 3** node
-- A working **DVSwitch** install
-- **Analog_Bridge** installed
-- **MMDVM_Bridge** installed
-- A node that already works normally before AllTune2 is added
+With it, you can:
 
-If your base node is not working yet, fix that first.
+- connect to **BrandMeister** talkgroups
+- connect to **TGIF** talkgroups
+- connect to **YSF** reflectors / rooms
+- connect to **AllStarLink** nodes
+- connect to **EchoLink** nodes
+- use **Local Monitor**
+- use **Transceiver**
+- save and use **Favorites**
+- use **manual entry**
+- watch **live status and activity**
+- use **audio alerts** if enabled
+
+Some local functions can also be used alongside BM, TGIF, or YSF operation depending on your setup and workflow.
 
 ---
 
-# 📥 First-Time Install
+# ⚠️ BEFORE YOU INSTALL
 
-## 1) Go to your web directory
+You MUST already have:
+
+- Working **AllStarLink 3 (ASL3)**
+- Working **DVSwitch**
+- **Analog_Bridge** running
+- **MMDVM_Bridge** running
+
+If your node is not already working, fix that first.
+
+AllTune2 sits on top of a working base system.  
+It is **not** meant to repair a broken base install.
+
+---
+
+# 📥 INSTALL (FIRST TIME)
+
+Use these commands only for a brand-new install:
 
 ```bash
 cd /var/www/html
-```
-
-## 2) Clone the repo
-
-```bash
 git clone https://github.com/TerryClaiborne/alltune2.git
 cd alltune2
-```
-
-## 3) Run the setup script
-
-```bash
 sudo ./setup_alltune2.sh
 ```
 
-That script does the heavy lifting for you.
+### What the setup script does
 
-It will:
+The setup script helps by:
 
-- create needed folders and files
-- prepare permissions
-- create or preserve your config files
-- set up the TGIF/HBLink helper environment
-- install Python requirements for TGIF/HBLink
-- install needed sudoers entries
-- run checks on important files
-
----
-
-# ✏️ Files You Must Review After Setup
-
-This is the part that needs to be very clear.
-
-After setup finishes, you **must review these files**.
-
-## 1) Main AllTune2 config
-
-```bash
-nano /var/www/html/alltune2/config.ini
-```
-
-This is the main file you will edit.
-
-Make sure these values are correct for **your** system:
-
-- `MYNODE`
-- `DVSWITCH_NODE`
-- `BM_SelfcarePassword`
-- `TGIF_HotspotSecurityKey`
-
-Do not leave placeholder values in this file.
+- setting permissions
+- building the TGIF / HBLink backend
+- installing requirements
+- creating config files if missing
+- preserving existing config files
+- refreshing helper files
 
 ---
 
-## 2) TGIF / HBLink config
+# 🔁 UPDATE OR REINSTALL
 
-```bash
-nano /var/www/html/alltune2/tgif-hblink/hblink.cfg
-```
+Use these commands if AllTune2 is already installed and you want to:
 
-Check:
-
-- your node number
-- your TGIF key
-- any values that are specific to your system
-
-If you do not fully understand the ports, leave them alone unless you know your system needs something different.
-
----
-
-## 3) Optional advanced file
-
-```bash
-nano /var/www/html/alltune2/tgif-hblink/MMDVM_Bridge.hblink.ini
-```
-
-Most users should **leave this alone**.
-
-Only edit this file if your system uses custom port settings or a special layout.
-
----
-
-# 🔁 Updating an Existing Install
-
-This is very important.
-
-A normal `git pull` by itself is **not enough**.
-
-After every update, do this:
+- update from GitHub
+- refresh a broken install
+- reinstall without deleting your current config
 
 ```bash
 cd /var/www/html/alltune2
@@ -145,185 +96,459 @@ git pull origin main
 sudo ./setup_alltune2.sh
 ```
 
-Why?
+## Important
 
-Because setup may need to:
+Always run `setup_alltune2.sh` after `git pull`.
+
+Do **not** stop at `git pull` by itself.
+
+The setup script helps:
 
 - refresh permissions
-- refresh sudoers files
 - refresh helper files
-- preserve and reuse your current config
-- keep the install in sync with new code
-
-So the rule is simple:
-
-> **After every pull, run setup again.**
+- keep install files in sync
+- preserve your existing config files
 
 ---
 
-# 📡 TGIF Notes (Plain English)
+# 🌐 OPEN ALLTUNE2 IN YOUR BROWSER
 
-TGIF does **not** behave exactly like BrandMeister.
+Once AllTune2 is installed and configured, open it in your web browser.
 
-BrandMeister usually feels faster.
+Example:
 
-TGIF uses the built-in **HBLink helper path**, and it can take longer to connect to a talkgroup.
+```text
+http://192.168.1.120/alltune2/public/
+```
 
-That slower connect time is normal.
+The full path also works:
 
-So when using TGIF:
+```text
+http://192.168.1.120/alltune2/public/index.php
+```
 
-1. choose TGIF
-2. enter the talkgroup
+Replace `192.168.1.120` with the IP address or hostname of your own node.
+
+Example:
+
+```text
+http://node67040.local/alltune2/public/
+```
+
+The shorter `/public/` address is usually easier and works fine.
+
+---
+
+# ✏️ FILES YOU MUST EDIT
+
+## 1. Main Config
+`/var/www/html/alltune2/config.ini`
+
+Example:
+
+```ini
+MYNODE=12345
+DVSWITCH_NODE=1999
+BM_SelfcarePassword=your_password
+TGIF_HotspotSecurityKey=your_key
+```
+
+### What these mean
+
+**MYNODE**  
+Your AllStar node number.
+
+Example:
+
+```text
+MYNODE=67040
+```
+
+**DVSWITCH_NODE**  
+Your DVSwitch node number.
+
+Most systems use `1999` or `1998`.
+
+Example:
+
+```text
+DVSWITCH_NODE=1999
+```
+
+**BM_SelfcarePassword**  
+Your BrandMeister SelfCare password.
+
+**TGIF_HotspotSecurityKey**  
+Your TGIF Hotspot Security Key.
+
+This is **NOT** your TGIF website login password.
+
+---
+
+## 2. TGIF Config
+`/var/www/html/alltune2/tgif-hblink/hblink.cfg`
+
+Look in the `[REPEATER-1]` section.
+
+Example:
+
+```ini
+PASSPHRASE: your_tgif_key
+CALLSIGN: YOURCALL
+RADIO_ID: 330000812
+OPTIONS: StartRef=19750;RelinkTime=60
+```
+
+### What these mean
+
+**PASSPHRASE**  
+Your TGIF Hotspot Security Key.
+
+This is **NOT** your TGIF login password.
+
+**CALLSIGN**  
+Your ham callsign.
+
+Example:
+
+```text
+CALLSIGN: KC3KMV
+```
+
+**RADIO_ID**  
+Your **DMR / BrandMeister Hotspot ID + 1**
+
+This part is very important.
+
+Real example:
+
+```text
+Your hotspot ID: 330000811
+Use:             330000812
+```
+
+Another example:
+
+```text
+Your hotspot ID: 3101234
+Use:             3101235
+```
+
+Do **NOT** use your original hotspot ID unchanged.
+
+**OPTIONS**  
+Optional startup TGIF talkgroup.
+
+Example:
+
+```text
+StartRef=19750;RelinkTime=60
+```
+
+If you want TGIF to start on a certain talkgroup, that is where you set it.
+
+---
+
+## 3. Review This File
+`/var/www/html/alltune2/tgif-hblink/MMDVM_Bridge.hblink.ini`
+
+Example:
+
+```ini
+Callsign=YOURCALL
+Id=330000812
+```
+
+### What these mean
+
+**Callsign**  
+Your ham callsign.
+
+Example:
+
+```text
+Callsign=KC3KMV
+```
+
+**Id**  
+Your **DMR / BrandMeister Hotspot ID + 1**
+
+Real example:
+
+```text
+Your hotspot ID: 330000811
+Use:             330000812
+```
+
+Do **NOT** use your original hotspot ID unchanged.
+
+### Optional values
+
+Most users can leave these as `0`:
+
+```ini
+RXFrequency=0
+TXFrequency=0
+```
+
+These only matter if you run a repeater.
+
+If you do **not** run a repeater, leaving them at `0` is fine and has no effect on normal operation.
+
+---
+
+# 🚫 DO NOT EDIT THESE UNLESS YOU ALREADY KNOW WHY
+
+These files must already be working correctly on your system:
+
+- `/opt/MMDVM_Bridge/DVSwitch.ini`
+- `/opt/MMDVM_Bridge/MMDVM_Bridge.ini`
+- `/opt/Analog_Bridge/Analog_Bridge.ini`
+
+If those files are broken, AllTune2 will not work correctly.
+
+---
+
+# 🖥️ HOW TO USE ALLTUNE2
+
+Once AllTune2 is installed and configured, open it in your browser and use the control center.
+
+Basic idea:
+
+1. choose the network or mode
+2. enter a target or choose a Favorite
 3. press **Connect**
-4. wait a little longer than you would for BM
-
-If BM feels quick and TGIF feels slower, that is expected.
-
-The important thing is that TGIF audio is working both ways.
+4. watch the status / activity area
+5. press **Disconnect** when done
 
 ---
 
-# 🔊 Audio Notes
+# 🔵 BRANDMEISTER
 
-If audio is not working correctly, check the basics first.
+Use BrandMeister when you want to connect to a BM talkgroup.
 
-A common recovery step is:
+### Typical BM workflow
+
+1. choose **BrandMeister**
+2. enter the talkgroup number
+3. press **Connect**
+4. wait for the status to show the connection
+5. use **Disconnect** when you want to leave
+
+### BM talkgroup changes
+
+BrandMeister is usually one of the faster paths.
+
+If you want to change from one BM talkgroup to another:
+
+1. enter the new talkgroup
+2. press **Connect** again
+
+---
+
+# 🟢 TGIF
+
+Use TGIF when you want to connect to a TGIF talkgroup.
+
+### Typical TGIF workflow
+
+1. choose **TGIF**
+2. enter the talkgroup number
+3. press **Connect**
+4. wait for the TGIF path to come up
+5. watch status / activity for confirmation
+6. use **Disconnect** when finished
+
+### Important TGIF note
+
+TGIF may take a little longer to connect than BrandMeister.
+
+That is normal.
+
+---
+
+# 🟡 YSF
+
+Use YSF when you want to connect to a YSF room or reflector.
+
+### Typical YSF workflow
+
+1. choose **YSF**
+2. enter the YSF target you want
+3. press **Connect**
+4. watch the status area
+5. use **Disconnect** when done
+
+---
+
+# 🔴 ALLSTARLINK
+
+Use AllStarLink when you want to work with AllStar nodes directly.
+
+### Typical AllStarLink workflow
+
+1. choose **AllStarLink**
+2. enter the node number you want
+3. press **Connect**
+4. watch the live status / activity
+5. disconnect when finished
+
+AllStarLink mode is useful for:
+
+- direct node linking
+- node monitoring
+- local AllStar activity
+
+---
+
+# 🟣 ECHOLINK
+
+Use EchoLink when you want to connect to an EchoLink node.
+
+### Typical EchoLink workflow
+
+1. choose **EchoLink**
+2. enter the EchoLink node number
+3. press **Connect**
+4. watch status for confirmation
+5. disconnect when done
+
+---
+
+# 🎧 LOCAL MONITOR
+
+Local Monitor is there for local monitoring use.
+
+That means it can be used when you want to:
+
+- listen locally
+- monitor what is happening on the node
+- work in a more local / direct way
+
+---
+
+# 🎙️ TRANSCEIVER
+
+Transceiver mode is there for direct radio-side operation.
+
+In simple terms:
+
+- **Local Monitor** is for local listening / monitoring
+- **Transceiver** is for direct local radio operation
+
+These are local functions, not just network destination fields.
+
+---
+
+# ⭐ FAVORITES
+
+Favorites help save time.
+
+Use Favorites when you have:
+
+- a BM talkgroup you use often
+- a TGIF talkgroup you use often
+- a YSF room you use often
+- an AllStarLink node you use often
+- an EchoLink target you use often
+
+### Typical Favorites workflow
+
+1. choose a Favorite
+2. let it load the target / mode
+3. press **Connect**
+
+---
+
+# 📝 MANUAL ENTRY
+
+Manual entry is there when you want to type something directly instead of using a saved Favorite.
+
+That is useful when:
+
+- you are testing
+- you are trying a one-time target
+- you do not want to save it yet
+
+---
+
+# 📊 STATUS AND ACTIVITY
+
+The status and activity areas help you see:
+
+- what mode you are in
+- whether you are connected
+- which target is active
+- local / node activity
+- changes as they happen
+
+---
+
+# 🔊 AUDIO ALERTS
+
+Audio alerts can help you notice:
+
+- connects
+- disconnects
+- activity changes
+
+If you use them, they can make monitoring easier.
+
+---
+
+# 🔧 TROUBLESHOOTING BASICS
+
+## If audio stops
+
+Try:
 
 ```bash
 sudo systemctl restart analog_bridge
 ```
 
-Also remember:
+## If you updated from GitHub
 
-- TGIF and BM do not use the exact same path
-- TGIF may take longer to fully come up
-- some helper services need a little time before audio is ready
-
-So do not judge TGIF by BM speed alone.
-
----
-
-# ⭐ Main Features
-
-- one-screen control center
-- BrandMeister support
-- TGIF support
-- YSF support
-- AllStarLink support
-- EchoLink support
-- Favorites
-- manual target entry
-- status display
-- activity display
-- optional audio alerts
-
----
-
-# ⚠️ Important Rules
-
-## Rule 1
-If you update from GitHub, always run:
+Always run:
 
 ```bash
+cd /var/www/html/alltune2
+git pull origin main
 sudo ./setup_alltune2.sh
 ```
 
-## Rule 2
-Do not guess at config values.
+## If something still looks wrong
 
-If you are not sure what a value is, stop and check before changing things.
+Check these first:
 
-## Rule 3
-Do not start editing random files just because something does not work.
+- `/var/www/html/alltune2/config.ini`
+- `/var/www/html/alltune2/tgif-hblink/hblink.cfg`
+- `/var/www/html/alltune2/tgif-hblink/MMDVM_Bridge.hblink.ini`
 
-Most of the time, the important files are only:
-
-- `config.ini`
-- `tgif-hblink/hblink.cfg`
-
-And sometimes:
-
-- `tgif-hblink/MMDVM_Bridge.hblink.ini`
+Do **not** guess values.
 
 ---
 
-# 🧠 Simple Way to Think About It
+# 🧠 SIMPLE RULES
 
-If you are new to AllTune2, think of it like this:
+### Edit these:
+- `/var/www/html/alltune2/config.ini`
+- `/var/www/html/alltune2/tgif-hblink/hblink.cfg`
 
-- `config.ini` = your main app settings
-- `hblink.cfg` = your TGIF settings
-- `setup_alltune2.sh` = the script that puts everything in the right place
+### Review this:
+- `/var/www/html/alltune2/tgif-hblink/MMDVM_Bridge.hblink.ini`
 
-That is the core idea.
+### Leave these alone unless you already know why:
+- `/opt/MMDVM_Bridge/DVSwitch.ini`
+- `/opt/MMDVM_Bridge/MMDVM_Bridge.ini`
+- `/opt/Analog_Bridge/Analog_Bridge.ini`
 
----
-
-# ✅ Basic First-Time Checklist
-
-After install, make sure you have done this:
-
-- ran `sudo ./setup_alltune2.sh`
-- edited `config.ini`
-- reviewed `tgif-hblink/hblink.cfg`
-- left advanced files alone unless needed
-- opened AllTune2 in your browser
-- tested **BrandMeister**
-- tested **TGIF**
-- tested **YSF**
-- tested **AllStarLink / EchoLink**
+### And remember:
+- do not guess values
+- do not stop at `git pull`
+- always run `sudo ./setup_alltune2.sh` after updating
 
 ---
 
-# ✅ Basic Update Checklist
+# ✅ DONE
 
-When updating an existing system:
-
-- run `git pull origin main`
-- run `sudo ./setup_alltune2.sh`
-- review your config if needed
-- test BM
-- test TGIF
-- test other modes
-
----
-
-# ❤️ Final Notes
-
-AllTune2 is meant to make node control easier, not harder.
-
-If you already know how painful mixed radio tools can be, the goal here is simple:
-
-**one cleaner screen, one easier workflow, less confusion.**
-
-If something seems complicated, the answer usually is not to edit more files.
-
-The answer is usually to go back to the main config, check the TGIF config, and run setup again.
-
----
-
-# GitHub Safety
-
-This repo is set up so live/private files like local configs, backups, and runtime files should stay out of GitHub when used correctly.
-
-Still, always double-check before committing.
-
-Especially avoid uploading:
-
-- live passwords
-- live keys
-- personal config files
-- backup files
-
----
-
-# Enjoy AllTune2
-
-Take it one step at a time.
-
-Install it.
-Set your config.
-Test BM.
-Test TGIF.
-Then enjoy having everything in one place.
+Install → Configure → Open in browser → Connect → Enjoy
