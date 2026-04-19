@@ -299,12 +299,6 @@ http://192.168.1.120/alltune2/public/index.php
 
 Replace `192.168.1.120` with the IP address or hostname of your own node.
 
-Example:
-
-```text
-http://node67040.local/alltune2/public/
-```
-
 The shorter `/public/` address is usually easier and works fine.
 
 ---
