@@ -6,59 +6,53 @@ AllTune2 is a modern control panel for **AllStarLink 3 + DVSwitch**.
 
 It gives you one place to work with:
 
-- **BrandMeister**
-- **TGIF**
-- **YSF**
-- **AllStarLink**
-- **EchoLink**
-- **Local Monitor**
-- **Transceiver**
-- **Favorites**
-- **Live status and activity**
+- BrandMeister
+- TGIF
+- YSF
+- AllStarLink
+- EchoLink
+- Local Monitor
+- Transceiver
+- Favorites
+- Live status and activity
 
 Simple. Clean. Powerful.
 
----
+## ✨ WHAT ALLTUNE2 CAN DO
 
-# ✨ WHAT ALLTUNE2 CAN DO
-
-AllTune2 is meant to be a **one-screen radio control center**.
+AllTune2 is meant to be a one-screen radio control center.
 
 With it, you can:
 
-- connect to **BrandMeister** talkgroups
-- connect to **TGIF** talkgroups
-- connect to **YSF** reflectors / rooms
-- connect to **AllStarLink** nodes
-- connect to **EchoLink** nodes
-- use **Local Monitor**
-- use **Transceiver**
-- save and use **Favorites**
-- use **manual entry**
-- watch **live status and activity**
-- use **audio alerts** if enabled
+- connect to BrandMeister talkgroups
+- connect to TGIF talkgroups
+- connect to YSF reflectors / rooms
+- connect to AllStarLink nodes
+- connect to EchoLink nodes
+- use Local Monitor
+- use Transceiver
+- save and use Favorites
+- use manual entry
+- watch live status and activity
+- use audio alerts if enabled
 
 Some local functions can also be used alongside BM, TGIF, or YSF operation depending on your setup and workflow.
 
----
-
-# ⚠️ BEFORE YOU INSTALL
+## ⚠️ BEFORE YOU INSTALL
 
 You MUST already have:
 
-- Working **AllStarLink 3 (ASL3)**
-- Working **DVSwitch**
-- **Analog_Bridge** running
-- **MMDVM_Bridge** running
+- Working AllStarLink 3 (ASL3)
+- Working DVSwitch
+- Analog_Bridge running
+- MMDVM_Bridge running
 
 If your node is not already working, fix that first.
 
 AllTune2 sits on top of a working base system.  
-It is **not** meant to repair a broken base install.
+It is not meant to repair a broken base install.
 
----
-
-# 📥 INSTALL (FIRST TIME)
+## 📥 INSTALL (FIRST TIME)
 
 Use these commands only for a brand-new install:
 
@@ -80,9 +74,7 @@ The setup script helps by:
 - preserving existing config files
 - refreshing helper files
 
----
-
-# 🔁 UPDATE OR REINSTALL
+## 🔁 UPDATE OR REINSTALL
 
 Use these commands if AllTune2 is already installed and you want to:
 
@@ -96,11 +88,11 @@ git pull origin main
 sudo ./setup_alltune2.sh
 ```
 
-## Important
+### Important
 
 Always run `setup_alltune2.sh` after `git pull`.
 
-Do **not** stop at `git pull` by itself.
+Do not stop at `git pull` by itself.
 
 The setup script helps:
 
@@ -109,11 +101,10 @@ The setup script helps:
 - keep install files in sync
 - preserve your existing config files
 
----
+## ✏️ FILES YOU MUST EDIT
 
-# ✏️ FILES YOU MUST EDIT
+### 1. Main Config
 
-## 1. Main Config
 `/var/www/html/alltune2/config.ini`
 
 Example:
@@ -125,7 +116,7 @@ BM_SelfcarePassword=your_password
 TGIF_HotspotSecurityKey=your_key
 ```
 
-### What these mean
+#### What these mean
 
 **MYNODE**  
 Your AllStar node number.
@@ -155,9 +146,8 @@ Your TGIF Hotspot Security Key.
 
 This is **NOT** your TGIF website login password.
 
----
+### 2. TGIF Config
 
-## 2. TGIF Config
 `/var/www/html/alltune2/tgif-hblink/hblink.cfg`
 
 Look in the `[REPEATER-1]` section.
@@ -171,7 +161,7 @@ RADIO_ID: 330000812
 OPTIONS: StartRef=19750;RelinkTime=60
 ```
 
-### What these mean
+#### What these mean
 
 **PASSPHRASE**  
 Your TGIF Hotspot Security Key.
@@ -188,7 +178,7 @@ CALLSIGN: KC3KMV
 ```
 
 **RADIO_ID**  
-Your **DMR / BrandMeister Hotspot ID + 1**
+Your DMR / BrandMeister Hotspot ID + 1
 
 This part is very important.
 
@@ -219,9 +209,8 @@ StartRef=19750;RelinkTime=60
 
 If you want TGIF to start on a certain talkgroup, that is where you set it.
 
----
+### 3. Review This File
 
-## 3. Review This File
 `/var/www/html/alltune2/tgif-hblink/MMDVM_Bridge.hblink.ini`
 
 Example:
@@ -231,7 +220,7 @@ Callsign=YOURCALL
 Id=330000812
 ```
 
-### What these mean
+#### What these mean
 
 **Callsign**  
 Your ham callsign.
@@ -243,7 +232,7 @@ Callsign=KC3KMV
 ```
 
 **Id**  
-Your **DMR / BrandMeister Hotspot ID + 1**
+Your DMR / BrandMeister Hotspot ID + 1
 
 Real example:
 
@@ -254,7 +243,7 @@ Use:             330000812
 
 Do **NOT** use your original hotspot ID unchanged.
 
-### Optional values
+#### Optional values
 
 Most users can leave these as `0`:
 
@@ -265,11 +254,9 @@ TXFrequency=0
 
 These only matter if you run a repeater.
 
-If you do **not** run a repeater, leaving them at `0` is fine and has no effect on normal operation.
+If you do not run a repeater, leaving them at `0` is fine and has no effect on normal operation.
 
----
-
-# 🚫 DO NOT EDIT THESE UNLESS YOU ALREADY KNOW WHY
+## 🚫 DO NOT EDIT THESE UNLESS YOU ALREADY KNOW WHY
 
 These files must already be working correctly on your system:
 
@@ -279,9 +266,7 @@ These files must already be working correctly on your system:
 
 If those files are broken, AllTune2 will not work correctly.
 
----
-
-# 🌐 OPEN ALLTUNE2 IN YOUR BROWSER
+## 🌐 OPEN ALLTUNE2 IN YOUR BROWSER
 
 Once AllTune2 is installed and configured, open it in your web browser.
 
@@ -301,33 +286,29 @@ Replace `192.168.1.120` with the IP address or hostname of your own node.
 
 The shorter `/public/` address is usually easier and works fine.
 
----
-
-# 🖥️ HOW TO USE ALLTUNE2
+## 🖥️ HOW TO USE ALLTUNE2
 
 Once AllTune2 is installed and configured, open it in your browser and use the control center.
 
 Basic idea:
 
-1. choose the network or mode
-2. enter a target or choose a Favorite
-3. press **Connect**
-4. watch the status / activity area
-5. press **Disconnect** when done
+- choose the network or mode
+- enter a target or choose a Favorite
+- press Connect
+- watch the status / activity area
+- press Disconnect when done
 
----
-
-# 🔵 BRANDMEISTER
+## 🔵 BRANDMEISTER
 
 Use BrandMeister when you want to connect to a BM talkgroup.
 
 ### Typical BM workflow
 
-1. choose **BrandMeister**
-2. enter the talkgroup number
-3. press **Connect**
-4. wait for the status to show the connection
-5. use **Disconnect** when you want to leave
+- choose BrandMeister
+- enter the talkgroup number
+- press Connect
+- wait for the status to show the connection
+- use Disconnect when you want to leave
 
 ### BM talkgroup changes
 
@@ -335,23 +316,21 @@ BrandMeister is usually one of the faster paths.
 
 If you want to change from one BM talkgroup to another:
 
-1. enter the new talkgroup
-2. press **Connect** again
+- enter the new talkgroup
+- press Connect again
 
----
-
-# 🟢 TGIF
+## 🟢 TGIF
 
 Use TGIF when you want to connect to a TGIF talkgroup.
 
 ### Typical TGIF workflow
 
-1. choose **TGIF**
-2. enter the talkgroup number
-3. press **Connect**
-4. wait for the TGIF path to come up
-5. watch status / activity for confirmation
-6. use **Disconnect** when finished
+- choose TGIF
+- enter the talkgroup number
+- press Connect
+- wait for the TGIF path to come up
+- watch status / activity for confirmation
+- use Disconnect when finished
 
 ### Important TGIF note
 
@@ -359,33 +338,31 @@ TGIF may take a little longer to connect than BrandMeister.
 
 That is normal.
 
----
+You can also stay connected to BM, TGIF, or YSF and add AllStarLink nodes or EchoLink nodes using Transceive or Local Monitor, depending on your setup and workflow.
 
-# 🟡 YSF
+## 🟡 YSF
 
 Use YSF when you want to connect to a YSF room or reflector.
 
 ### Typical YSF workflow
 
-1. choose **YSF**
-2. enter the YSF target you want
-3. press **Connect**
-4. watch the status area
-5. use **Disconnect** when done
+- choose YSF
+- enter the YSF target you want
+- press Connect
+- watch the status area
+- use Disconnect when done
 
----
-
-# 🔴 ALLSTARLINK
+## 🔴 ALLSTARLINK
 
 Use AllStarLink when you want to work with AllStar nodes directly.
 
 ### Typical AllStarLink workflow
 
-1. choose **AllStarLink**
-2. enter the node number you want
-3. press **Connect**
-4. watch the live status / activity
-5. disconnect when finished
+- choose AllStarLink
+- enter the node number you want
+- press Connect
+- watch the live status / activity
+- disconnect when finished
 
 AllStarLink mode is useful for:
 
@@ -393,23 +370,19 @@ AllStarLink mode is useful for:
 - node monitoring
 - local AllStar activity
 
----
-
-# 🟣 ECHOLINK
+## 🟣 ECHOLINK
 
 Use EchoLink when you want to connect to an EchoLink node.
 
 ### Typical EchoLink workflow
 
-1. choose **EchoLink**
-2. enter the EchoLink node number
-3. press **Connect**
-4. watch status for confirmation
-5. disconnect when done
+- choose EchoLink
+- enter the EchoLink node number
+- press Connect
+- watch status for confirmation
+- disconnect when done
 
----
-
-# 🎧 LOCAL MONITOR
+## 🎧 LOCAL MONITOR
 
 Local Monitor is there for local monitoring use.
 
@@ -419,22 +392,18 @@ That means it can be used when you want to:
 - monitor what is happening on the node
 - work in a more local / direct way
 
----
-
-# 🎙️ TRANSCEIVER
+## 🎙️ TRANSCEIVER
 
 Transceiver mode is there for direct radio-side operation.
 
 In simple terms:
 
-- **Local Monitor** is for local listening / monitoring
-- **Transceiver** is for direct local radio operation
+- Local Monitor is for local listening / monitoring
+- Transceiver is for direct local radio operation
 
 These are local functions, not just network destination fields.
 
----
-
-# ⭐ FAVORITES
+## ⭐ FAVORITES
 
 Favorites help save time.
 
@@ -448,13 +417,11 @@ Use Favorites when you have:
 
 ### Typical Favorites workflow
 
-1. choose a Favorite
-2. let it load the target / mode
-3. press **Connect**
+- choose a Favorite
+- let it load the target / mode
+- press Connect
 
----
-
-# 📝 MANUAL ENTRY
+## 📝 MANUAL ENTRY
 
 Manual entry is there when you want to type something directly instead of using a saved Favorite.
 
@@ -464,9 +431,7 @@ That is useful when:
 - you are trying a one-time target
 - you do not want to save it yet
 
----
-
-# 📊 STATUS AND ACTIVITY
+## 📊 STATUS AND ACTIVITY
 
 The status and activity areas help you see:
 
@@ -476,9 +441,7 @@ The status and activity areas help you see:
 - local / node activity
 - changes as they happen
 
----
-
-# 🔊 AUDIO ALERTS
+## 🔊 AUDIO ALERTS
 
 Audio alerts can help you notice:
 
@@ -488,11 +451,9 @@ Audio alerts can help you notice:
 
 If you use them, they can make monitoring easier.
 
----
+## 🔧 TROUBLESHOOTING BASICS
 
-# 🔧 TROUBLESHOOTING BASICS
-
-## If audio stops
+### If audio stops
 
 Try:
 
@@ -500,7 +461,7 @@ Try:
 sudo systemctl restart analog_bridge
 ```
 
-## If you updated from GitHub
+### If you updated from GitHub
 
 Always run:
 
@@ -510,7 +471,7 @@ git pull origin main
 sudo ./setup_alltune2.sh
 ```
 
-## If something still looks wrong
+### If something still looks wrong
 
 Check these first:
 
@@ -518,31 +479,48 @@ Check these first:
 - `/var/www/html/alltune2/tgif-hblink/hblink.cfg`
 - `/var/www/html/alltune2/tgif-hblink/MMDVM_Bridge.hblink.ini`
 
-Do **not** guess values.
+Do not guess values.
 
----
-
-# 🧠 SIMPLE RULES
+## 🧠 SIMPLE RULES
 
 ### Edit these:
+
 - `/var/www/html/alltune2/config.ini`
 - `/var/www/html/alltune2/tgif-hblink/hblink.cfg`
 
 ### Review this:
+
 - `/var/www/html/alltune2/tgif-hblink/MMDVM_Bridge.hblink.ini`
 
 ### Leave these alone unless you already know why:
+
 - `/opt/MMDVM_Bridge/DVSwitch.ini`
 - `/opt/MMDVM_Bridge/MMDVM_Bridge.ini`
 - `/opt/Analog_Bridge/Analog_Bridge.ini`
 
 ### And remember:
+
 - do not guess values
 - do not stop at `git pull`
 - always run `sudo ./setup_alltune2.sh` after updating
 
----
-
-# ✅ DONE
+## ✅ DONE
 
 Install → Configure → Open in browser → Connect → Enjoy
+
+---
+
+## ⚠️ IMPORTANT UPDATE
+
+If you installed or updated AllTune2 recently, run:
+
+```bash
+cd /var/www/html/alltune2
+git pull origin main
+sudo ./setup_alltune2.sh
+```
+
+This update fixes:
+
+- TGIF talkgroup switching reliability
+- missing `MMDVM_Bridge.hblink.ini` handling in setup
