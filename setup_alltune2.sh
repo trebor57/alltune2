@@ -31,6 +31,7 @@ TGIF_HBLINK_CFG_EXAMPLE="$TGIF_DIR/hblink.cfg.example"
 TGIF_RULES_TEMPLATE="$TGIF_DIR/rules.py.template"
 TGIF_RULES_FILE="$TGIF_DIR/rules.py"
 TGIF_MMDVM_HBLINK_INI="$TGIF_DIR/MMDVM_Bridge.hblink.ini"
+TGIF_MMDVM_HBLINK_INI_EXAMPLE="$TGIF_DIR/MMDVM_Bridge.hblink.ini.example"
 TGIF_MMDVM_PRE_HBLINK_INI="$TGIF_DIR/MMDVM_Bridge.pre-hblink.ini"
 TGIF_REQUIREMENTS="$TGIF_DIR/requirements.txt"
 TGIF_VENV_DIR="$TGIF_DIR/venv"
@@ -246,6 +247,22 @@ create_tgif_hblink_cfg_if_missing() {
     chown root:"$WEB_GROUP" "$TGIF_HBLINK_CFG"
 }
 
+
+create_tgif_mmdvm_hblink_ini_if_missing() {
+    if [[ -f "$TGIF_MMDVM_HBLINK_INI" ]]; then
+        log "Live MMDVM_Bridge.hblink.ini already exists. Preserving current values."
+    elif [[ -f "$TGIF_MMDVM_HBLINK_INI_EXAMPLE" ]]; then
+        log "Creating starter MMDVM_Bridge.hblink.ini from MMDVM_Bridge.hblink.ini.example..."
+        cp -f "$TGIF_MMDVM_HBLINK_INI_EXAMPLE" "$TGIF_MMDVM_HBLINK_INI"
+        warn "Created $TGIF_MMDVM_HBLINK_INI with placeholder/example values. Review it before using TGIF/HBLink."
+    else
+        fail "Neither $TGIF_MMDVM_HBLINK_INI nor $TGIF_MMDVM_HBLINK_INI_EXAMPLE exists."
+    fi
+
+    chmod 0640 "$TGIF_MMDVM_HBLINK_INI"
+    chown root:"$WEB_GROUP" "$TGIF_MMDVM_HBLINK_INI"
+}
+
 check_required_repo_files() {
     log "Checking required repo files..."
 
@@ -273,7 +290,7 @@ check_required_repo_files() {
         "$TGIF_DIR/const.py"
         "$TGIF_DIR/log.py"
         "$TGIF_DIR/reporting_const.py"
-        "$TGIF_MMDVM_HBLINK_INI"
+        "$TGIF_MMDVM_HBLINK_INI_EXAMPLE"
         "$TGIF_RULES_TEMPLATE"
         "$TGIF_REQUIREMENTS"
     )
@@ -452,6 +469,14 @@ set_permissions() {
 
     chmod 0644 "$TGIF_HBLINK_CFG_EXAMPLE"
     chown root:root "$TGIF_HBLINK_CFG_EXAMPLE"
+
+    chmod 0640 "$TGIF_MMDVM_HBLINK_INI"
+    chown root:"$WEB_GROUP" "$TGIF_MMDVM_HBLINK_INI"
+
+    if [[ -f "$TGIF_MMDVM_HBLINK_INI_EXAMPLE" ]]; then
+        chmod 0644 "$TGIF_MMDVM_HBLINK_INI_EXAMPLE"
+        chown root:root "$TGIF_MMDVM_HBLINK_INI_EXAMPLE"
+    fi
 
     if [[ -d "$TGIF_VENV_DIR" ]]; then
         chown -R root:root "$TGIF_VENV_DIR"
@@ -677,6 +702,7 @@ show_summary() {
     echo "TGIF cfg example:     $TGIF_HBLINK_CFG_EXAMPLE"
     echo "TGIF venv:            $TGIF_VENV_DIR"
     echo "TGIF restore ini:     $TGIF_MMDVM_PRE_HBLINK_INI"
+    echo "TGIF MMDVM example:   $TGIF_MMDVM_HBLINK_INI_EXAMPLE"
     echo "Web user/group:       $WEB_USER:$WEB_GROUP"
     echo "Asterisk sudoers:     $ASTERISK_SUDOERS_FILE"
     echo "BM helper sudoers:    $BM_RECEIVE_SUDOERS_FILE"
@@ -685,6 +711,7 @@ show_summary() {
 
     echo "Notes:"
     echo "- Existing config.ini, favorites.txt, hblink.cfg, and MMDVM_Bridge.pre-hblink.ini are preserved."
+    echo "- If MMDVM_Bridge.hblink.ini is missing, setup creates it from the repo example file."
     echo "- BM is one-step and uses the AllTune2-local BM receive helper."
     echo "- TGIF uses the AllTune2-local HBLink helper and Python venv."
     echo "- The installer does not overwrite /opt/MMDVM_Bridge/MMDVM_Bridge.ini, /opt/MMDVM_Bridge/DVSwitch.ini, or /opt/Analog_Bridge/Analog_Bridge.ini."
@@ -716,6 +743,7 @@ main() {
     create_favorites_if_missing
     create_tgif_hblink_cfg_example
     create_tgif_hblink_cfg_if_missing
+    create_tgif_mmdvm_hblink_ini_if_missing
     check_required_repo_files
     check_optional_files
     check_dvswitch_dependencies
