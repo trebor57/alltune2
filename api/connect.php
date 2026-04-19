@@ -1179,9 +1179,17 @@ if ($action === 'connect') {
             }
         }
 
-        $tgifResult = hblink_tgif_is_active()
-            ? hblink_tgif_tune($connectTarget)
-            : hblink_tgif_start($connectTarget);
+        if (hblink_tgif_is_active()) {
+            $tgifStop = hblink_tgif_stop();
+            pause_seconds(0.5);
+
+            if (empty($tgifStop['ok'])) {
+                $_SESSION['last_status'] = 'ERROR: FAILED TO STOP TGIF HBLINK';
+                respond(session_payload($_SESSION['last_status'], ['tgif_hblink' => $tgifStop]), 500);
+            }
+        }
+
+        $tgifResult = hblink_tgif_start($connectTarget);
 
         if (empty($tgifResult['ok'])) {
             $tgifStatus = hblink_tgif_status();
