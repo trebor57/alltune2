@@ -2,6 +2,8 @@
 
 ## One Dashboard. All Your Networks.
 
+✅ Runs on Debian 12 (Bookworm) and Debian 13 (Trixie)
+
 AllTune2 is a modern control panel for **AllStarLink 3 + DVSwitch**.
 
 It gives you one place to work with:
