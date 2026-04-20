@@ -2,7 +2,7 @@
 
 ## One Dashboard. All Your Networks.
 
-✅ Runs on Debian 12 (Bookworm) and Debian 13 (Trixie)
+✅ Optimized for Debian 12 & 13 on 64-bit ARM (Raspberry Pi 3, 4, 5)
 
 AllTune2 is a modern control panel for **AllStarLink 3 + DVSwitch**.
 
