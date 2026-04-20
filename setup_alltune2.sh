@@ -37,9 +37,11 @@ TGIF_REQUIREMENTS="$TGIF_DIR/requirements.txt"
 TGIF_VENV_DIR="$TGIF_DIR/venv"
 TGIF_VENV_PYTHON="$TGIF_VENV_DIR/bin/python"
 TGIF_VENV_PIP="$TGIF_VENV_DIR/bin/pip"
+TGIF_REQUIREMENTS_STATE_FILE="$TGIF_VENV_DIR/.alltune2_requirements.sha256"
 
 WEB_USER="www-data"
 WEB_GROUP="www-data"
+INSTALLER_MODE="${INSTALLER_MODE:-quiet}"
 
 ASTERISK_BIN="/usr/sbin/asterisk"
 DVSWITCH_SH="/opt/MMDVM_Bridge/dvswitch.sh"
@@ -55,8 +57,23 @@ EXPECTED_ASTERISK_SUDOERS_RULE="${WEB_USER} ALL=(root) NOPASSWD: ${ASTERISK_BIN}
 EXPECTED_BM_RECEIVE_SUDOERS_RULE="${WEB_USER} ALL=(root) NOPASSWD: ${BM_RECEIVE_HELPER}"
 EXPECTED_TGIF_HELPER_SUDOERS_RULE="${WEB_USER} ALL=(root) NOPASSWD: ${TGIF_HELPER}"
 
+validate_installer_mode() {
+    case "$INSTALLER_MODE" in
+        quiet|verbose) ;;
+        *)
+            fail "INSTALLER_MODE must be 'quiet' or 'verbose'."
+            ;;
+    esac
+}
+
 log() {
-    echo "[INFO] $*"
+    if [[ "$INSTALLER_MODE" == "verbose" ]]; then
+        echo "[INFO] $*"
+    fi
+}
+
+step() {
+    echo "[STEP] $*"
 }
 
 warn() {
@@ -172,8 +189,7 @@ EOF
 
 create_tgif_hblink_cfg_example() {
     if [[ -f "$TGIF_HBLINK_CFG_EXAMPLE" ]]; then
-        log "hblink.cfg.example already exists."
-        sed -i '/^\[REPEATER-1\]/,/^\[/ s/^LOOSE: False/LOOSE: True/' "$TGIF_HBLINK_CFG_EXAMPLE"
+        log "hblink.cfg.example already exists. Preserving repo example file."
         chmod 0644 "$TGIF_HBLINK_CFG_EXAMPLE"
         chown root:root "$TGIF_HBLINK_CFG_EXAMPLE"
         return
@@ -246,7 +262,6 @@ create_tgif_hblink_cfg_if_missing() {
     chmod 0640 "$TGIF_HBLINK_CFG"
     chown root:"$WEB_GROUP" "$TGIF_HBLINK_CFG"
 }
-
 
 create_tgif_mmdvm_hblink_ini_if_missing() {
     if [[ -f "$TGIF_MMDVM_HBLINK_INI" ]]; then
@@ -348,11 +363,9 @@ check_dvswitch_dependencies() {
 check_helper_local_paths() {
     log "Checking BM receive helper local paths..."
 
-    grep -q '^STFU_DIR="/var/www/html/alltune2/stfu"$' "$BM_RECEIVE_HELPER" \
-        || fail "alltune2-bm-receive.sh is not pointed at the AllTune2-local STFU directory."
+    grep -q '^STFU_DIR="/var/www/html/alltune2/stfu"$' "$BM_RECEIVE_HELPER"         || fail "alltune2-bm-receive.sh is not pointed at the AllTune2-local STFU directory."
 
-    grep -q '^STFU_BIN="/var/www/html/alltune2/stfu/STFU"$' "$BM_RECEIVE_HELPER" \
-        || fail "alltune2-bm-receive.sh is not pointed at the AllTune2-local STFU binary."
+    grep -q '^STFU_BIN="/var/www/html/alltune2/stfu/STFU"$' "$BM_RECEIVE_HELPER"         || fail "alltune2-bm-receive.sh is not pointed at the AllTune2-local STFU binary."
 
     if grep -q '/usr/local/bin/STFU' "$BM_RECEIVE_HELPER"; then
         fail "alltune2-bm-receive.sh still references /usr/local/bin/STFU."
@@ -392,12 +405,117 @@ ensure_tgif_runtime_local_files() {
     fi
 }
 
+requirements_hash() {
+    python3 - "$TGIF_REQUIREMENTS" <<'PY'
+import hashlib
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+print(hashlib.sha256(path.read_bytes()).hexdigest())
+PY
+}
+
+check_tgif_requirements_present() {
+    "$TGIF_VENV_PYTHON" - "$TGIF_REQUIREMENTS" <<'PY'
+import importlib.metadata
+import pathlib
+import re
+import sys
+
+path = pathlib.Path(sys.argv[1])
+missing = []
+for raw_line in path.read_text().splitlines():
+    line = raw_line.strip()
+    if not line or line.startswith('#'):
+        continue
+    match = re.match(r'([A-Za-z0-9_.-]+)', line)
+    if not match:
+        missing.append(f"unsupported requirement format: {line}")
+        continue
+    name = match.group(1)
+    normalized = name.replace('_', '-').lower()
+    found = False
+    for dist in importlib.metadata.distributions():
+        dist_name = dist.metadata.get('Name', '')
+        if dist_name.replace('_', '-').lower() == normalized:
+            found = True
+            break
+    if not found:
+        missing.append(name)
+if missing:
+    for item in missing:
+        print(item)
+    raise SystemExit(1)
+PY
+}
+
+run_pip_requirements_install() {
+    if [[ "$INSTALLER_MODE" == "verbose" ]]; then
+        "$TGIF_VENV_PIP" install -r "$TGIF_REQUIREMENTS"
+        return
+    fi
+
+    local pip_log=""
+    pip_log="$(mktemp)"
+    if "$TGIF_VENV_PIP" install -r "$TGIF_REQUIREMENTS" >"$pip_log" 2>&1; then
+        rm -f "$pip_log"
+        return
+    fi
+
+    cat "$pip_log" >&2
+    rm -f "$pip_log"
+    fail "TGIF/HBLink Python requirements install failed."
+}
+
+sync_tgif_requirements_if_needed() {
+    log "Checking TGIF/HBLink Python environment..."
+
+    local current_hash=""
+    current_hash="$(requirements_hash)"
+
+    local should_sync=0
+    local reason=""
+
+    if [[ "${TGIF_VENV_WAS_REBUILT:-0}" == "1" ]]; then
+        should_sync=1
+        reason="new or rebuilt virtual environment"
+    elif [[ ! -f "$TGIF_REQUIREMENTS_STATE_FILE" ]]; then
+        should_sync=1
+        reason="requirements state file is missing"
+    elif [[ "$(tr -d '\r\n' < "$TGIF_REQUIREMENTS_STATE_FILE")" != "$current_hash" ]]; then
+        should_sync=1
+        reason="requirements.txt changed"
+    elif ! check_tgif_requirements_present >/dev/null 2>&1; then
+        should_sync=1
+        reason="one or more required Python packages are missing"
+    elif ! "$TGIF_VENV_PIP" check >/dev/null 2>&1; then
+        should_sync=1
+        reason="pip dependency check failed"
+    fi
+
+    if [[ "$should_sync" -eq 1 ]]; then
+        log "Installing TGIF/HBLink Python requirements because $reason..."
+        run_pip_requirements_install
+        "$TGIF_VENV_PIP" check >/dev/null || fail "pip dependency check failed after installing TGIF/HBLink requirements."
+        printf '%s\n' "$current_hash" > "$TGIF_REQUIREMENTS_STATE_FILE"
+        chmod 0644 "$TGIF_REQUIREMENTS_STATE_FILE"
+        chown root:root "$TGIF_REQUIREMENTS_STATE_FILE"
+    else
+        log "TGIF/HBLink Python requirements already look satisfied. Skipping pip install."
+    fi
+}
+
 build_tgif_venv() {
     log "Ensuring TGIF/HBLink Python virtual environment exists..."
 
+    TGIF_VENV_WAS_REBUILT=0
+
     if [[ ! -x "$TGIF_VENV_PYTHON" ]]; then
         log "Creating TGIF/HBLink virtual environment at $TGIF_VENV_DIR..."
+        rm -rf "$TGIF_VENV_DIR"
         python3 -m venv "$TGIF_VENV_DIR"
+        TGIF_VENV_WAS_REBUILT=1
     else
         log "TGIF/HBLink virtual environment already exists."
     fi
@@ -415,36 +533,92 @@ build_tgif_venv() {
         log "pip still missing after ensurepip. Rebuilding the TGIF/HBLink virtual environment..."
         rm -rf "$TGIF_VENV_DIR"
         python3 -m venv "$TGIF_VENV_DIR"
+        TGIF_VENV_WAS_REBUILT=1
     fi
 
     if [[ ! -x "$TGIF_VENV_PIP" ]]; then
         fail "pip is still missing from the TGIF/HBLink virtual environment after rebuild: $TGIF_VENV_PIP"
     fi
 
-    log "Installing TGIF/HBLink Python requirements..."
-    "$TGIF_VENV_PIP" install --upgrade pip >/dev/null
-    "$TGIF_VENV_PIP" install -r "$TGIF_REQUIREMENTS"
+    sync_tgif_requirements_if_needed
+}
+
+set_tree_mode_and_owner() {
+    local base_dir="$1"
+    local dir_mode="$2"
+    local file_mode="$3"
+    local owner="$4"
+    local group="$5"
+    local exclude_dir="${6:-}"
+
+    [[ -d "$base_dir" ]] || return 0
+
+    if [[ -n "$exclude_dir" && -d "$exclude_dir" ]]; then
+        find "$base_dir" -path "$exclude_dir" -prune -o -type d -exec chmod "$dir_mode" {} +
+        find "$base_dir" -path "$exclude_dir" -prune -o -type f -exec chmod "$file_mode" {} +
+        find "$base_dir" -path "$exclude_dir" -prune -o -exec chown "$owner:$group" {} +
+    else
+        find "$base_dir" -type d -exec chmod "$dir_mode" {} +
+        find "$base_dir" -type f -exec chmod "$file_mode" {} +
+        chown -R "$owner:$group" "$base_dir"
+    fi
 }
 
 set_permissions() {
     log "Setting ownership and permissions..."
 
-    find "$APP_DIR" -type d -exec chmod 0755 {} \;
-    find "$APP_DIR" -type f -exec chmod 0644 {} \;
+    local readonly_dirs=(
+        "$APP_CODE_DIR"
+        "$API_DIR"
+        "$PUBLIC_DIR"
+        "$DOCS_DIR"
+        "$LOCAL_STFU_DIR"
+    )
+    local dir
+    for dir in "${readonly_dirs[@]}"; do
+        set_tree_mode_and_owner "$dir" 0755 0644 root root
+    done
 
-    chown -R root:root "$APP_DIR"
+    if [[ -d "$TGIF_DIR" ]]; then
+        set_tree_mode_and_owner "$TGIF_DIR" 0755 0644 root root "$TGIF_VENV_DIR"
+    fi
+
+    local top_level_files=(
+        "$APP_DIR/README.md"
+        "$APP_DIR/VERSION"
+        "$APP_DIR/.gitignore"
+        "$APP_DIR/tree.txt"
+        "$APP_DIR/screenshot.png"
+    )
+    local file
+    for file in "${top_level_files[@]}"; do
+        if [[ -f "$file" ]]; then
+            chmod 0644 "$file"
+            chown root:root "$file"
+        fi
+    done
 
     chmod 0755 "$APP_DIR/setup_alltune2.sh"
-    chmod 0755 "$BM_RECEIVE_HELPER"
-    chmod 0755 "$LOCAL_STFU_BIN"
-    chmod 0755 "$TGIF_HELPER"
-    chmod 0755 "$TGIF_SET_TG"
-
     chown root:root "$APP_DIR/setup_alltune2.sh"
+
+    chmod 0755 "$BM_RECEIVE_HELPER"
     chown root:root "$BM_RECEIVE_HELPER"
+
+    chmod 0755 "$LOCAL_STFU_BIN"
     chown root:root "$LOCAL_STFU_BIN"
+
+    chmod 0755 "$TGIF_HELPER"
     chown root:root "$TGIF_HELPER"
+
+    chmod 0755 "$TGIF_SET_TG"
     chown root:root "$TGIF_SET_TG"
+
+    if [[ -d "$TGIF_VENV_DIR" ]]; then
+        set_tree_mode_and_owner "$TGIF_VENV_DIR" 0755 0644 root root
+        if [[ -d "$TGIF_VENV_DIR/bin" ]]; then
+            find "$TGIF_VENV_DIR/bin" -maxdepth 1 -type f -exec chmod 0755 {} +
+        fi
+    fi
 
     chmod 0775 "$DATA_DIR"
     chown "$WEB_USER":"$WEB_GROUP" "$DATA_DIR"
@@ -478,9 +652,35 @@ set_permissions() {
         chown root:root "$TGIF_MMDVM_HBLINK_INI_EXAMPLE"
     fi
 
-    if [[ -d "$TGIF_VENV_DIR" ]]; then
-        chown -R root:root "$TGIF_VENV_DIR"
+    if [[ -f "$TGIF_MMDVM_PRE_HBLINK_INI" ]]; then
+        chmod 0644 "$TGIF_MMDVM_PRE_HBLINK_INI"
+        chown root:root "$TGIF_MMDVM_PRE_HBLINK_INI"
     fi
+}
+
+install_validated_sudoers_file() {
+    local target_file="$1"
+    local rule_line="$2"
+    local temp_file
+
+    temp_file="$(mktemp)"
+    printf '%s\n' "$rule_line" > "$temp_file"
+    chmod 0440 "$temp_file"
+
+    visudo -cf "$temp_file" >/dev/null || {
+        rm -f "$temp_file"
+        fail "visudo validation failed for generated sudoers file: $target_file"
+    }
+
+    if [[ -f "$target_file" ]] && cmp -s "$temp_file" "$target_file"; then
+        rm -f "$temp_file"
+        log "Sudoers file already up to date: $target_file"
+        return
+    fi
+
+    install -o root -g root -m 0440 "$temp_file" "$target_file"
+    rm -f "$temp_file"
+    log "Installed sudoers file: $target_file"
 }
 
 create_or_update_sudoers_files() {
@@ -490,25 +690,9 @@ create_or_update_sudoers_files() {
     [[ -x "$BM_RECEIVE_HELPER" ]] || fail "BM receive helper is not executable: $BM_RECEIVE_HELPER"
     [[ -x "$TGIF_HELPER" ]] || fail "TGIF helper is not executable: $TGIF_HELPER"
 
-    cat > "$ASTERISK_SUDOERS_FILE" <<EOF
-$EXPECTED_ASTERISK_SUDOERS_RULE
-EOF
-
-    cat > "$BM_RECEIVE_SUDOERS_FILE" <<EOF
-$EXPECTED_BM_RECEIVE_SUDOERS_RULE
-EOF
-
-    cat > "$TGIF_HELPER_SUDOERS_FILE" <<EOF
-$EXPECTED_TGIF_HELPER_SUDOERS_RULE
-EOF
-
-    chmod 0440 "$ASTERISK_SUDOERS_FILE" "$BM_RECEIVE_SUDOERS_FILE" "$TGIF_HELPER_SUDOERS_FILE"
-
-    visudo -cf "$ASTERISK_SUDOERS_FILE" >/dev/null || fail "visudo validation failed for $ASTERISK_SUDOERS_FILE"
-    visudo -cf "$BM_RECEIVE_SUDOERS_FILE" >/dev/null || fail "visudo validation failed for $BM_RECEIVE_SUDOERS_FILE"
-    visudo -cf "$TGIF_HELPER_SUDOERS_FILE" >/dev/null || fail "visudo validation failed for $TGIF_HELPER_SUDOERS_FILE"
-
-    log "Sudoers files created and validated."
+    install_validated_sudoers_file "$ASTERISK_SUDOERS_FILE" "$EXPECTED_ASTERISK_SUDOERS_RULE"
+    install_validated_sudoers_file "$BM_RECEIVE_SUDOERS_FILE" "$EXPECTED_BM_RECEIVE_SUDOERS_RULE"
+    install_validated_sudoers_file "$TGIF_HELPER_SUDOERS_FILE" "$EXPECTED_TGIF_HELPER_SUDOERS_RULE"
 }
 
 check_php_syntax() {
@@ -637,14 +821,11 @@ check_external_config_hints() {
 check_sudoers_requirement() {
     log "Checking installed sudoers files..."
 
-    grep -qF "$EXPECTED_ASTERISK_SUDOERS_RULE" "$ASTERISK_SUDOERS_FILE" \
-        || fail "Expected Asterisk sudoers rule not found in $ASTERISK_SUDOERS_FILE"
+    grep -qF "$EXPECTED_ASTERISK_SUDOERS_RULE" "$ASTERISK_SUDOERS_FILE"         || fail "Expected Asterisk sudoers rule not found in $ASTERISK_SUDOERS_FILE"
 
-    grep -qF "$EXPECTED_BM_RECEIVE_SUDOERS_RULE" "$BM_RECEIVE_SUDOERS_FILE" \
-        || fail "Expected BM receive sudoers rule not found in $BM_RECEIVE_SUDOERS_FILE"
+    grep -qF "$EXPECTED_BM_RECEIVE_SUDOERS_RULE" "$BM_RECEIVE_SUDOERS_FILE"         || fail "Expected BM receive sudoers rule not found in $BM_RECEIVE_SUDOERS_FILE"
 
-    grep -qF "$EXPECTED_TGIF_HELPER_SUDOERS_RULE" "$TGIF_HELPER_SUDOERS_FILE" \
-        || fail "Expected TGIF helper sudoers rule not found in $TGIF_HELPER_SUDOERS_FILE"
+    grep -qF "$EXPECTED_TGIF_HELPER_SUDOERS_RULE" "$TGIF_HELPER_SUDOERS_FILE"         || fail "Expected TGIF helper sudoers rule not found in $TGIF_HELPER_SUDOERS_FILE"
 
     visudo -cf "$ASTERISK_SUDOERS_FILE" >/dev/null || fail "Sudoers file failed validation: $ASTERISK_SUDOERS_FILE"
     visudo -cf "$BM_RECEIVE_SUDOERS_FILE" >/dev/null || fail "Sudoers file failed validation: $BM_RECEIVE_SUDOERS_FILE"
@@ -691,6 +872,7 @@ show_summary() {
     echo "$APP_NAME setup summary"
     echo "========================================"
     echo "Version:              ${version}"
+    echo "Installer mode:       ${INSTALLER_MODE}"
     echo "App directory:        $APP_DIR"
     echo "Config file:          $CONFIG_FILE"
     echo "Config example:       $CONFIG_EXAMPLE_FILE"
@@ -714,6 +896,7 @@ show_summary() {
     echo "- If MMDVM_Bridge.hblink.ini is missing, setup creates it from the repo example file."
     echo "- BM is one-step and uses the AllTune2-local BM receive helper."
     echo "- TGIF uses the AllTune2-local HBLink helper and Python venv."
+    echo "- TGIF Python packages are only reinstalled when the venv is new, broken, missing packages, or requirements.txt changes."
     echo "- The installer does not overwrite /opt/MMDVM_Bridge/MMDVM_Bridge.ini, /opt/MMDVM_Bridge/DVSwitch.ini, or /opt/Analog_Bridge/Analog_Bridge.ini."
     echo "- TGIF/HBLink often needs both a base DMR ID and a hotspot/repeater-style suffixed radio ID in the HBLink/MMDVM config path."
     echo "- Review hblink.cfg carefully. Wrong values there can make TGIF fail even when the helper and web files are correct."
@@ -735,8 +918,13 @@ show_summary() {
 main() {
     require_root
     require_app_dir
+    validate_installer_mode
+
+    step "Checking runtime prerequisites..."
     check_runtime_tools
     check_web_user
+
+    step "Preparing application files..."
     make_dirs
     create_config_example
     create_config_if_missing
@@ -744,14 +932,22 @@ main() {
     create_tgif_hblink_cfg_example
     create_tgif_hblink_cfg_if_missing
     create_tgif_mmdvm_hblink_ini_if_missing
+
+    step "Checking repo and system dependencies..."
     check_required_repo_files
     check_optional_files
     check_dvswitch_dependencies
     check_helper_local_paths
     ensure_tgif_runtime_local_files
+
+    step "Checking TGIF/HBLink Python environment..."
     build_tgif_venv
+
+    step "Applying permissions and sudoers..."
     set_permissions
     create_or_update_sudoers_files
+
+    step "Running installer self-checks..."
     check_php_syntax
     check_shell_syntax
     check_python_syntax
@@ -761,6 +957,7 @@ main() {
     check_sudoers_requirement
     check_status_endpoint_cli
     check_tgif_helper_cli
+
     show_summary
 }
 
