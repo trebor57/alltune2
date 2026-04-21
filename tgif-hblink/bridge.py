@@ -114,6 +114,76 @@ def make_bridges(_rules):
     return _rules
 
 
+
+def load_rules_module(rules_path):
+    spec = importlib.util.spec_from_file_location("module.name", rules_path)
+    rules_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(rules_module)
+    return rules_module
+
+
+def apply_runtime_config(new_config):
+    global CONFIG
+    for system_name, system_obj in systems.items():
+        if system_name not in new_config['SYSTEMS']:
+            continue
+        live_cfg = system_obj._config
+        fresh_cfg = new_config['SYSTEMS'][system_name]
+        for key in ('OPTIONS', 'LOOSE', 'USE_ACL', 'SUB_ACL', 'TG1_ACL', 'TG2_ACL', 'MASTER_IP', 'MASTER_PORT', 'MASTER_SOCKADDR'):
+            if key in fresh_cfg:
+                live_cfg[key] = fresh_cfg[key]
+        if 'RADIO_ID' in fresh_cfg:
+            live_cfg['RADIO_ID'] = fresh_cfg['RADIO_ID']
+    CONFIG['LOGGER'] = new_config.get('LOGGER', CONFIG.get('LOGGER', {}))
+    CONFIG['REPORTS'] = new_config.get('REPORTS', CONFIG.get('REPORTS', {}))
+    CONFIG['ALIASES'] = new_config.get('ALIASES', CONFIG.get('ALIASES', {}))
+    for system_name, fresh_cfg in new_config['SYSTEMS'].items():
+        if system_name in CONFIG['SYSTEMS']:
+            CONFIG['SYSTEMS'][system_name].update(fresh_cfg)
+
+
+def retune_peer_options():
+    for system_name, system_obj in systems.items():
+        mode = system_obj._config.get('MODE')
+        if mode not in ('PEER', 'XLXPEER'):
+            continue
+        options = system_obj._config.get('OPTIONS', b'')
+        if not options:
+            continue
+        try:
+            system_obj.send_master(b''.join([RPTO, system_obj._config['RADIO_ID'], options]))
+            system_obj._stats['CONNECTION'] = 'OPTIONS-SENT'
+            logger.info('(%s) Runtime retune sent options: (%s)', system_name, options)
+        except Exception as exc:
+            logger.error('(%s) Runtime retune failed while sending options: %s', system_name, exc)
+
+
+def reload_runtime_rules_and_options(rules_path, config_path):
+    global BRIDGES
+    try:
+        rules_module = load_rules_module(rules_path)
+        BRIDGES = make_bridges(rules_module.BRIDGES)
+        logger.info('(ROUTER) Runtime rules reload succeeded: %s', rules_path)
+    except Exception as exc:
+        logger.error('(ROUTER) Runtime rules reload failed from %s: %s', rules_path, exc)
+        return
+
+    try:
+        new_config = config.build_config(config_path)
+        apply_runtime_config(new_config)
+        logger.info('(GLOBAL) Runtime config reload succeeded: %s', config_path)
+    except Exception as exc:
+        logger.error('(GLOBAL) Runtime config reload failed from %s: %s', config_path, exc)
+        return
+
+    retune_peer_options()
+
+    try:
+        if CONFIG['REPORTS']['REPORT'] and report_server is not None:
+            report_server.send_bridge()
+    except Exception as exc:
+        logger.error('(REPORT) Runtime bridge update notification failed: %s', exc)
+
 # Run this every minute for rule timer updates
 def rule_timer_loop():
     logger.debug('(ROUTER) routerHBP Rule timer loop started')
@@ -764,18 +834,21 @@ if __name__ == '__main__':
         logger.info('(GLOBAL) SHUTDOWN: ALL SYSTEM HANDLERS EXECUTED - STOPPING REACTOR')
         reactor.stop()
 
+    def reload_handler(_signal, _frame):
+        logger.info('(GLOBAL) RUNTIME RELOAD REQUESTED WITH SIGNAL %s', str(_signal))
+        reactor.callFromThread(reload_runtime_rules_and_options, cli_args.RULES_FILE, cli_args.CONFIG_FILE)
+
     # Set signal handers so that we can gracefully exit if need be
     for sig in [signal.SIGINT, signal.SIGTERM]:
         signal.signal(sig, sig_handler)
+    signal.signal(signal.SIGHUP, reload_handler)
 
     # Create the name-number mapping dictionaries
     peer_ids, subscriber_ids, talkgroup_ids = mk_aliases(CONFIG)
     
     # Import the ruiles file as a module, and create BRIDGES from it
-    spec = importlib.util.spec_from_file_location("module.name", cli_args.RULES_FILE)
-    rules_module = importlib.util.module_from_spec(spec)
     try:
-        spec.loader.exec_module(rules_module)
+        rules_module = load_rules_module(cli_args.RULES_FILE)
         logger.info('(ROUTER) Routing bridges file found and bridges imported: %s', cli_args.RULES_FILE)
     except (ImportError, FileNotFoundError):
         sys.exit('(ROUTER) TERMINATING: Routing bridges file not found or invalid: {}'.format(cli_args.RULES_FILE))

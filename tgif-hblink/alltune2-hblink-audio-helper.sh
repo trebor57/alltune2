@@ -7,7 +7,7 @@ MMDVM_HBLINK_INI="${MMDVM_HBLINK_INI:-/var/www/html/alltune2/tgif-hblink/MMDVM_B
 ORIG_INI="${ORIG_INI:-/var/www/html/alltune2/tgif-hblink/MMDVM_Bridge.pre-hblink.ini}"
 PID_FILE="/var/www/html/alltune2/run/alltune2-hblink-audio.pid"
 STATE_FILE="/var/www/html/alltune2/run/alltune2-hblink-audio.state"
-LOG_FILE="/var/www/html/alltune2/logs/hblink-bridge.out"
+LOG_FILE="/dev/null"
 RUN_DIR="/var/www/html/alltune2/run"
 LOG_DIR="/var/www/html/alltune2/logs"
 PRIMARY_CONFIG_FILE="/var/www/html/alltune2/config.ini"
@@ -131,6 +131,47 @@ wait_port_clear() {
         tries=$((tries - 1))
     done
     return 1
+}
+
+
+wait_for_bridge_pid() {
+    local tries="${1:-40}"
+    while (( tries > 0 )); do
+        local pid
+        pid="$(find_bridge_pid)"
+        if [[ -n "$pid" ]]; then
+            printf '%s' "$pid"
+            return 0
+        fi
+        sleep 0.10
+        tries=$((tries - 1))
+    done
+    return 1
+}
+
+wait_for_service_active() {
+    local service_name="$1"
+    local tries="${2:-40}"
+    while (( tries > 0 )); do
+        if [[ "$(service_state "$service_name")" == "active" ]]; then
+            return 0
+        fi
+        sleep 0.10
+        tries=$((tries - 1))
+    done
+    return 1
+}
+
+reload_bridge_runtime() {
+    local action="$1"
+    local target="$2"
+    local pid
+    pid="$(find_bridge_pid)"
+    [[ -n "$pid" ]] || fail_json "$action" "HBLink bridge is not running for runtime reload." "$target"
+    kill -HUP "$pid" >/dev/null 2>&1 || fail_json "$action" "Failed to signal HBLink bridge runtime reload." "$target" "$pid"
+    sleep 0.25
+    kill -0 "$pid" >/dev/null 2>&1 || fail_json "$action" "HBLink bridge exited during runtime reload." "$target" "$pid"
+    echo "$pid" > "$PID_FILE"
 }
 
 link_present() {
@@ -328,22 +369,12 @@ fast_tune_bridge_only() {
     local tg="$1"
     local pid
     "$HB_DIR/set_hblink_tg.sh" "$tg" "$HB_DIR" >/dev/null 2>&1 || fail_json "tune" "Failed to write rules.py" "$tg"
-    kill_bridge_pids
-    pkill -9 -f "$CONFLICT_HBLINK_MATCH" >/dev/null 2>&1 || true
-    sleep 1
-    wait_port_clear || fail_json "tune" "HBLink port 62033 did not clear for fast retune." "$tg"
-    (
-        cd "$HB_DIR" || exit 1
-        nohup ./venv/bin/python bridge.py >>"$LOG_FILE" 2>&1 &
-    )
-    sleep 1
-    pid="$(find_bridge_pid)"
-    [[ -n "$pid" ]] || fail_json "tune" "HBLink bridge failed to restart for fast retune. Check log." "$tg"
-    echo "$pid" > "$PID_FILE"
-    wait_media_settle 1
+    reload_bridge_runtime "tune" "$tg"
+    pid="$(cat "$PID_FILE" 2>/dev/null || true)"
+    wait_media_settle 0.25
     local_audio_link_present || fail_json "tune" "Fast retune completed, but local audio link is not ready." "$tg"
     write_state true "$tg" "$pid"
-    ok_json "tune" "HBLink TGIF retuned." true "$tg" "$pid"
+    ok_json "tune" "HBLink TGIF retuned without bridge restart." true "$tg" "$pid"
 }
 read_state_target() {
     [[ -f "$STATE_FILE" ]] || return 0
@@ -370,16 +401,13 @@ start_bridge_proc() {
     kill_bridge_pids
     sudo fuser -k -n udp ${HB_PORT} >/dev/null 2>&1 || true
     pkill -9 -f "$CONFLICT_HBLINK_MATCH" >/dev/null 2>&1 || true
-    sleep 2
     wait_port_clear || fail_json "start" "HBLink port 62033 did not clear."
     (
         cd "$HB_DIR" || exit 1
         nohup ./venv/bin/python bridge.py >>"$LOG_FILE" 2>&1 &
     )
-    sleep 2
     local pid
-    pid="$(find_bridge_pid)"
-    [[ -n "$pid" ]] || fail_json "start" "HBLink bridge failed to start. Check log."
+    pid="$(wait_for_bridge_pid 40)" || fail_json "start" "HBLink bridge failed to start. Check log."
     echo "$pid" > "$PID_FILE"
 }
 
@@ -389,7 +417,7 @@ restart_bridge_stack() {
     cp -f "$MMDVM_HBLINK_INI" "$MMDVM_INI" || fail_json "start" "Failed to install HBLink MMDVM_Bridge.ini" "$tg"
     start_bridge_proc
     systemctl start mmdvm_bridge >/dev/null 2>&1 || fail_json "start" "Failed to start mmdvm_bridge." "$tg"
-    sleep 2
+    wait_for_service_active mmdvm_bridge 40 || fail_json "start" "mmdvm_bridge did not become active." "$tg"
 }
 
 start_mode() {

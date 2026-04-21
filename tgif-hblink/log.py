@@ -69,14 +69,10 @@ def config_logging(_logger):
                 'formatter': 'timed'
             },
             'file': {
-                'class': 'logging.FileHandler',
-                'formatter': 'simple',
-                'filename': _logger['LOG_FILE'],
+                'class': 'logging.NullHandler'
             },
             'file-timed': {
-                'class': 'logging.FileHandler',
-                'formatter': 'timed',
-                'filename': _logger['LOG_FILE'],
+                'class': 'logging.NullHandler'
             },
             'syslog': {
                 'class': 'logging.handlers.SysLogHandler',
