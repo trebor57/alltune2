@@ -2,7 +2,7 @@
 
 ## One Dashboard. All Your Networks.
 
-✅ Optimized for Debian 12 & 13 on 64-bit ARM (Raspberry Pi 3, 4, 5)
+✅ Optimized for Debian 12 & 13 on 64-bit ARM (Raspberry Pi 4, 5)
 
 AllTune2 is a modern control panel for **AllStarLink 3 + DVSwitch**.
 
@@ -76,13 +76,33 @@ The setup script helps by:
 - preserving existing config files
 - refreshing helper files
 
-## 🔁 UPDATE OR REINSTALL
+The setup script is mainly for install/setup/system-level refresh work.  
+It is not required for every code-only GitHub update.
 
-Use these commands if AllTune2 is already installed and you want to:
+## 🔁 UPDATE / REINSTALL / REBOOT
 
-- update from GitHub
-- refresh a broken install
-- reinstall without deleting your current config
+There are now **two** different update paths.
+
+### A) NORMAL CODE-ONLY UPDATE
+
+Use this when the GitHub update only changes app code, helper scripts, Python files, PHP files, CSS/JS, or README content.
+
+```bash
+cd /var/www/html/alltune2
+git pull origin main
+```
+
+In many cases, that is enough.
+
+### B) UPDATE THAT NEEDS SETUP
+
+Use this when the update includes install/setup changes such as:
+
+- `setup_alltune2.sh` changes
+- new sudoers requirements
+- new permissions requirements
+- new service / system integration changes
+- new config template handling
 
 ```bash
 cd /var/www/html/alltune2
@@ -90,18 +110,27 @@ git pull origin main
 sudo ./setup_alltune2.sh
 ```
 
+### C) REBOOT WHEN NEEDED
+
+Some updates change a runtime process that may already be running in memory.
+
+Examples:
+
+- HBLink `bridge.py` changes
+- logging behavior changes
+- long-running helper/runtime behavior
+
+For those updates, rebooting once after the update is recommended so the old running process is fully cleared and the new code starts clean.
+
 ### Important
 
-Always run `setup_alltune2.sh` after `git pull`.
+Do **not** assume every update needs `setup_alltune2.sh`.
 
-Do not stop at `git pull` by itself.
+For normal code-only updates, `git pull` may be enough.
 
-The setup script helps:
+Run `setup_alltune2.sh` when the update includes install, permissions, sudoers, service, or other system-level setup changes.
 
-- refresh permissions
-- refresh helper files
-- keep install files in sync
-- preserve your existing config files
+If the update changes a long-running TGIF / HBLink runtime process, a reboot once after updating is recommended.
 
 ## ✏️ FILES YOU MUST EDIT
 
@@ -465,13 +494,24 @@ sudo systemctl restart analog_bridge
 
 ### If you updated from GitHub
 
-Always run:
+First decide what kind of update it was.
+
+For a normal code-only update:
+
+```bash
+cd /var/www/html/alltune2
+git pull origin main
+```
+
+For an update that includes install/setup/system-level changes:
 
 ```bash
 cd /var/www/html/alltune2
 git pull origin main
 sudo ./setup_alltune2.sh
 ```
+
+If the update changed a long-running TGIF / HBLink process, reboot once after updating so the new runtime fully takes effect.
 
 ### If something still looks wrong
 
@@ -503,8 +543,8 @@ Do not guess values.
 ### And remember:
 
 - do not guess values
-- do not stop at `git pull`
-- always run `sudo ./setup_alltune2.sh` after updating
+- do not assume every update needs `setup_alltune2.sh`
+- reboot once after updates that change long-running TGIF / HBLink runtime behavior
 
 ## ✅ DONE
 
@@ -514,15 +554,27 @@ Install → Configure → Open in browser → Connect → Enjoy
 
 ## ⚠️ IMPORTANT UPDATE
 
-If you installed or updated AllTune2 recently, run:
+Current release notes may include both code-only updates and setup-level updates.
+
+For this release series, important recent changes include:
+
+- TGIF / HBLink connect speed improvement
+- HBLink runtime retune improvement
+- HBLink log file growth disabled
+
+For these HBLink runtime/logging updates:
 
 ```bash
 cd /var/www/html/alltune2
 git pull origin main
+```
+
+Then reboot once so the old running HBLink bridge process is cleared and the new runtime starts clean.
+
+Only run:
+
+```bash
 sudo ./setup_alltune2.sh
 ```
 
-This update fixes:
-
-- TGIF talkgroup switching reliability
-- missing `MMDVM_Bridge.hblink.ini` handling in setup
+when the release specifically says setup/system-level changes are included.
