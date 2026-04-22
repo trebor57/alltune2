@@ -40,6 +40,20 @@ With it, you can:
 
 Some local functions can also be used alongside BM, TGIF, or YSF operation depending on your setup and workflow.
 
+## Live keyed activity highlighting
+
+AllTune2 now shows live keyed/activity highlighting for linked AllStarLink / EchoLink node rows.
+
+What it does:
+- highlights the active linked node row when live activity is detected
+- uses a softer amber accent so the active row stands out without overpowering the dashboard
+- keeps the existing connection logic unchanged
+
+Notes:
+- this is a visual/status enhancement
+- it does not change TGIF, BrandMeister, YSF, AllStarLink, or EchoLink connect/disconnect behavior
+- active row highlighting depends on live activity/status data being available from the node
+
 ## ⚠️ BEFORE YOU INSTALL
 
 You MUST already have:
