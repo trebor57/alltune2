@@ -11,6 +11,9 @@ header('Content-Type: application/json');
 
 $config = new Config(dirname(__DIR__) . '/config.ini');
 
+$GLOBALS['bm_receive_status_cache'] = null;
+$GLOBALS['hblink_tgif_status_cache'] = null;
+
 function respond(array $payload, int $statusCode = 200): never
 {
     http_response_code($statusCode);
@@ -57,6 +60,7 @@ function bm_receive_run(string $action, ?string $target = null): array
     $decoded = json_decode($output, true);
 
     if (is_array($decoded)) {
+        $GLOBALS['bm_receive_status_cache'] = $decoded;
         return $decoded;
     }
 
@@ -71,6 +75,10 @@ function bm_receive_run(string $action, ?string $target = null): array
 
 function bm_receive_status(): array
 {
+    $cached = $GLOBALS['bm_receive_status_cache'] ?? null;
+    if (is_array($cached)) {
+        return $cached;
+    }
     return bm_receive_run('status');
 }
 
@@ -114,6 +122,7 @@ function hblink_tgif_run(string $action, ?string $target = null): array
     $decoded = json_decode($output, true);
 
     if (is_array($decoded)) {
+        $GLOBALS['hblink_tgif_status_cache'] = $decoded;
         return $decoded;
     }
 
@@ -128,6 +137,10 @@ function hblink_tgif_run(string $action, ?string $target = null): array
 
 function hblink_tgif_status(): array
 {
+    $cached = $GLOBALS['hblink_tgif_status_cache'] ?? null;
+    if (is_array($cached)) {
+        return $cached;
+    }
     return hblink_tgif_run('status');
 }
 
@@ -757,8 +770,112 @@ function disconnect_managed_links_before_connect(string $myNode, string $dvSwitc
     disconnect_all_managed_links($myNode, $dvSwitchNode);
 }
 
+
+function session_may_have_bm_runtime(): bool
+{
+    $lastMode = normalize_mode((string) ($_SESSION['last_mode'] ?? ''));
+    $selectedMode = normalize_mode((string) ($_SESSION['selected_mode'] ?? ''));
+    $dmrNetwork = normalize_mode((string) ($_SESSION['dmr_network'] ?? ''));
+    $dmrActiveNetwork = normalize_mode((string) ($_SESSION['dmr_active_network'] ?? ''));
+    $lastStatus = strtoupper(trim((string) ($_SESSION['last_status'] ?? '')));
+
+    return $lastMode === 'BM'
+        || $selectedMode === 'BM'
+        || $dmrNetwork === 'BM'
+        || $dmrActiveNetwork === 'BM'
+        || str_contains($lastStatus, '(BM)')
+        || str_contains($lastStatus, ' BM');
+}
+
+function session_may_have_tgif_runtime(): bool
+{
+    $lastMode = normalize_mode((string) ($_SESSION['last_mode'] ?? ''));
+    $selectedMode = normalize_mode((string) ($_SESSION['selected_mode'] ?? ''));
+    $dmrNetwork = normalize_mode((string) ($_SESSION['dmr_network'] ?? ''));
+    $dmrActiveNetwork = normalize_mode((string) ($_SESSION['dmr_active_network'] ?? ''));
+    $lastStatus = strtoupper(trim((string) ($_SESSION['last_status'] ?? '')));
+
+    return $lastMode === 'TGIF'
+        || $selectedMode === 'TGIF'
+        || $dmrNetwork === 'TGIF'
+        || $dmrActiveNetwork === 'TGIF'
+        || str_contains($lastStatus, '(TGIF)')
+        || str_contains($lastStatus, ' TGIF');
+}
+
+function session_forces_private_node(): bool
+{
+    $selectedMode = normalize_mode((string) ($_SESSION['selected_mode'] ?? ''));
+    $lastMode = normalize_mode((string) ($_SESSION['last_mode'] ?? ''));
+    $dmrNetwork = normalize_mode((string) ($_SESSION['dmr_network'] ?? ''));
+    $dmrActiveNetwork = normalize_mode((string) ($_SESSION['dmr_active_network'] ?? ''));
+
+    return in_array($selectedMode, ['BM', 'TGIF', 'YSF'], true)
+        || in_array($lastMode, ['BM', 'TGIF', 'YSF'], true)
+        || in_array($dmrNetwork, ['BM', 'TGIF'], true)
+        || in_array($dmrActiveNetwork, ['BM', 'TGIF'], true)
+        || !empty($_SESSION['dmr_ready'])
+        || !empty($_SESSION['dvswitch_autoloaded']);
+}
+
+function direct_allstar_snapshot(string $dvSwitchNode = ''): array
+{
+    ensure_allstar_tracking_structures();
+
+    $links = [];
+    $seen = [];
+    $storedModes = is_array($_SESSION['allstar_link_modes'] ?? null) ? $_SESSION['allstar_link_modes'] : [];
+    $storedUiModes = is_array($_SESSION['allstar_link_ui_modes'] ?? null) ? $_SESSION['allstar_link_ui_modes'] : [];
+
+    foreach (allstar_tracked_nodes_in_order() as $node) {
+        $node = trim((string) $node);
+        if ($node === '' || ($dvSwitchNode !== '' && $node === $dvSwitchNode) || isset($seen[$node])) {
+            continue;
+        }
+
+        $mode = normalize_autoload_dvswitch_mode((string) ($storedModes[$node] ?? ($_SESSION['autoload_dvswitch_mode'] ?? 'transceive')));
+        $uiMode = normalize_direct_ui_mode((string) ($storedUiModes[$node] ?? 'ASL'));
+
+        $links[] = [
+            'node' => $node,
+            'label' => 'Connected Node',
+            'link_mode' => $mode,
+            'mode_label' => $mode === 'local_monitor' ? 'Local Monitor' : 'Transceive',
+            'ui_mode' => $uiMode,
+            'is_live' => false,
+        ];
+        $seen[$node] = true;
+    }
+
+    if ($dvSwitchNode !== '' && session_forces_private_node() && !isset($seen[$dvSwitchNode])) {
+        $mode = (string) ($_SESSION['dvswitch_active_mode'] ?? $_SESSION['autoload_dvswitch_mode'] ?? 'transceive');
+        $mode = normalize_autoload_dvswitch_mode($mode);
+        $links[] = [
+            'node' => $dvSwitchNode,
+            'label' => 'Connected Node',
+            'link_mode' => $mode,
+            'mode_label' => $mode === 'local_monitor' ? 'Local Monitor' : 'Transceive',
+            'ui_mode' => 'ASL',
+            'is_live' => false,
+        ];
+    }
+
+    return [
+        'state' => count($links) > 0 ? 'Connected: ' . count($links) : 'No links',
+        'label' => count($links) > 0 ? 'Connected: ' . count($links) : 'No links',
+        'status' => count($links) > 0 ? 'Connected: ' . count($links) : 'No links',
+        'connected_nodes_count' => count($links),
+        'connected_nodes' => $links,
+        'local_nodes' => array_values(array_filter([$dvSwitchNode])),
+    ];
+}
+
 function session_payload(string $statusText, array $extra = []): array
 {
+    $bmActive = session_may_have_bm_runtime() ? bm_receive_is_active() : false;
+    $tgifActive = session_may_have_tgif_runtime() ? hblink_tgif_is_active() : false;
+    $forcedAutoload = session_forces_private_node();
+
     return array_merge([
         'ok' => !str_starts_with($statusText, 'ERROR:'),
         'status' => $statusText,
@@ -769,7 +886,7 @@ function session_payload(string $statusText, array $extra = []): array
         'last_target' => (string) ($_SESSION['last_target'] ?? ''),
         'pending_target' => (string) ($_SESSION['pending_target'] ?? ''),
         'pending_tg' => (string) ($_SESSION['pending_tg'] ?? ''),
-        'autoload_dvswitch' => !empty($_SESSION['autoload_dvswitch']),
+        'autoload_dvswitch' => $forcedAutoload || !empty($_SESSION['autoload_dvswitch']),
         'autoload_dvswitch_mode' => (string) ($_SESSION['autoload_dvswitch_mode'] ?? 'transceive'),
         'disconnect_before_connect' => !empty($_SESSION['disconnect_before_connect']),
         'dmr_network' => (string) ($_SESSION['dmr_network'] ?? ''),
@@ -777,9 +894,9 @@ function session_payload(string $statusText, array $extra = []): array
         'dmr_active_network' => (string) ($_SESSION['dmr_active_network'] ?? ''),
         'dmr_active_target' => (string) ($_SESSION['dmr_active_target'] ?? ''),
         'dvswitch_active_mode' => (string) ($_SESSION['dvswitch_active_mode'] ?? ''),
-        'bm_receive_active' => bm_receive_is_active(),
-        'tgif_hblink_active' => hblink_tgif_is_active(),
-        'dvswitch_link_active' => !empty($_SESSION['dvswitch_autoloaded']) || !empty($_SESSION['dmr_ready']) || normalize_mode((string) ($_SESSION['last_mode'] ?? '')) === 'YSF' || bm_receive_is_active() || hblink_tgif_is_active(),
+        'bm_receive_active' => $bmActive,
+        'tgif_hblink_active' => $tgifActive,
+        'dvswitch_link_active' => !empty($_SESSION['dvswitch_autoloaded']) || !empty($_SESSION['dmr_ready']) || normalize_mode((string) ($_SESSION['last_mode'] ?? '')) === 'YSF' || $bmActive || $tgifActive,
     ], $extra);
 }
 
@@ -819,6 +936,10 @@ if ($mode === 'ASL') {
     $_SESSION['selected_mode'] = normalize_direct_ui_mode($uiMode);
 } else {
     $_SESSION['selected_mode'] = $mode;
+}
+
+if (in_array($mode, ['BM', 'TGIF', 'YSF'], true)) {
+    $_SESSION['autoload_dvswitch'] = true;
 }
 
 $myNode = $config->getString('MYNODE', '');
@@ -1157,8 +1278,11 @@ if ($action === 'connect') {
             respond(session_payload($_SESSION['last_status']), 500);
         }
 
+        $tgifWasActive = hblink_tgif_is_active();
+
         if ($disconnectBeforeConnect) {
             disconnect_managed_links_before_connect($myNode, $dvSwitchNode);
+            $tgifWasActive = false;
         } elseif (bm_receive_is_active()) {
             $bmStop = bm_receive_stop();
             pause_seconds(0.5);
@@ -1169,6 +1293,7 @@ if ($action === 'connect') {
             }
 
             clear_runtime_targets();
+            $tgifWasActive = false;
         } else {
             $currentNetwork = normalize_mode((string) ($_SESSION['dmr_network'] ?? ''));
             $currentLastMode = normalize_mode((string) ($_SESSION['last_mode'] ?? ''));
@@ -1176,20 +1301,13 @@ if ($action === 'connect') {
             if ($currentNetwork === 'BM' || $currentLastMode === 'YSF') {
                 disconnect_dvswitch_runtime($myNode, $dvSwitchNode);
                 clear_runtime_targets();
+                $tgifWasActive = false;
             }
         }
 
-        if (hblink_tgif_is_active()) {
-            $tgifStop = hblink_tgif_stop();
-            pause_seconds(0.5);
-
-            if (empty($tgifStop['ok'])) {
-                $_SESSION['last_status'] = 'ERROR: FAILED TO STOP TGIF HBLINK';
-                respond(session_payload($_SESSION['last_status'], ['tgif_hblink' => $tgifStop]), 500);
-            }
-        }
-
-        $tgifResult = hblink_tgif_start($connectTarget);
+        $tgifResult = $tgifWasActive
+            ? hblink_tgif_tune($connectTarget)
+            : hblink_tgif_start($connectTarget);
 
         if (empty($tgifResult['ok'])) {
             $tgifStatus = hblink_tgif_status();
@@ -1201,23 +1319,8 @@ if ($action === 'connect') {
             }
         }
 
-        if ($hasRealDvSwitchNode) {
-            asterisk_ilink_disconnect($myNode, $dvSwitchNode);
-            pause_seconds(0.5);
-            load_dvswitch_link($myNode, $dvSwitchNode, $autoloadDvSwitchMode);
-            $_SESSION['dvswitch_active_mode'] = $autoloadDvSwitchMode;
-            pause_seconds(1.0);
-            $_SESSION['dvswitch_autoloaded'] = true;
-        } else {
-            $_SESSION['dvswitch_autoloaded'] = false;
-            unset($_SESSION['dvswitch_active_mode']);
-        }
-
-        $localTg = read_local_tg_from_analog_bridge();
-        if ($localTg !== '') {
-            dvswitch_tune($localTg);
-            pause_seconds(1.0);
-        }
+        $_SESSION['dvswitch_autoloaded'] = true;
+        $_SESSION['dvswitch_active_mode'] = $autoloadDvSwitchMode;
 
         $_SESSION['last_mode'] = 'TGIF';
         $_SESSION['last_target'] = $connectTarget;

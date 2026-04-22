@@ -663,6 +663,39 @@ function read_hblink_tgif_helper_status(): array
     ];
 }
 
+
+function session_may_have_bm_runtime(string $selectedMode, string $lastMode, string $dmrNetwork, string $dmrActiveNetwork, string $lastStatus): bool
+{
+    $lastStatus = strtoupper(trim($lastStatus));
+    return $selectedMode === 'BM'
+        || $lastMode === 'BM'
+        || $dmrNetwork === 'BM'
+        || $dmrActiveNetwork === 'BM'
+        || str_contains($lastStatus, '(BM)')
+        || str_contains($lastStatus, ' BM');
+}
+
+function session_may_have_tgif_runtime(string $selectedMode, string $lastMode, string $dmrNetwork, string $dmrActiveNetwork, string $lastStatus): bool
+{
+    $lastStatus = strtoupper(trim($lastStatus));
+    return $selectedMode === 'TGIF'
+        || $lastMode === 'TGIF'
+        || $dmrNetwork === 'TGIF'
+        || $dmrActiveNetwork === 'TGIF'
+        || str_contains($lastStatus, '(TGIF)')
+        || str_contains($lastStatus, ' TGIF');
+}
+
+function session_forces_private_node(string $selectedMode, string $lastMode, string $dmrNetwork, string $dmrActiveNetwork, bool $dmrReady, bool $dvswitchAutoloaded): bool
+{
+    return in_array($selectedMode, ['BM', 'TGIF', 'YSF'], true)
+        || in_array($lastMode, ['BM', 'TGIF', 'YSF'], true)
+        || in_array($dmrNetwork, ['BM', 'TGIF'], true)
+        || in_array($dmrActiveNetwork, ['BM', 'TGIF'], true)
+        || $dmrReady
+        || $dvswitchAutoloaded;
+}
+
 $favorites = load_favorites_file(dirname(__DIR__) . '/data/favorites.txt');
 
 $selectedMode = normalize_mode((string) ($_SESSION['selected_mode'] ?? 'BM'));
@@ -697,10 +730,40 @@ $dmrActiveNetwork = normalize_mode((string) ($_SESSION['dmr_active_network'] ?? 
 $dmrActiveTarget = trim((string) ($_SESSION['dmr_active_target'] ?? ''));
 $myNode = $config->getString('MYNODE', '');
 $dvSwitchNode = $config->getString('DVSWITCH_NODE', '');
-$dvswitchLinkActive = !empty($_SESSION['dvswitch_autoloaded']) || $dmrReady || $lastMode === 'YSF';
+$dvswitchAutoloaded = !empty($_SESSION['dvswitch_autoloaded']);
+$dvswitchLinkActive = $dvswitchAutoloaded || $dmrReady || $lastMode === 'YSF';
 
-$bmReceive = read_bm_receive_helper_status();
-$hblinkTgif = read_hblink_tgif_helper_status();
+$forcedPrivateNode = session_forces_private_node($selectedMode, $lastMode, $dmrNetwork, $dmrActiveNetwork, $dmrReady, $dvswitchAutoloaded);
+$autoloadDvSwitch = $autoloadDvSwitch || $forcedPrivateNode;
+
+$bmReceive = session_may_have_bm_runtime($selectedMode, $lastMode, $dmrNetwork, $dmrActiveNetwork, $lastStatus)
+    ? read_bm_receive_helper_status()
+    : [
+        'available' => false,
+        'ok' => false,
+        'active' => false,
+        'target' => '',
+        'message' => '',
+        'stfu_running' => false,
+        'mmdvm_bridge' => '',
+        'pid' => '',
+        'version' => '',
+        'raw_output' => '',
+    ];
+$hblinkTgif = session_may_have_tgif_runtime($selectedMode, $lastMode, $dmrNetwork, $dmrActiveNetwork, $lastStatus)
+    ? read_hblink_tgif_helper_status()
+    : [
+        'available' => false,
+        'ok' => false,
+        'active' => false,
+        'target' => '',
+        'message' => '',
+        'tgif_running' => false,
+        'mmdvm_bridge' => '',
+        'analog_bridge' => '',
+        'pid' => '',
+        'raw_output' => '',
+    ];
 
 if ($bmReceive['active']) {
     $dmrNetwork = 'BM';

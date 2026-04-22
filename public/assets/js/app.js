@@ -18,9 +18,13 @@
         muteAudioAnnouncements: false,
         audioSettleUntil: 0,
         recentAudioEvents: new Map(),
+        immediateAudioEvents: new Map(),
+        lastAllstarPayload: null,
+        manualAutoloadPreference: null,
         endpoints: {
             status: '/alltune2/api/status.php',
             connect: '/alltune2/api/connect.php',
+            direct: '/alltune2/api/direct_link.php',
         },
     };
 
@@ -221,6 +225,37 @@
         }
     }
 
+    function pruneImmediateAudioEvents() {
+        const cutoff = Date.now() - 12000;
+
+        for (const [signature, timestamp] of state.immediateAudioEvents.entries()) {
+            if (timestamp < cutoff) {
+                state.immediateAudioEvents.delete(signature);
+            }
+        }
+    }
+
+    function markImmediateAudioEvent(signature) {
+        if (signature === '') {
+            return;
+        }
+
+        pruneImmediateAudioEvents();
+        state.immediateAudioEvents.set(signature, Date.now());
+    }
+
+    function shouldSuppressImmediateFollowup(signature, cooldownMs = 8000) {
+        if (signature === '') {
+            return false;
+        }
+
+        pruneImmediateAudioEvents();
+
+        const now = Date.now();
+        const last = state.immediateAudioEvents.get(signature) ?? 0;
+        return (now - last) < cooldownMs;
+    }
+
     function shouldSuppressRecentAudio(signature, cooldownMs = 3500) {
         pruneRecentAudioEvents();
 
@@ -363,11 +398,15 @@
 
         if (directNode !== '') {
             if (upperStatus.startsWith('CONNECTED:')) {
+                const signature = `connect:${directNode}`;
+                markImmediateAudioEvent(signature);
                 announceNodeConnected(directNode);
                 return;
             }
 
             if (upperStatus.startsWith('DISCONNECTED:')) {
+                const signature = `disconnect:${directNode}`;
+                markImmediateAudioEvent(signature);
                 announceNodeDisconnected(directNode);
             }
 
@@ -380,16 +419,22 @@
         }
 
         if (upperStatus.startsWith('CONNECTED: YSF TARGET')) {
+            const signature = `connect:${dvswitchNode}`;
+            markImmediateAudioEvent(signature);
             announceNodeConnected(dvswitchNode);
             return;
         }
 
         if (/^CONNECTED:\s+TG\s+/i.test(normalizedStatus) && (upperStatus.includes('(BM)') || upperStatus.includes('(TGIF)'))) {
+            const signature = `connect:${dvswitchNode}`;
+            markImmediateAudioEvent(signature);
             announceNodeConnected(dvswitchNode);
             return;
         }
 
         if (upperStatus === 'DISCONNECTED: YSF' || upperStatus === 'DISCONNECTED: BM' || upperStatus === 'DISCONNECTED: TGIF') {
+            const signature = `disconnect:${dvswitchNode}`;
+            markImmediateAudioEvent(signature);
             announceNodeDisconnected(dvswitchNode);
         }
     }
@@ -428,10 +473,20 @@
         }
 
         addedNodes.forEach((node) => {
+            const signature = `connect:${String(node || '').trim()}`;
+            if (shouldSuppressImmediateFollowup(signature)) {
+                return;
+            }
+
             announceNodeConnected(node);
         });
 
         removedNodes.forEach((node) => {
+            const signature = `disconnect:${String(node || '').trim()}`;
+            if (shouldSuppressImmediateFollowup(signature)) {
+                return;
+            }
+
             announceNodeDisconnected(node);
         });
     }
@@ -468,6 +523,91 @@
     function modeConfigKey(mode) {
         const normalized = normalizeMode(mode);
         return normalized === 'ECHO' ? 'ECHO' : normalized;
+    }
+
+
+    function modeForcesDvSwitch(mode) {
+        const normalized = normalizeMode(mode);
+        return normalized === 'BM' || normalized === 'TGIF' || normalized === 'YSF';
+    }
+
+    function syncAutoloadUiForMode(mode) {
+        if (!els.autoloadCheckbox) {
+            return;
+        }
+
+        const forced = modeForcesDvSwitch(mode);
+
+        if (forced) {
+            if (state.manualAutoloadPreference === null) {
+                state.manualAutoloadPreference = !!els.autoloadCheckbox.checked;
+            }
+            els.autoloadCheckbox.checked = true;
+            els.autoloadCheckbox.disabled = true;
+            els.autoloadCheckbox.style.cursor = 'not-allowed';
+            els.autoloadCheckbox.style.opacity = '1';
+            return;
+        }
+
+        els.autoloadCheckbox.disabled = false;
+        els.autoloadCheckbox.style.cursor = 'pointer';
+        els.autoloadCheckbox.style.opacity = '1';
+
+        if (state.manualAutoloadPreference !== null) {
+            els.autoloadCheckbox.checked = !!state.manualAutoloadPreference;
+        }
+    }
+
+    function currentAllstarPayload() {
+        return state.lastAllstarPayload || null;
+    }
+
+    function currentDirectConnectedNodeCount() {
+        const payload = currentAllstarPayload();
+        const nodes = connectedNodeListFromPayload(payload);
+        const dvswitchNode = configuredDvSwitchNodeFromDom();
+        return nodes.filter((node) => node !== '' && node !== dvswitchNode).length;
+    }
+
+    function shouldUseDirectEndpoint(action, payload) {
+        const uiMode = normalizeMode(payload.ui_mode || payload.mode || currentSelectedMode());
+
+        if (action === 'connect') {
+            return uiMode === 'ASL' || uiMode === 'ECHO';
+        }
+
+        if (action === 'disconnect_selected') {
+            return true;
+        }
+
+        if (action === 'disconnect') {
+            return currentDirectConnectedNodeCount() > 0;
+        }
+
+        return false;
+    }
+
+    function applyImmediateAllstarSnapshot(allstarPayload) {
+        const allstar = allstarPayload || null;
+        state.lastAllstarPayload = allstar;
+
+        if (allstar?.connected_nodes_count !== undefined) {
+            const count = Number(allstar.connected_nodes_count) || 0;
+            setStatusCardText(
+                els.statusAllstar,
+                count > 0 ? `Connected: ${count}` : 'No links',
+                'No links'
+            );
+        } else {
+            setStatusCardText(
+                els.statusAllstar,
+                allstar?.label || allstar?.state || allstar?.status,
+                'No links'
+            );
+        }
+
+        renderAllstarLinks(allstar);
+        syncAudioAlertsFromAllstar(allstar);
     }
 
     function favoriteModeLabel(mode) {
@@ -1282,6 +1422,7 @@
         const links = Array.isArray(allstarPayload?.connected_nodes)
             ? allstarPayload.connected_nodes
             : [];
+        const dvswitchNode = configuredDvSwitchNodeFromDom();
 
         if (links.length === 0) {
             els.statusAllstarLinks.innerHTML = '<div>No links</div>';
@@ -1294,10 +1435,10 @@
             const mode = escapeHtml(
                 String(link.mode_label ?? link.link_mode ?? link.mode ?? 'Connected').trim()
             );
-
-            return `
-                <div class="allstar-link-row" style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:8px;">
-                    <span class="allstar-link-text">${node}${mode ? ' - ' + mode : ''}</span>
+            const isDvSwitchNode = dvswitchNode !== '' && rawNode === dvswitchNode;
+            const actionHtml = isDvSwitchNode
+                ? '<span style="opacity:0.7; font-size:0.82rem;">DVSwitch</span>'
+                : `
                     <button
                         type="button"
                         class="allstar-disconnect-button"
@@ -1316,7 +1457,12 @@
                         ${state.busy ? 'disabled' : ''}
                     >
                         Disconnect
-                    </button>
+                    </button>`;
+
+            return `
+                <div class="allstar-link-row" style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:8px;">
+                    <span class="allstar-link-text">${node}${mode ? ' - ' + mode : ''}</span>
+                    ${actionHtml}
                 </div>
             `;
         });
@@ -1486,23 +1632,7 @@
             'Idle'
         );
 
-        if (allstar?.connected_nodes_count !== undefined) {
-            const count = Number(allstar.connected_nodes_count) || 0;
-            setStatusCardText(
-                els.statusAllstar,
-                count > 0 ? `Connected: ${count}` : 'No links',
-                'No links'
-            );
-        } else {
-            setStatusCardText(
-                els.statusAllstar,
-                allstar?.label || allstar?.state || allstar?.status,
-                'No links'
-            );
-        }
-
-        renderAllstarLinks(allstar);
-        syncAudioAlertsFromAllstar(allstar);
+        applyImmediateAllstarSnapshot(allstar);
 
         if (allowFieldSync && els.modeSelect && !state.busy) {
             if (typeof payload.selected_mode === 'string') {
@@ -1527,6 +1657,8 @@
         } else if (allowFieldSync && typeof system.autoload_dvswitch !== 'undefined' && els.autoloadCheckbox && !state.busy) {
             els.autoloadCheckbox.checked = !!system.autoload_dvswitch;
         }
+
+        syncAutoloadUiForMode((typeof payload.selected_mode === 'string' ? payload.selected_mode : system.selected_mode || els.modeSelect?.value || ''));
 
         if (allowFieldSync && els.autoloadModeSelect && !state.busy) {
             if (typeof payload.autoload_dvswitch_mode === 'string') {
@@ -1592,6 +1724,13 @@
         } else if (typeof system.autoload_dvswitch !== 'undefined' && els.autoloadCheckbox) {
             els.autoloadCheckbox.checked = !!system.autoload_dvswitch;
         }
+
+        const allstar = payload.allstar || payload.networks?.allstar || null;
+        if (allstar) {
+            applyImmediateAllstarSnapshot(allstar);
+        }
+
+        syncAutoloadUiForMode((typeof payload.selected_mode === 'string' ? payload.selected_mode : system.selected_mode || els.modeSelect?.value || ''));
 
         if (els.autoloadModeSelect) {
             if (typeof payload.autoload_dvswitch_mode === 'string') {
@@ -1670,24 +1809,29 @@
         state.lastRequestedUiMode = currentSelectedMode();
         rememberPreferredAslUiMode(state.lastRequestedUiMode);
 
+        const currentMode = currentSelectedMode();
+        const forcedAutoload = modeForcesDvSwitch(currentMode);
+
         const payload = {
             action,
             action_type: action,
             target: els.targetInput.value.trim(),
             tgNum: els.targetInput.value.trim(),
             mode: modeRequestValue(els.modeSelect.value),
-            ui_mode: currentSelectedMode(),
-            autoload_dvswitch: els.autoloadCheckbox.checked ? 1 : 0,
+            ui_mode: currentMode,
+            autoload_dvswitch: forcedAutoload ? 1 : (els.autoloadCheckbox.checked ? 1 : 0),
             autoload_dvswitch_mode: normalizeAutoloadMode(els.autoloadModeSelect.value),
             disconnect_before_connect: els.disconnectBeforeConnectCheckbox.checked ? 1 : 0,
             ...extraPayload,
         };
+        const useDirectEndpoint = shouldUseDirectEndpoint(action, payload);
+        const endpoint = useDirectEndpoint ? state.endpoints.direct : state.endpoints.connect;
 
         let busyReleasedEarly = false;
         setBusy(true);
 
         try {
-            const responsePayload = await requestJson(state.endpoints.connect, {
+            const responsePayload = await requestJson(endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1725,7 +1869,9 @@
             setBusy(false);
             busyReleasedEarly = true;
             updateDtmfButtonState();
-            refreshStatusInBackground();
+            if (!useDirectEndpoint) {
+                refreshStatusInBackground();
+            }
         } catch (error) {
             console.error(error);
             setSystemStatus('ERROR: REQUEST FAILED');
@@ -1922,6 +2068,7 @@
         if (els.modeSelect) {
             els.modeSelect.addEventListener('change', () => {
                 rememberPreferredAslUiMode(els.modeSelect.value);
+                syncAutoloadUiForMode(els.modeSelect.value);
                 updateHelperText();
                 updateButtonsFromStatus(currentStatusText());
             });
@@ -1955,7 +2102,12 @@
         }
 
         if (els.autoloadCheckbox) {
-            els.autoloadCheckbox.addEventListener('change', rememberPreferences);
+            els.autoloadCheckbox.addEventListener('change', () => {
+                if (!modeForcesDvSwitch(currentSelectedMode())) {
+                    state.manualAutoloadPreference = !!els.autoloadCheckbox.checked;
+                }
+                rememberPreferences();
+            });
         }
 
         if (els.autoloadModeSelect) {
@@ -2019,6 +2171,10 @@
         wireFavoritesSort();
         wireFavoritesLoad();
         loadAudioAlertsPreference();
+        if (els.autoloadCheckbox) {
+            state.manualAutoloadPreference = !!els.autoloadCheckbox.checked;
+        }
+        syncAutoloadUiForMode(currentSelectedMode());
         updateHelperText();
         updateDtmfButtonState();
         checkForRepoUpdate();
