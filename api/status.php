@@ -791,6 +791,10 @@ $bmState = 'Idle';
 $tgifState = 'Idle';
 $ysfState = 'Idle';
 $allstarState = 'No links';
+$bmKeyed = false;
+$tgifKeyed = false;
+$ysfKeyed = false;
+$allstarKeyed = false;
 
 if ($bmReceive['active'] && $bmReceive['target'] !== '') {
     $bmState = 'Connected: TG ' . $bmReceive['target'];
@@ -831,6 +835,28 @@ if ($liveAllstar['available']) {
 if ($allstarConnectedNodes !== []) {
     $allstarState = 'Connected: ' . count($allstarConnectedNodes);
 }
+
+$dvswitchNodeKeyed = false;
+
+foreach ($allstarConnectedNodes as $link) {
+    $isKeyed = !empty($link['keyed']);
+    if ($isKeyed) {
+        $allstarKeyed = true;
+    }
+
+    $linkNode = trim((string) ($link['node'] ?? ''));
+    if ($dvSwitchNode !== '' && $linkNode === $dvSwitchNode && $isKeyed) {
+        $dvswitchNodeKeyed = true;
+    }
+}
+
+$bmActive = $dmrActiveNetwork === 'BM' || ($dmrNetwork === 'BM' && $dmrReady) || $bmReceive['active'];
+$tgifActive = $dmrActiveNetwork === 'TGIF' || ($dmrNetwork === 'TGIF' && $dmrReady) || $hblinkTgif['active'];
+$ysfActive = $lastMode === 'YSF' && $lastTarget !== '';
+
+$bmKeyed = $bmActive && $dvswitchNodeKeyed;
+$tgifKeyed = $tgifActive && $dvswitchNodeKeyed;
+$ysfKeyed = $ysfActive && $dvswitchNodeKeyed;
 
 
 $activity = [];
@@ -986,21 +1012,24 @@ $payload = [
             'state' => $bmState,
             'label' => $bmState,
             'status' => $bmState,
-            'active' => $dmrActiveNetwork === 'BM' || ($dmrNetwork === 'BM' && $dmrReady) || $bmReceive['active'],
+            'active' => $bmActive,
             'receive_mode_active' => $bmReceive['active'],
             'receive_mode_target' => $bmReceive['target'],
+            'keyed' => $bmKeyed,
         ],
         'tgif' => [
             'state' => $tgifState,
             'label' => $tgifState,
             'status' => $tgifState,
-            'active' => $dmrActiveNetwork === 'TGIF' || ($dmrNetwork === 'TGIF' && $dmrReady),
+            'active' => $tgifActive,
+            'keyed' => $tgifKeyed,
         ],
         'ysf' => [
             'state' => $ysfState,
             'label' => $ysfState,
             'status' => $ysfState,
-            'active' => $lastMode === 'YSF',
+            'active' => $ysfActive,
+            'keyed' => $ysfKeyed,
         ],
         'allstar' => [
             'state' => $allstarState,
@@ -1008,6 +1037,7 @@ $payload = [
             'status' => $allstarState,
             'connected_nodes_count' => count($allstarConnectedNodes),
             'connected_nodes' => $allstarConnectedNodes,
+            'keyed' => $allstarKeyed,
         ],
     ],
 
@@ -1015,21 +1045,24 @@ $payload = [
         'state' => $bmState,
         'label' => $bmState,
         'status' => $bmState,
-        'active' => $dmrActiveNetwork === 'BM' || ($dmrNetwork === 'BM' && $dmrReady) || $bmReceive['active'],
+        'active' => $bmActive,
         'receive_mode_active' => $bmReceive['active'],
         'receive_mode_target' => $bmReceive['target'],
+        'keyed' => $bmKeyed,
     ],
     'tgif' => [
         'state' => $tgifState,
         'label' => $tgifState,
         'status' => $tgifState,
-        'active' => $dmrActiveNetwork === 'TGIF' || ($dmrNetwork === 'TGIF' && $dmrReady),
+        'active' => $tgifActive,
+        'keyed' => $tgifKeyed,
     ],
     'ysf' => [
         'state' => $ysfState,
         'label' => $ysfState,
         'status' => $ysfState,
-        'active' => $lastMode === 'YSF',
+        'active' => $ysfActive,
+        'keyed' => $ysfKeyed,
     ],
 
     'allstar' => [
@@ -1038,6 +1071,7 @@ $payload = [
         'status' => $allstarState,
         'connected_nodes_count' => count($allstarConnectedNodes),
         'connected_nodes' => $allstarConnectedNodes,
+        'keyed' => $allstarKeyed,
         'local_nodes' => array_values(array_filter([
             $myNode,
             $dvSwitchNode,

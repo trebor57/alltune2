@@ -354,6 +354,51 @@
         return nodes;
     }
 
+    function linkLooksKeyed(link, holdSeconds = 5) {
+        if (link?.keyed) {
+            return true;
+        }
+
+        const raw = String(link?.last_keyed ?? '').trim();
+        if (!/^-?\d+$/.test(raw)) {
+            return false;
+        }
+
+        const seconds = Number(raw);
+        return seconds >= 0 && seconds <= holdSeconds;
+    }
+
+    function anyAllstarLinkLooksKeyed(allstarPayload) {
+        const links = Array.isArray(allstarPayload?.connected_nodes)
+            ? allstarPayload.connected_nodes
+            : [];
+
+        return links.some((link) => linkLooksKeyed(link));
+    }
+
+    function dvswitchLinkLooksKeyed(allstarPayload) {
+        const links = Array.isArray(allstarPayload?.connected_nodes)
+            ? allstarPayload.connected_nodes
+            : [];
+        const dvswitchNode = configuredDvSwitchNodeFromDom();
+
+        if (dvswitchNode === '') {
+            return false;
+        }
+
+        return links.some((link) => String(link?.node ?? '').trim() === dvswitchNode && linkLooksKeyed(link));
+    }
+
+    function payloadModeLooksActive(payload) {
+        const label = payload?.label || payload?.state || payload?.status || '';
+        const text = String(label).trim().toUpperCase();
+        if (text === '') {
+            return false;
+        }
+
+        return !(text === 'IDLE' || text === 'NO LINKS' || text === '-');
+    }
+
     function parseNodeFromStatus(statusText) {
         const match = String(statusText || '').match(/(?:ALLSTAR NODE|ECHOLINK NODE|DVSWITCH LINK)\s+(\d{3,})/i);
         return match ? String(match[1]).trim() : '';
@@ -606,6 +651,7 @@
             );
         }
 
+        applyKeyedStateToCard(els.statusAllstar, false);
         renderAllstarLinks(allstar);
         syncAudioAlertsFromAllstar(allstar);
     }
@@ -1360,6 +1406,51 @@
         element.textContent = text !== '' ? text : fallback;
     }
 
+    function applyKeyedStateToCard(element, keyed) {
+        const box = element?.closest('.status-box');
+        if (!box) {
+            return;
+        }
+
+        const active = !!keyed;
+        box.classList.toggle('keyed', active);
+
+        if (active) {
+            box.style.background = 'linear-gradient(90deg, #ff9500, #ff2d00)';
+            box.style.borderColor = '#ff9500';
+            box.style.boxShadow = '0 0 15px rgba(255, 149, 0, 0.55), 0 0 25px rgba(255, 45, 0, 0.45)';
+            box.style.color = '#ffffff';
+
+            const label = box.querySelector('.status-box-label');
+            const value = box.querySelector('.status-box-value');
+
+            if (label) {
+                label.style.color = '#ffffff';
+            }
+
+            if (value) {
+                value.style.color = '#ffffff';
+            }
+            return;
+        }
+
+        box.style.background = '';
+        box.style.borderColor = '';
+        box.style.boxShadow = '';
+        box.style.color = '';
+
+        const label = box.querySelector('.status-box-label');
+        const value = box.querySelector('.status-box-value');
+
+        if (label) {
+            label.style.color = '';
+        }
+
+        if (value) {
+            value.style.color = '';
+        }
+    }
+
     function renderFavorites(items) {
         if (!els.favoritesBody) {
             return;
@@ -1459,9 +1550,14 @@
                         Disconnect
                     </button>`;
 
+            const rowKeyed = linkLooksKeyed(link);
+            const keyedStyle = rowKeyed
+                ? 'background:rgba(255, 149, 0, 0.10); border-left:3px solid rgba(255,149,0,0.88); border-top:1px solid rgba(255,149,0,0.16); border-right:1px solid rgba(255,149,0,0.10); border-bottom:1px solid rgba(255,149,0,0.10); border-radius:10px; padding:6px 8px; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.02);'
+                : '';
+
             return `
-                <div class="allstar-link-row" style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:8px;">
-                    <span class="allstar-link-text">${node}${mode ? ' - ' + mode : ''}</span>
+                <div class="allstar-link-row${rowKeyed ? ' keyed' : ''}" style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:8px; ${keyedStyle}">
+                    <span class="allstar-link-text"${rowKeyed ? ' style="color:#ffe8b0; font-weight:700;"' : ''}>${node}${mode ? ' - ' + mode : ''}</span>
                     ${actionHtml}
                 </div>
             `;
@@ -1619,18 +1715,21 @@
             bm?.label || bm?.state || bm?.status,
             'Idle'
         );
+        applyKeyedStateToCard(els.statusBm, payloadModeLooksActive(bm) && dvswitchLinkLooksKeyed(allstar));
 
         setStatusCardText(
             els.statusTgif,
             tgif?.label || tgif?.state || tgif?.status,
             'Idle'
         );
+        applyKeyedStateToCard(els.statusTgif, payloadModeLooksActive(tgif) && dvswitchLinkLooksKeyed(allstar));
 
         setStatusCardText(
             els.statusYsf,
             ysf?.label || ysf?.state || ysf?.status,
             'Idle'
         );
+        applyKeyedStateToCard(els.statusYsf, payloadModeLooksActive(ysf) && dvswitchLinkLooksKeyed(allstar));
 
         applyImmediateAllstarSnapshot(allstar);
 
@@ -1725,7 +1824,26 @@
             els.autoloadCheckbox.checked = !!system.autoload_dvswitch;
         }
 
+        const bm = payload.networks?.brandmeister || payload.brandmeister || null;
+        const tgif = payload.networks?.tgif || payload.tgif || null;
+        const ysf = payload.networks?.ysf || payload.ysf || null;
         const allstar = payload.allstar || payload.networks?.allstar || null;
+
+        if (bm) {
+            setStatusCardText(els.statusBm, bm?.label || bm?.state || bm?.status, 'Idle');
+            applyKeyedStateToCard(els.statusBm, payloadModeLooksActive(bm) && dvswitchLinkLooksKeyed(allstar));
+        }
+
+        if (tgif) {
+            setStatusCardText(els.statusTgif, tgif?.label || tgif?.state || tgif?.status, 'Idle');
+            applyKeyedStateToCard(els.statusTgif, payloadModeLooksActive(tgif) && dvswitchLinkLooksKeyed(allstar));
+        }
+
+        if (ysf) {
+            setStatusCardText(els.statusYsf, ysf?.label || ysf?.state || ysf?.status, 'Idle');
+            applyKeyedStateToCard(els.statusYsf, payloadModeLooksActive(ysf) && dvswitchLinkLooksKeyed(allstar));
+        }
+
         if (allstar) {
             applyImmediateAllstarSnapshot(allstar);
         }

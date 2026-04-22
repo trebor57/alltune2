@@ -956,3 +956,31 @@ select.control {
         text-overflow: clip;
     }
 }
+
+
+/* Keyed activity highlight */
+.status-box.keyed,
+.allstar-link-row.keyed {
+    background: linear-gradient(90deg, #ff9500, #ff2d00) !important;
+    color: #fff !important;
+    box-shadow: 0 0 15px rgba(255, 149, 0, 0.55), 0 0 25px rgba(255, 45, 0, 0.45);
+    animation: keyed-pulse 750ms infinite alternate ease-in-out;
+    border-color: #ff9500 !important;
+}
+
+.status-box.keyed .status-box-label,
+.status-box.keyed .status-box-value,
+.allstar-link-row.keyed .allstar-link-text {
+    color: #fff !important;
+}
+
+.allstar-link-row.keyed {
+    padding: 6px 8px;
+    border: 1px solid #ff9500;
+    border-radius: 10px;
+}
+
+@keyframes keyed-pulse {
+    from { opacity: 1; }
+    to   { opacity: 0.88; }
+}
