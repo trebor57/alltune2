@@ -78,6 +78,7 @@ git clone https://github.com/TerryClaiborne/alltune2.git
 cd alltune2
 sudo ./setup_alltune2.sh
 ```
+**Note:** `setup_alltune2.sh` may pause for a short time during dependency checks and TGIF/HBLink environment setup, especially on slower systems such as a Pi3. This is normal. Wait for the final setup summary before assuming the installer is stuck or stopping it early.
 
 ### What the setup script does
 
