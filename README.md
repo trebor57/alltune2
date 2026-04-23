@@ -567,6 +567,12 @@ Install → Configure → Open in browser → Connect → Enjoy
 
 ---
 
+### Contact:
+
+Questions? Email: [kc3kmv@yahoo.com](mailto:kc3kmv@yahoo.com)
+
+---
+
 ## ⚠️ IMPORTANT UPDATE
 
 Current release notes may include both code-only updates and setup-level updates.
