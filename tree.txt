@@ -1,64 +1,89 @@
 .
-./alltune2-bm-receive.sh
-./api
-./api/connect.php
-./api/status.php
-./app
-./app/Actions
-./app/Actions/ActionInterface.php
-./app/Actions/AllStarAction.php
-./app/Actions/BrandMeisterAction.php
-./app/Actions/TGIFAction.php
-./app/Actions/YSFAction.php
-./app/Controllers
-./app/Controllers/MainController.php
-./app/Services
-./app/Services/NetworkManager.php
-./app/State
-./app/State/AppState.php
-./app/State/MessageCatalog.php
-./app/State/StatusMapper.php
-./app/Support
-./app/Support/Config.php
-./app/Support/Logger.php
-./config.ini.example
-./data
-./data/favorites.txt
-./docs
-./docs/.gitkeep
-./.gitignore
-./public
-./public/alltune2_ribbon_bar.php
-./public/assets
-./public/assets/css
-./public/assets/css/style.css
-./public/assets/js
-./public/assets/js/app.js
-./public/favorites.php
-./public/index.php
-./README.md
-./screenshot.png
-./setup_alltune2.sh
-./stfu
-./stfu/STFU
-./tgif-hblink
-./tgif-hblink/alltune2-hblink-audio-helper.sh
-./tgif-hblink/bridge.py
-./tgif-hblink/config.py
-./tgif-hblink/const.py
-./tgif-hblink/hblink.cfg.example
-./tgif-hblink/hblink.py
-./tgif-hblink/log.py
-./tgif-hblink/logs
-./tgif-hblink/MMDVM_Bridge.hblink.ini.example
-./tgif-hblink/MMDVM_Bridge.pre-hblink.ini
-./tgif-hblink/README.md
-./tgif-hblink/README_START.txt
-./tgif-hblink/reporting_const.py
-./tgif-hblink/requirements.txt
-./tgif-hblink/rules.py.template
-./tgif-hblink/set_hblink_tg.sh
-./tgif-hblink/system
-./tgif-hblink/voice_lib.py
-./tree.txt
-./VERSION
+|-- api
+|   |-- connect.php
+|   |-- direct_link.php
+|   \-- status.php
+|-- app
+|   |-- Actions
+|   |   |-- ActionInterface.php
+|   |   |-- AllStarAction.php
+|   |   |-- BrandMeisterAction.php
+|   |   |-- TGIFAction.php
+|   |   \-- YSFAction.php
+|   |-- Controllers
+|   |   \-- MainController.php
+|   |-- Services
+|   |   \-- NetworkManager.php
+|   |-- State
+|   |   |-- AppState.php
+|   |   |-- MessageCatalog.php
+|   |   \-- StatusMapper.php
+|   \-- Support
+|       |-- Config.php
+|       \-- Logger.php
+|-- data
+|   \-- favorites.txt
+|-- docs
+|   \-- .gitkeep
+|-- public
+|   |-- assets
+|   |   |-- css
+|   |   |   \-- style.css
+|   |   \-- js
+|   |       \-- app.js
+|   |-- alltune2_ribbon_bar.php
+|   |-- favorites.php
+|   \-- index.php
+|-- stfu
+|   |-- DVSwitch.ini
+|   \-- STFU
+|-- tgif-hblink
+|   |-- dmr_utils3
+|   |   |-- dmr_utils3
+|   |   |   |-- __init__.py
+|   |   |   |-- ambe.py
+|   |   |   |-- ambe_utils.py
+|   |   |   |-- bptc.py
+|   |   |   |-- const.py
+|   |   |   |-- crc.py
+|   |   |   |-- decode.py
+|   |   |   |-- encode.py
+|   |   |   |-- golay.py
+|   |   |   |-- golay_tables.py
+|   |   |   |-- hamming.py
+|   |   |   |-- qr.py
+|   |   |   |-- rs129.py
+|   |   |   \-- utils.py
+|   |   |-- get-pip.py
+|   |   |-- install.sh
+|   |   |-- LICENSE
+|   |   |-- README.rst
+|   |   \-- setup.py
+|   |-- alltune2-hblink-audio-helper.sh
+|   |-- bridge.py
+|   |-- config.py
+|   |-- const.py
+|   |-- DVSwitch.ini
+|   |-- hblink.cfg
+|   |-- hblink.cfg.example
+|   |-- hblink.py
+|   |-- log.py
+|   |-- MMDVM_Bridge.hblink.ini
+|   |-- MMDVM_Bridge.hblink.ini.example
+|   |-- MMDVM_Bridge.pre-hblink.ini
+|   |-- README.md
+|   |-- README_START.txt
+|   |-- reporting_const.py
+|   |-- requirements.txt
+|   |-- rules.py
+|   |-- rules.py.template
+|   |-- set_hblink_tg.sh
+|   \-- voice_lib.py
+|-- .gitignore
+|-- alltune2-bm-receive.sh
+|-- config.ini.example
+|-- README.md
+|-- screenshot.png
+|-- setup_alltune2.sh
+|-- tree.txt
+\-- VERSION
