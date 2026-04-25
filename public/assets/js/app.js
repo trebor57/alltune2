@@ -5,6 +5,7 @@
     const state = {
         busy: false,
         pollTimer: null,
+        quickStatusTimers: [],
         pollIntervalMs: 3000,
         lastRequestedUiMode: '',
         preferredAslUiMode: 'ASL',
@@ -1897,14 +1898,43 @@
         return payload;
     }
 
-    function refreshStatusInBackground() {
-        window.setTimeout(() => {
+    function clearQuickStatusRefreshes() {
+        state.quickStatusTimers.forEach((timer) => {
+            window.clearTimeout(timer);
+        });
+
+        state.quickStatusTimers = [];
+    }
+
+    function queueStatusRefresh(delayMs) {
+        const timer = window.setTimeout(() => {
+            state.quickStatusTimers = state.quickStatusTimers.filter((item) => item !== timer);
+
+            if (state.busy) {
+                return;
+            }
+
             loadStatus().catch((error) => {
                 console.error(error);
                 setSystemStatus('ERROR: STATUS UNAVAILABLE');
                 updateActivityValue('Current Status', 'ERROR: STATUS UNAVAILABLE');
             });
-        }, 0);
+        }, delayMs);
+
+        state.quickStatusTimers.push(timer);
+    }
+
+    function refreshStatusInBackground() {
+        queueStatusRefresh(0);
+    }
+
+    function refreshStatusSoonAfterAction() {
+        clearQuickStatusRefreshes();
+
+        // Normal polling stays at 3000 ms. This short burst only runs after user actions.
+        [250, 900, 1700, 2600].forEach((delayMs) => {
+            queueStatusRefresh(delayMs);
+        });
     }
 
     async function sendAction(action, extraPayload = {}) {
@@ -1987,8 +2017,9 @@
             setBusy(false);
             busyReleasedEarly = true;
             updateDtmfButtonState();
-            if (!useDirectEndpoint) {
-                refreshStatusInBackground();
+
+            if (action !== 'send_dtmf') {
+                refreshStatusSoonAfterAction();
             }
         } catch (error) {
             console.error(error);

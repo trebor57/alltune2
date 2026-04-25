@@ -106,11 +106,16 @@ $nodeStatsUrl = $hasRealMyNode
     ? 'https://stats.allstarlink.org/stats/' . rawurlencode($myNode)
     : 'https://stats.allstarlink.org/';
 
+$dvswitchCockpitDir = dirname(__DIR__, 2) . '/dvswitch_cockpit';
+$dvswitchHref = is_dir($dvswitchCockpitDir)
+    ? '/dvswitch_cockpit/'
+    : '/dvswitch/';
+
 $navItems = [
     ['label' => 'Dashboard', 'href' => '/alltune2/public/index.php', 'active' => true],
     ['label' => 'Favorites', 'href' => '/alltune2/public/favorites.php', 'active' => false],
     ['label' => 'Node Stats', 'href' => $nodeStatsUrl, 'active' => false, 'target' => '_blank'],
-    ['label' => 'DVSwitch', 'href' => '/dvswitch/', 'active' => false, 'target' => '_blank'],
+    ['label' => 'DVSwitch', 'href' => $dvswitchHref, 'active' => false, 'target' => '_blank'],
 ];
 
 $modeOptions = [
