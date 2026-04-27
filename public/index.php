@@ -33,6 +33,12 @@ function is_placeholder_config_value(mixed $value): bool
     ], true);
 }
 
+function config_flag_enabled(Config $config, string $key): bool
+{
+    $value = strtolower(trim((string) $config->get($key, '0')));
+    return in_array($value, ['1', 'true', 'yes', 'on'], true);
+}
+
 $appName = 'AllTune2';
 $repoUrl = 'https://github.com/TerryClaiborne/alltune2';
 $remoteVersionUrl = 'https://raw.githubusercontent.com/TerryClaiborne/alltune2/main/VERSION';
@@ -50,6 +56,8 @@ $dvswitchNode = trim((string) $config->get('DVSWITCH_NODE', ''));
 $myNode = trim((string) $config->get('MYNODE', ''));
 $bmPassword = trim((string) $config->get('BM_SelfcarePassword', ''));
 $tgifKey = trim((string) $config->get('TGIF_HotspotSecurityKey', ''));
+$dstarEnabled = config_flag_enabled($config, 'DSTAR_ENABLED');
+$dvswitchScriptAvailable = is_file('/opt/MMDVM_Bridge/dvswitch.sh');
 
 $hasRealMyNode = !is_placeholder_config_value($myNode);
 $hasRealDvSwitchNode = !is_placeholder_config_value($dvswitchNode);
@@ -63,8 +71,9 @@ $modeAvailability = [
     'ASL'  => $hasRealMyNode,
     'ECHO' => $hasRealMyNode,
     'BM'   => $hasRealMyNode && $hasRealDvSwitchNode && $hasRealBmPassword,
-    'TGIF' => $hasRealMyNode && $hasRealDvSwitchNode && $hasRealTgifKey,
-    'YSF'  => $hasRealMyNode && $hasRealDvSwitchNode,
+    'TGIF'  => $hasRealMyNode && $hasRealDvSwitchNode && $hasRealTgifKey,
+    'YSF'   => $hasRealMyNode && $hasRealDvSwitchNode,
+    'DSTAR' => $hasRealMyNode && $hasRealDvSwitchNode && $dstarEnabled && $dvswitchScriptAvailable,
 ];
 
 $autoloadDvSwitch = isset($_SESSION['autoload_dvswitch'])
@@ -125,6 +134,14 @@ $modeOptions = [
     'ECHO' => 'EchoLink',
     'YSF'  => 'System Fusion (YSF)',
 ];
+
+if ($modeAvailability['DSTAR']) {
+    $modeOptions['DSTAR'] = 'D-Star';
+}
+
+if (!array_key_exists($selectedMode, $modeOptions)) {
+    $selectedMode = 'BM';
+}
 
 $activityLines = [];
 
@@ -228,6 +245,7 @@ $activityLines[] = [
                         data-bm-configured="<?= $modeAvailability['BM'] ? '1' : '0' ?>"
                         data-tgif-configured="<?= $modeAvailability['TGIF'] ? '1' : '0' ?>"
                         data-ysf-configured="<?= $modeAvailability['YSF'] ? '1' : '0' ?>"
+                        data-dstar-configured="<?= $modeAvailability['DSTAR'] ? '1' : '0' ?>"
                     >
                         <div class="control-grid">
                             <label class="sr-only" for="target">TG / Node / YSF #</label>
@@ -444,6 +462,10 @@ $activityLines[] = [
                             <div class="status-box-value" id="status-ysf">Idle</div>
                         </div>
                         <div class="status-box">
+                            <div class="status-box-label">D-Star</div>
+                            <div class="status-box-value" id="status-dstar">Idle</div>
+                        </div>
+                        <div class="status-box status-box-wide">
                             <div class="status-box-label">AllStarLink / EchoLink</div>
                             <div class="status-box-value" id="status-allstar">No links</div>
                             <div id="status-allstar-links">

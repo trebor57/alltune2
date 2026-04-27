@@ -47,6 +47,7 @@
         statusBm: document.getElementById('status-bm'),
         statusTgif: document.getElementById('status-tgif'),
         statusYsf: document.getElementById('status-ysf'),
+        statusDstar: document.getElementById('status-dstar'),
         statusAllstar: document.getElementById('status-allstar'),
         statusAllstarLinks: document.getElementById('status-allstar-links'),
         brandingTitle: document.getElementById('branding-title'),
@@ -355,7 +356,7 @@
         return nodes;
     }
 
-    function linkLooksKeyed(link, holdSeconds = 5) {
+    function linkLooksKeyed(link, holdSeconds = 10) {
         if (link?.keyed) {
             return true;
         }
@@ -558,6 +559,14 @@
             return 'ECHO';
         }
 
+        if ([
+            'D-STAR',
+            'D STAR',
+            'DSTAR',
+        ].includes(value)) {
+            return 'DSTAR';
+        }
+
         return value;
     }
 
@@ -574,7 +583,7 @@
 
     function modeForcesDvSwitch(mode) {
         const normalized = normalizeMode(mode);
-        return normalized === 'BM' || normalized === 'TGIF' || normalized === 'YSF';
+        return normalized === 'BM' || normalized === 'TGIF' || normalized === 'YSF' || normalized === 'DSTAR';
     }
 
     function syncAutoloadUiForMode(mode) {
@@ -668,6 +677,10 @@
             return 'E/L';
         }
 
+        if (normalized === 'DSTAR') {
+            return 'D-Star';
+        }
+
         return normalized;
     }
 
@@ -723,6 +736,7 @@
             'E/L': 3,
             TGIF: 4,
             YSF: 5,
+            'D-Star': 6,
         };
 
         const multiplier = direction === 'desc' ? -1 : 1;
@@ -1024,6 +1038,7 @@
                 BM: dataset.bmConfigured === '1',
                 TGIF: dataset.tgifConfigured === '1',
                 YSF: dataset.ysfConfigured === '1',
+                DSTAR: dataset.dstarConfigured === '1',
             },
         };
     }
@@ -1059,6 +1074,14 @@
             return `TGIF is not configured on this system. Real MYNODE, DVSWITCH_NODE, and TGIF_HotspotSecurityKey values are required in ${configPath}. Connect is disabled until those values are set.`;
         }
 
+        if (normalized === 'DSTAR') {
+            return `D-Star is not configured on this system. Real MYNODE and DVSWITCH_NODE values plus DSTAR_ENABLED=1 are required in ${configPath}, and /opt/MMDVM_Bridge/dvswitch.sh must exist. Connect is disabled until that is configured.`;
+        }
+
+        if (normalized === 'P25' || normalized === 'NXDN') {
+            return `${normalized} is not configured on this system yet. Update ${configPath} and confirm the DVSwitch mode path before using it.`;
+        }
+
         return `This mode is not configured on this system. Update ${configPath} with real values before using it. Connect is disabled until configuration is complete.`;
     }
 
@@ -1071,6 +1094,7 @@
         const bm = payload.networks?.brandmeister || payload.brandmeister || null;
         const tgif = payload.networks?.tgif || payload.tgif || null;
         const ysf = payload.networks?.ysf || payload.ysf || null;
+        const dstar = payload.networks?.dstar || payload.dstar || null;
 
         const explicitFlag =
             payload.dvswitch_link_active ??
@@ -1085,14 +1109,15 @@
         const lastMode = normalizeMode(payload.last_mode ?? system.last_mode ?? '');
         const autoload = !!(payload.autoload_dvswitch ?? system.autoload_dvswitch ?? false);
 
-        if (dmrReady || dmrNetwork !== '' || lastMode === 'YSF') {
+        if (dmrReady || dmrNetwork !== '' || lastMode === 'YSF' || lastMode === 'DSTAR') {
             return true;
         }
 
         if (autoload && (
             textLooksActive(bm?.label || bm?.state || bm?.status) ||
             textLooksActive(tgif?.label || tgif?.state || tgif?.status) ||
-            textLooksActive(ysf?.label || ysf?.state || ysf?.status)
+            textLooksActive(ysf?.label || ysf?.state || ysf?.status) ||
+            textLooksActive(dstar?.label || dstar?.state || dstar?.status)
         )) {
             return true;
         }
@@ -1100,7 +1125,8 @@
         if (
             textLooksActive(bm?.label || bm?.state || bm?.status) ||
             textLooksActive(tgif?.label || tgif?.state || tgif?.status) ||
-            textLooksActive(ysf?.label || ysf?.state || ysf?.status)
+            textLooksActive(ysf?.label || ysf?.state || ysf?.status) ||
+            textLooksActive(dstar?.label || dstar?.state || dstar?.status)
         ) {
             return true;
         }
@@ -1135,7 +1161,7 @@
                 return true;
             }
 
-            if (label === 'LAST MODE' && value === 'YSF') {
+            if (label === 'LAST MODE' && (value === 'YSF' || value === 'DSTAR')) {
                 return true;
             }
         }
@@ -1157,6 +1183,7 @@
             statusText.includes('(BM)') ||
             statusText.includes('(TGIF)') ||
             statusText.includes('CONNECTED: YSF TARGET') ||
+            statusText.includes('CONNECTED: D-STAR TARGET') ||
             statusText.includes('WAITING: BM READY') ||
             statusText.includes('WAITING: TGIF READY')
         ) {
@@ -1208,6 +1235,10 @@
         }
         
         if (mode === 'YSF' && status.includes('CONNECTED: YSF TARGET')) {
+            return disconnectFirst ? false : true;
+        }
+
+        if (mode === 'DSTAR' && status.includes('CONNECTED: D-STAR TARGET')) {
             return disconnectFirst ? false : true;
         }
 
@@ -1365,6 +1396,12 @@
             return disconnectFirst
                 ? 'YSF is a one-step connect. Enter or load the YSF target and press CONNECT once. Wait for the status to confirm the connection. DISCONNECT removes the current YSF connection. DISCONNECT DVSWITCH removes only the configured DVSwitch link. DISCONNECT ALL does a full reset. With Disconnect before Connect on, the next managed connect clears earlier managed links first.'
                 : 'YSF is a one-step connect. Enter or load the YSF target and press CONNECT once. Wait for the status to confirm the connection. DISCONNECT removes the current YSF connection. DISCONNECT DVSWITCH removes only the configured DVSwitch link. DISCONNECT ALL does a full reset. With Disconnect before Connect off, YSF can stay up while you add direct AllStarLink or EchoLink connections.';
+        }
+
+        if (mode === 'DSTAR') {
+            return disconnectFirst
+                ? 'D-Star is a one-step managed DVSwitch connect. Enter or load a D-Star target such as REF030EL and press CONNECT once. AllTune2 switches DVSwitch to DSTAR mode, tunes the target, and forces the private DVSwitch node link automatically. DISCONNECT removes the current D-Star connection. DISCONNECT DVSWITCH removes only the configured DVSwitch link. DISCONNECT ALL does a full reset.'
+                : 'D-Star is a one-step managed DVSwitch connect. Enter or load a D-Star target such as REF030EL and press CONNECT once. AllTune2 switches DVSwitch to DSTAR mode, tunes the target, and forces the private DVSwitch node link automatically. With Disconnect before Connect off, D-Star can stay up while you add direct AllStarLink or EchoLink connections.';
         }
 
         if (mode === 'ASL') {
@@ -1709,6 +1746,7 @@
         const bm = payload.networks?.brandmeister || payload.brandmeister || null;
         const tgif = payload.networks?.tgif || payload.tgif || null;
         const ysf = payload.networks?.ysf || payload.ysf || null;
+        const dstar = payload.networks?.dstar || payload.dstar || null;
         const allstar = payload.allstar || payload.networks?.allstar || null;
 
         setStatusCardText(
@@ -1731,6 +1769,13 @@
             'Idle'
         );
         applyKeyedStateToCard(els.statusYsf, payloadModeLooksActive(ysf) && dvswitchLinkLooksKeyed(allstar));
+
+        setStatusCardText(
+            els.statusDstar,
+            dstar?.label || dstar?.state || dstar?.status,
+            'Idle'
+        );
+        applyKeyedStateToCard(els.statusDstar, payloadModeLooksActive(dstar) && dvswitchLinkLooksKeyed(allstar));
 
         applyImmediateAllstarSnapshot(allstar);
 
@@ -1828,6 +1873,7 @@
         const bm = payload.networks?.brandmeister || payload.brandmeister || null;
         const tgif = payload.networks?.tgif || payload.tgif || null;
         const ysf = payload.networks?.ysf || payload.ysf || null;
+        const dstar = payload.networks?.dstar || payload.dstar || null;
         const allstar = payload.allstar || payload.networks?.allstar || null;
 
         if (bm) {
@@ -1843,6 +1889,11 @@
         if (ysf) {
             setStatusCardText(els.statusYsf, ysf?.label || ysf?.state || ysf?.status, 'Idle');
             applyKeyedStateToCard(els.statusYsf, payloadModeLooksActive(ysf) && dvswitchLinkLooksKeyed(allstar));
+        }
+
+        if (dstar) {
+            setStatusCardText(els.statusDstar, dstar?.label || dstar?.state || dstar?.status, 'Idle');
+            applyKeyedStateToCard(els.statusDstar, payloadModeLooksActive(dstar) && dvswitchLinkLooksKeyed(allstar));
         }
 
         if (allstar) {

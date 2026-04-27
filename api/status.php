@@ -57,6 +57,10 @@ function normalize_mode(?string $mode): string
         return 'ECHO';
     }
 
+    if (in_array($value, ['D-STAR', 'D STAR', 'DSTAR'], true)) {
+        return 'DSTAR';
+    }
+
     return $value;
 }
 
@@ -688,8 +692,8 @@ function session_may_have_tgif_runtime(string $selectedMode, string $lastMode, s
 
 function session_forces_private_node(string $selectedMode, string $lastMode, string $dmrNetwork, string $dmrActiveNetwork, bool $dmrReady, bool $dvswitchAutoloaded): bool
 {
-    return in_array($selectedMode, ['BM', 'TGIF', 'YSF'], true)
-        || in_array($lastMode, ['BM', 'TGIF', 'YSF'], true)
+    return in_array($selectedMode, ['BM', 'TGIF', 'YSF', 'DSTAR'], true)
+        || in_array($lastMode, ['BM', 'TGIF', 'YSF', 'DSTAR'], true)
         || in_array($dmrNetwork, ['BM', 'TGIF'], true)
         || in_array($dmrActiveNetwork, ['BM', 'TGIF'], true)
         || $dmrReady
@@ -731,7 +735,7 @@ $dmrActiveTarget = trim((string) ($_SESSION['dmr_active_target'] ?? ''));
 $myNode = $config->getString('MYNODE', '');
 $dvSwitchNode = $config->getString('DVSWITCH_NODE', '');
 $dvswitchAutoloaded = !empty($_SESSION['dvswitch_autoloaded']);
-$dvswitchLinkActive = $dvswitchAutoloaded || $dmrReady || $lastMode === 'YSF';
+$dvswitchLinkActive = $dvswitchAutoloaded || $dmrReady || in_array($lastMode, ['YSF', 'DSTAR'], true);
 
 $forcedPrivateNode = session_forces_private_node($selectedMode, $lastMode, $dmrNetwork, $dmrActiveNetwork, $dmrReady, $dvswitchAutoloaded);
 $autoloadDvSwitch = $autoloadDvSwitch || $forcedPrivateNode;
@@ -790,10 +794,12 @@ if ($hblinkTgif['active']) {
 $bmState = 'Idle';
 $tgifState = 'Idle';
 $ysfState = 'Idle';
+$dstarState = 'Idle';
 $allstarState = 'No links';
 $bmKeyed = false;
 $tgifKeyed = false;
 $ysfKeyed = false;
+$dstarKeyed = false;
 $allstarKeyed = false;
 
 if ($bmReceive['active'] && $bmReceive['target'] !== '') {
@@ -820,6 +826,10 @@ if ($lastMode === 'YSF' && $lastTarget !== '') {
     $ysfState = 'Connected: ' . $lastTarget;
 }
 
+if ($lastMode === 'DSTAR' && $lastTarget !== '') {
+    $dstarState = 'Connected: ' . $lastTarget;
+}
+
 $liveAllstar = fetch_live_allstar_links_via_ami($myNode);
 if ($liveAllstar['available']) {
     $allstarConnectedNodes = $liveAllstar['links'];
@@ -839,7 +849,12 @@ if ($allstarConnectedNodes !== []) {
 $dvswitchNodeKeyed = false;
 
 foreach ($allstarConnectedNodes as $link) {
-    $isKeyed = !empty($link['keyed']);
+    $lastKeyedRaw = trim((string) ($link['last_keyed'] ?? '-1'));
+    $recentlyKeyed = preg_match('/^-?\\d+$/', $lastKeyedRaw) === 1
+        && (int) $lastKeyedRaw >= 0
+        && (int) $lastKeyedRaw <= 10;
+
+    $isKeyed = !empty($link['keyed']) || $recentlyKeyed;
     if ($isKeyed) {
         $allstarKeyed = true;
     }
@@ -853,10 +868,12 @@ foreach ($allstarConnectedNodes as $link) {
 $bmActive = $dmrActiveNetwork === 'BM' || ($dmrNetwork === 'BM' && $dmrReady) || $bmReceive['active'];
 $tgifActive = $dmrActiveNetwork === 'TGIF' || ($dmrNetwork === 'TGIF' && $dmrReady) || $hblinkTgif['active'];
 $ysfActive = $lastMode === 'YSF' && $lastTarget !== '';
+$dstarActive = $lastMode === 'DSTAR' && $lastTarget !== '';
 
 $bmKeyed = $bmActive && $dvswitchNodeKeyed;
 $tgifKeyed = $tgifActive && $dvswitchNodeKeyed;
 $ysfKeyed = $ysfActive && $dvswitchNodeKeyed;
+$dstarKeyed = $dstarActive && $dvswitchNodeKeyed;
 
 
 $activity = [];
@@ -894,6 +911,11 @@ if ($dmrActivityValue !== '') {
     $activity[] = [
         'label' => 'DMR Network',
         'value' => $dmrActivityValue,
+    ];
+} elseif ($lastMode === 'DSTAR' && $lastTarget !== '') {
+    $activity[] = [
+        'label' => 'Digital Network',
+        'value' => 'D-Star (' . $lastTarget . ')',
     ];
 }
 
@@ -1031,6 +1053,13 @@ $payload = [
             'active' => $ysfActive,
             'keyed' => $ysfKeyed,
         ],
+        'dstar' => [
+            'state' => $dstarState,
+            'label' => $dstarState,
+            'status' => $dstarState,
+            'active' => $dstarActive,
+            'keyed' => $dstarKeyed,
+        ],
         'allstar' => [
             'state' => $allstarState,
             'label' => $allstarState,
@@ -1063,6 +1092,13 @@ $payload = [
         'status' => $ysfState,
         'active' => $ysfActive,
         'keyed' => $ysfKeyed,
+    ],
+    'dstar' => [
+        'state' => $dstarState,
+        'label' => $dstarState,
+        'status' => $dstarState,
+        'active' => $dstarActive,
+        'keyed' => $dstarKeyed,
     ],
 
     'allstar' => [

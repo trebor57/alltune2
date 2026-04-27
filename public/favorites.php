@@ -13,9 +13,47 @@ $nodeStatsUrl = $myNode !== ''
     ? 'https://stats.allstarlink.org/stats/' . rawurlencode($myNode)
     : 'https://stats.allstarlink.org/';
 
+$dvswitchCockpitDir = dirname(__DIR__, 2) . '/dvswitch_cockpit';
+$dvswitchHref = is_dir($dvswitchCockpitDir)
+    ? '/dvswitch_cockpit/'
+    : '/dvswitch/';
+
+$dvSwitchNode = trim((string) $config->get('DVSWITCH_NODE', ''));
+$hasRealMyNode = !is_placeholder_config_value($myNode);
+$hasRealDvSwitchNode = !is_placeholder_config_value($dvSwitchNode);
+$dstarAvailable = $hasRealMyNode
+    && $hasRealDvSwitchNode
+    && config_flag_enabled($config, 'DSTAR_ENABLED')
+    && is_file('/opt/MMDVM_Bridge/dvswitch.sh');
+
 function e(mixed $value): string
 {
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+}
+
+function is_placeholder_config_value(mixed $value): bool
+{
+    $normalized = strtoupper(trim((string) $value));
+
+    if ($normalized === '') {
+        return true;
+    }
+
+    return in_array($normalized, [
+        'CHANGE_ME',
+        'YOUR NODE',
+        'YOUR DVSWITCH NODE',
+        'YOUR_REAL_PASSWORD',
+        'YOUR_REAL_KEY',
+        'YOUR PASSWORD',
+        'YOUR KEY',
+    ], true);
+}
+
+function config_flag_enabled(Config $config, string $key): bool
+{
+    $value = strtolower(trim((string) $config->get($key, '0')));
+    return in_array($value, ['1', 'true', 'yes', 'on', 'enabled'], true);
 }
 
 $appName = 'AllTune2';
@@ -43,7 +81,7 @@ function normalize_mode(string $mode): string
     }
 
     return match ($value) {
-        'BM', 'TGIF', 'ASL', 'ECHO', 'YSF' => $value,
+        'BM', 'TGIF', 'ASL', 'ECHO', 'YSF', 'DSTAR' => $value,
         default => 'BM',
     };
 }
@@ -55,6 +93,7 @@ function mode_display_label(string $mode): string
     return match ($normalized) {
         'ASL' => 'ASL',
         'ECHO' => 'E/L',
+        'DSTAR' => 'D-Star',
         default => $normalized,
     };
 }
@@ -135,6 +174,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($target === '') {
             $message = 'Target is required.';
+            $messageType = 'error';
+        } elseif ($mode === 'DSTAR' && !$dstarAvailable) {
+            $message = 'D-Star favorites cannot be saved until D-Star is enabled in config.ini and the DVSwitch script is available.';
             $messageType = 'error';
         } else {
             $updated = false;
@@ -227,11 +269,15 @@ $formName = $editFavorite['name'] ?? '';
 $formDescription = $editFavorite['description'] ?? '';
 $formMode = $editFavorite['mode'] ?? 'BM';
 
+if ($formMode === 'DSTAR' && !array_key_exists('DSTAR', $modeOptions)) {
+    $modeOptions['DSTAR'] = 'D-Star';
+}
+
 $navItems = [
     ['label' => 'Dashboard', 'href' => '/alltune2/public/index.php', 'active' => false],
     ['label' => 'Favorites', 'href' => '/alltune2/public/favorites.php', 'active' => true],
     ['label' => 'Node Stats', 'href' => $nodeStatsUrl, 'active' => false, 'target' => '_blank'],
-    ['label' => 'DVSwitch', 'href' => '/dvswitch/', 'active' => false, 'target' => '_blank'],
+    ['label' => 'DVSwitch', 'href' => $dvswitchHref, 'active' => false, 'target' => '_blank'],
 ];
 
 $modeOptions = [
@@ -241,6 +287,10 @@ $modeOptions = [
     'ECHO' => 'EchoLink',
     'YSF' => 'YSF',
 ];
+
+if ($dstarAvailable) {
+    $modeOptions['DSTAR'] = 'D-Star';
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -464,7 +514,7 @@ $modeOptions = [
                             class="control"
                             type="text"
                             name="target"
-                            placeholder="TG / Node / YSF # or host"
+                            placeholder="TG / Node / YSF / D-Star target"
                             value="<?= e($formTarget) ?>"
                             required
                         >
@@ -497,6 +547,12 @@ $modeOptions = [
                             <?= $editFavorite ? 'Save Changes' : 'Save Favorite' ?>
                         </button>
                     </div>
+
+                    <?php if (!$dstarAvailable): ?>
+                        <div class="favorites-note" style="margin-top:8px;">
+                            D-Star favorites are hidden until DSTAR_ENABLED=1 is set in config.ini and the DVSwitch script is available.
+                        </div>
+                    <?php endif; ?>
                 </form>
             </div>
         </article>
@@ -519,7 +575,7 @@ $modeOptions = [
                             <thead>
                             <tr>
                                 <th>#</th>
-                                <th>TG / Node / YSF</th>
+                                <th>TG / Node / YSF / D-Star</th>
                                 <th>Station Name</th>
                                 <th>Description</th>
                                 <th>Mode</th>

@@ -500,29 +500,33 @@ select.control {
 
 .status-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+    gap: 8px;
 }
 
 .status-box {
     background: var(--bg-status);
     border: 1px solid var(--border-soft);
     border-radius: 14px;
-    padding: 10px 14px;
-    min-height: 72px;
+    padding: 8px 10px;
+    min-height: 58px;
+}
+
+.status-box-wide {
+    grid-column: span 2;
 }
 
 .status-box-label {
     color: var(--text-soft);
-    font-size: 0.8rem;
-    margin-bottom: 6px;
+    font-size: 0.74rem;
+    margin-bottom: 4px;
 }
 
 .status-box-value {
     color: var(--green);
-    font-size: 0.94rem;
+    font-size: 0.86rem;
     font-weight: 700;
-    line-height: 1.25;
+    line-height: 1.18;
     word-break: break-word;
 }
 
@@ -928,6 +932,10 @@ select.control {
         grid-template-columns: 1fr;
     }
 
+    .status-box-wide {
+        grid-column: span 1;
+    }
+
     .activity-row {
         grid-template-columns: 1fr;
         gap: 4px;
@@ -983,4 +991,12 @@ select.control {
 @keyframes keyed-pulse {
     from { opacity: 1; }
     to   { opacity: 0.88; }
+}
+
+#status-allstar-links .allstar-link-row {
+    min-width: 0;
+}
+
+#status-allstar-links .allstar-link-text {
+    font-size: 0.78rem;
 }
