@@ -11,6 +11,7 @@ It gives you one place to work with:
 - BrandMeister
 - TGIF
 - YSF
+- D-Star
 - AllStarLink
 - EchoLink
 - Local Monitor
@@ -29,6 +30,7 @@ With it, you can:
 - connect to BrandMeister talkgroups
 - connect to TGIF talkgroups
 - connect to YSF reflectors / rooms
+- connect to D-Star reflectors when D-Star is configured
 - connect to AllStarLink nodes
 - connect to EchoLink nodes
 - use Local Monitor
@@ -38,20 +40,21 @@ With it, you can:
 - watch live status and activity
 - use audio alerts if enabled
 
-Some local functions can also be used alongside BM, TGIF, or YSF operation depending on your setup and workflow.
+Some local functions can also be used alongside BM, TGIF, YSF, or D-Star operation depending on your setup and workflow.
 
 ## Live keyed activity highlighting
 
-AllTune2 now shows live keyed/activity highlighting for linked AllStarLink / EchoLink node rows.
+AllTune2 now shows live keyed/activity highlighting for linked AllStarLink / EchoLink node rows and supported managed DVSwitch modes.
 
 What it does:
 - highlights the active linked node row when live activity is detected
+- shows keyed/activity feedback for supported managed modes such as D-Star when configured
 - uses a softer amber accent so the active row stands out without overpowering the dashboard
 - keeps the existing connection logic unchanged
 
 Notes:
 - this is a visual/status enhancement
-- it does not change TGIF, BrandMeister, YSF, AllStarLink, or EchoLink connect/disconnect behavior
+- it does not change TGIF, BrandMeister, YSF, D-Star, AllStarLink, or EchoLink connect/disconnect behavior
 - active row highlighting depends on live activity/status data being available from the node
 
 ## ⚠️ BEFORE YOU INSTALL
@@ -62,6 +65,8 @@ You MUST already have:
 - Working DVSwitch
 - Analog_Bridge running
 - MMDVM_Bridge running
+
+Optional modes such as D-Star require those modes to already work in your ASL3 / DVSwitch / MMDVM_Bridge setup before enabling them in AllTune2.
 
 If your node is not already working, fix that first.
 
@@ -156,10 +161,13 @@ If the update changes a long-running TGIF / HBLink runtime process, a reboot onc
 Example:
 
 ```ini
-MYNODE=12345
-DVSWITCH_NODE=1999
-BM_SelfcarePassword=your_password
-TGIF_HotspotSecurityKey=your_key
+MYNODE="YOUR NODE"
+DVSWITCH_NODE="YOUR DVSWITCH NODE"
+BM_SelfcarePassword="CHANGE_ME"
+TGIF_HotspotSecurityKey="CHANGE_ME"
+DSTAR_ENABLED=0
+P25_ENABLED=0
+NXDN_ENABLED=0
 ```
 
 #### What these mean
@@ -192,7 +200,73 @@ Your TGIF Hotspot Security Key.
 
 This is **NOT** your TGIF website login password.
 
-### 2. TGIF Config
+**DSTAR_ENABLED**  
+Controls whether D-Star appears as a usable mode in AllTune2.
+
+Use:
+
+```ini
+DSTAR_ENABLED=0
+```
+
+to keep D-Star disabled.
+
+Use:
+
+```ini
+DSTAR_ENABLED=1
+```
+
+only after D-Star already works on your ASL3 / DVSwitch / MMDVM_Bridge system.
+
+When D-Star is disabled or not configured, the D-Star Live Status box remains idle, and D-Star is not available in the main dropdown or Favorites.
+
+**P25_ENABLED** and **NXDN_ENABLED**  
+These are reserved for future AllTune2 work.
+
+Leave them set to:
+
+```ini
+P25_ENABLED=0
+NXDN_ENABLED=0
+```
+
+P25 and NXDN are not exposed in the interface yet.
+
+### 2. D-Star Setup
+
+D-Star is optional.
+
+Before enabling D-Star in AllTune2, D-Star should already work from the ASL3 / DVSwitch / MMDVM_Bridge side.
+
+A basic manual test looks like this:
+
+```bash
+/opt/MMDVM_Bridge/dvswitch.sh mode DSTAR
+/opt/MMDVM_Bridge/dvswitch.sh tune REF030EL
+```
+
+To disconnect D-Star manually:
+
+```bash
+/opt/MMDVM_Bridge/dvswitch.sh tune 4000#
+```
+
+AllTune2 does not create your D-Star account, registration, reflector setup, or system-level MMDVM_Bridge D-Star configuration.
+
+Enable D-Star in AllTune2 only after your system D-Star path is already working:
+
+```ini
+DSTAR_ENABLED=1
+```
+
+If D-Star is not configured, leave it disabled:
+
+```ini
+DSTAR_ENABLED=0
+```
+
+### 3. TGIF Config
 
 `/var/www/html/alltune2/tgif-hblink/hblink.cfg`
 
@@ -255,7 +329,7 @@ StartRef=19750;RelinkTime=60
 
 If you want TGIF to start on a certain talkgroup, that is where you set it.
 
-### 3. Review This File
+### 4. Review This File
 
 `/var/www/html/alltune2/tgif-hblink/MMDVM_Bridge.hblink.ini`
 
@@ -311,6 +385,8 @@ These files must already be working correctly on your system:
 - `/opt/Analog_Bridge/Analog_Bridge.ini`
 
 If those files are broken, AllTune2 will not work correctly.
+
+For D-Star, the required D-Star account / registration / reflector configuration must also already be correct in the underlying DVSwitch / MMDVM_Bridge setup before enabling D-Star in AllTune2.
 
 ## 🌐 OPEN ALLTUNE2 IN YOUR BROWSER
 
@@ -384,7 +460,7 @@ TGIF may take a little longer to connect than BrandMeister.
 
 That is normal.
 
-You can also stay connected to BM, TGIF, or YSF and add AllStarLink nodes or EchoLink nodes using Transceive or Local Monitor, depending on your setup and workflow.
+You can also stay connected to BM, TGIF, YSF, or D-Star and add AllStarLink nodes or EchoLink nodes using Transceive or Local Monitor, depending on your setup and workflow.
 
 ## 🟡 YSF
 
@@ -397,6 +473,36 @@ Use YSF when you want to connect to a YSF room or reflector.
 - press Connect
 - watch the status area
 - use Disconnect when done
+
+## 🟠 D-STAR
+
+Use D-Star when you want to connect to a D-Star reflector.
+
+D-Star is optional and must already be working in your ASL3 / DVSwitch / MMDVM_Bridge system before AllTune2 can control it.
+
+### Typical D-Star workflow
+
+- make sure `DSTAR_ENABLED=1` is set in `/var/www/html/alltune2/config.ini`
+- choose D-Star
+- enter the D-Star target, such as `REF030EL`
+- press Connect
+- watch the status area
+- use Disconnect or Disconnect DVSwitch when done
+
+### Important D-Star notes
+
+D-Star uses the managed DVSwitch path, similar to YSF.
+
+AllTune2 runs the DVSwitch D-Star mode and tune commands, then uses the configured private DVSwitch audio node.
+
+D-Star disconnect uses:
+
+```bash
+/opt/MMDVM_Bridge/dvswitch.sh tune 4000#
+```
+
+If D-Star is not enabled or not available, it will not appear in the main mode dropdown or Favorites. The D-Star Live Status box may still be visible, but it will remain Idle.
+
 
 ## 🔴 ALLSTARLINK
 
@@ -458,6 +564,7 @@ Use Favorites when you have:
 - a BM talkgroup you use often
 - a TGIF talkgroup you use often
 - a YSF room you use often
+- a D-Star reflector you use often, if D-Star is enabled
 - an AllStarLink node you use often
 - an EchoLink target you use often
 
@@ -484,6 +591,7 @@ The status and activity areas help you see:
 - what mode you are in
 - whether you are connected
 - which target is active
+- D-Star status when D-Star is configured
 - local / node activity
 - changes as they happen
 
@@ -528,6 +636,30 @@ sudo ./setup_alltune2.sh
 
 If the update changed a long-running TGIF / HBLink process, reboot once after updating so the new runtime fully takes effect.
 
+### If D-Star does not show up
+
+Check these first:
+
+- `DSTAR_ENABLED=1` is set in `/var/www/html/alltune2/config.ini`
+- `/opt/MMDVM_Bridge/dvswitch.sh` exists
+- your real `MYNODE` and `DVSWITCH_NODE` values are set
+- D-Star already works from the terminal
+
+Manual D-Star test:
+
+```bash
+/opt/MMDVM_Bridge/dvswitch.sh mode DSTAR
+/opt/MMDVM_Bridge/dvswitch.sh tune REF030EL
+```
+
+Manual D-Star disconnect:
+
+```bash
+/opt/MMDVM_Bridge/dvswitch.sh tune 4000#
+```
+
+If these manual commands do not work, fix the base D-Star / DVSwitch / MMDVM_Bridge setup first.
+
 ### If something still looks wrong
 
 Check these first:
@@ -544,6 +676,8 @@ Do not guess values.
 
 - `/var/www/html/alltune2/config.ini`
 - `/var/www/html/alltune2/tgif-hblink/hblink.cfg`
+
+Set `DSTAR_ENABLED=1` only on systems where D-Star is already working. Leave it set to `0` on systems that do not use D-Star.
 
 ### Review this:
 
@@ -579,6 +713,9 @@ Current release notes may include both code-only updates and setup-level updates
 
 For this release series, important recent changes include:
 
+- Managed D-Star support when enabled in local config
+- D-Star Live Status / keyed activity support
+- D-Star Favorites support when enabled
 - TGIF / HBLink connect speed improvement
 - HBLink runtime retune improvement
 - HBLink log file growth disabled
