@@ -12,6 +12,8 @@ It gives you one place to work with:
 - TGIF
 - YSF
 - D-Star
+- P25
+- NXDN
 - AllStarLink
 - EchoLink
 - Local Monitor
@@ -31,6 +33,8 @@ With it, you can:
 - connect to TGIF talkgroups
 - connect to YSF reflectors / rooms
 - connect to D-Star reflectors when D-Star is configured
+- connect to P25 reflectors / talkgroups when P25 is configured
+- connect to NXDN reflectors / talkgroups when NXDN is configured
 - connect to AllStarLink nodes
 - connect to EchoLink nodes
 - use Local Monitor
@@ -40,7 +44,7 @@ With it, you can:
 - watch live status and activity
 - use audio alerts if enabled
 
-Some local functions can also be used alongside BM, TGIF, YSF, or D-Star operation depending on your setup and workflow.
+Some local functions can also be used alongside BM, TGIF, YSF, D-Star, P25, or NXDN operation depending on your setup and workflow.
 
 ## Live keyed activity highlighting
 
@@ -48,13 +52,13 @@ AllTune2 now shows live keyed/activity highlighting for linked AllStarLink / Ech
 
 What it does:
 - highlights the active linked node row when live activity is detected
-- shows keyed/activity feedback for supported managed modes such as D-Star when configured
+- shows keyed/activity feedback for supported managed modes such as D-Star, P25, and NXDN when configured
 - uses a softer amber accent so the active row stands out without overpowering the dashboard
 - keeps the existing connection logic unchanged
 
 Notes:
 - this is a visual/status enhancement
-- it does not change TGIF, BrandMeister, YSF, D-Star, AllStarLink, or EchoLink connect/disconnect behavior
+- it does not change TGIF, BrandMeister, YSF, D-Star, P25, NXDN, AllStarLink, or EchoLink connect/disconnect behavior
 - active row highlighting depends on live activity/status data being available from the node
 
 ## ⚠️ BEFORE YOU INSTALL
@@ -66,7 +70,7 @@ You MUST already have:
 - Analog_Bridge running
 - MMDVM_Bridge running
 
-Optional modes such as D-Star require those modes to already work in your ASL3 / DVSwitch / MMDVM_Bridge setup before enabling them in AllTune2.
+Optional modes such as D-Star, P25, and NXDN require those modes to already work in your ASL3 / DVSwitch / MMDVM_Bridge setup before enabling them in AllTune2.
 
 If your node is not already working, fix that first.
 
@@ -222,16 +226,23 @@ only after D-Star already works on your ASL3 / DVSwitch / MMDVM_Bridge system.
 When D-Star is disabled or not configured, the D-Star Live Status box remains idle, and D-Star is not available in the main dropdown or Favorites.
 
 **P25_ENABLED** and **NXDN_ENABLED**  
-These are reserved for future AllTune2 work.
+Control whether P25 and NXDN appear as usable modes in AllTune2.
 
-Leave them set to:
+Leave them disabled unless those modes already work on your ASL3 / DVSwitch / MMDVM_Bridge system:
 
 ```ini
 P25_ENABLED=0
 NXDN_ENABLED=0
 ```
 
-P25 and NXDN are not exposed in the interface yet.
+Enable them only after testing the underlying DVSwitch mode from the terminal:
+
+```ini
+P25_ENABLED=1
+NXDN_ENABLED=1
+```
+
+When P25 or NXDN is disabled or not configured, that mode is not available in the main dropdown or Favorites. The Live Status box can remain visible, but it will stay Idle.
 
 ### 2. D-Star Setup
 
@@ -266,7 +277,49 @@ If D-Star is not configured, leave it disabled:
 DSTAR_ENABLED=0
 ```
 
-### 3. TGIF Config
+### 3. P25 and NXDN Setup
+
+P25 and NXDN are optional.
+
+Before enabling P25 or NXDN in AllTune2, each mode should already work from the ASL3 / DVSwitch / MMDVM_Bridge side.
+
+Basic manual tests look like this:
+
+```bash
+/opt/MMDVM_Bridge/dvswitch.sh mode P25
+/opt/MMDVM_Bridge/dvswitch.sh tune YOUR_P25_TARGET
+```
+
+```bash
+/opt/MMDVM_Bridge/dvswitch.sh mode NXDN
+/opt/MMDVM_Bridge/dvswitch.sh tune YOUR_NXDN_TARGET
+```
+
+For P25 and NXDN, the manual stop / return-to-idle sequence is:
+
+```bash
+/opt/MMDVM_Bridge/dvswitch.sh tune 0
+sleep 2
+/opt/MMDVM_Bridge/dvswitch.sh mode DMR
+```
+
+AllTune2 uses that same basic cleanup idea for P25 and NXDN disconnect handling.
+
+AllTune2 does not create or repair your P25 or NXDN system-level setup. Enable these modes only after they already work from the terminal:
+
+```ini
+P25_ENABLED=1
+NXDN_ENABLED=1
+```
+
+If P25 or NXDN is not configured, leave it disabled:
+
+```ini
+P25_ENABLED=0
+NXDN_ENABLED=0
+```
+
+### 4. TGIF Config
 
 `/var/www/html/alltune2/tgif-hblink/hblink.cfg`
 
@@ -329,7 +382,7 @@ StartRef=19750;RelinkTime=60
 
 If you want TGIF to start on a certain talkgroup, that is where you set it.
 
-### 4. Review This File
+### 5. Review This File
 
 `/var/www/html/alltune2/tgif-hblink/MMDVM_Bridge.hblink.ini`
 
@@ -386,7 +439,7 @@ These files must already be working correctly on your system:
 
 If those files are broken, AllTune2 will not work correctly.
 
-For D-Star, the required D-Star account / registration / reflector configuration must also already be correct in the underlying DVSwitch / MMDVM_Bridge setup before enabling D-Star in AllTune2.
+For D-Star, P25, and NXDN, the required account / registration / reflector / mode configuration must already be correct in the underlying DVSwitch / MMDVM_Bridge setup before enabling those modes in AllTune2.
 
 ## 🌐 OPEN ALLTUNE2 IN YOUR BROWSER
 
@@ -460,7 +513,7 @@ TGIF may take a little longer to connect than BrandMeister.
 
 That is normal.
 
-You can also stay connected to BM, TGIF, YSF, or D-Star and add AllStarLink nodes or EchoLink nodes using Transceive or Local Monitor, depending on your setup and workflow.
+You can also stay connected to BM, TGIF, YSF, D-Star, P25, or NXDN and add AllStarLink nodes or EchoLink nodes using Transceive or Local Monitor, depending on your setup and workflow.
 
 ## 🟡 YSF
 
@@ -502,6 +555,68 @@ D-Star disconnect uses:
 ```
 
 If D-Star is not enabled or not available, it will not appear in the main mode dropdown or Favorites. The D-Star Live Status box may still be visible, but it will remain Idle.
+
+## 🟤 P25
+
+Use P25 when you want to connect to a P25 target supported by your DVSwitch / MMDVM_Bridge setup.
+
+P25 is optional and must already be working in your ASL3 / DVSwitch / MMDVM_Bridge system before AllTune2 can control it.
+
+### Typical P25 workflow
+
+- make sure `P25_ENABLED=1` is set in `/var/www/html/alltune2/config.ini`
+- choose P25
+- enter the P25 target
+- press Connect
+- watch the status area
+- use Disconnect or Disconnect DVSwitch when done
+
+### Important P25 notes
+
+P25 uses the managed DVSwitch path.
+
+AllTune2 runs the DVSwitch P25 mode and tune commands, then uses the configured private DVSwitch audio node.
+
+P25 disconnect uses a cleanup sequence that tunes to `0`, waits briefly, and returns the bridge to DMR mode:
+
+```bash
+/opt/MMDVM_Bridge/dvswitch.sh tune 0
+sleep 2
+/opt/MMDVM_Bridge/dvswitch.sh mode DMR
+```
+
+If P25 is not enabled or not available, it will not appear in the main mode dropdown or Favorites. The P25 Live Status box may still be visible, but it will remain Idle.
+
+## ⚫ NXDN
+
+Use NXDN when you want to connect to an NXDN target supported by your DVSwitch / MMDVM_Bridge setup.
+
+NXDN is optional and must already be working in your ASL3 / DVSwitch / MMDVM_Bridge system before AllTune2 can control it.
+
+### Typical NXDN workflow
+
+- make sure `NXDN_ENABLED=1` is set in `/var/www/html/alltune2/config.ini`
+- choose NXDN
+- enter the NXDN target
+- press Connect
+- watch the status area
+- use Disconnect or Disconnect DVSwitch when done
+
+### Important NXDN notes
+
+NXDN uses the managed DVSwitch path.
+
+AllTune2 runs the DVSwitch NXDN mode and tune commands, then uses the configured private DVSwitch audio node.
+
+NXDN disconnect uses a cleanup sequence that tunes to `0`, waits briefly, and returns the bridge to DMR mode:
+
+```bash
+/opt/MMDVM_Bridge/dvswitch.sh tune 0
+sleep 2
+/opt/MMDVM_Bridge/dvswitch.sh mode DMR
+```
+
+If NXDN is not enabled or not available, it will not appear in the main mode dropdown or Favorites. The NXDN Live Status box may still be visible, but it will remain Idle.
 
 
 ## 🔴 ALLSTARLINK
@@ -565,6 +680,8 @@ Use Favorites when you have:
 - a TGIF talkgroup you use often
 - a YSF room you use often
 - a D-Star reflector you use often, if D-Star is enabled
+- a P25 target you use often, if P25 is enabled
+- an NXDN target you use often, if NXDN is enabled
 - an AllStarLink node you use often
 - an EchoLink target you use often
 
@@ -591,7 +708,7 @@ The status and activity areas help you see:
 - what mode you are in
 - whether you are connected
 - which target is active
-- D-Star status when D-Star is configured
+- D-Star, P25, and NXDN status when those modes are configured
 - local / node activity
 - changes as they happen
 
@@ -636,14 +753,14 @@ sudo ./setup_alltune2.sh
 
 If the update changed a long-running TGIF / HBLink process, reboot once after updating so the new runtime fully takes effect.
 
-### If D-Star does not show up
+### If D-Star, P25, or NXDN does not show up
 
 Check these first:
 
-- `DSTAR_ENABLED=1` is set in `/var/www/html/alltune2/config.ini`
+- `DSTAR_ENABLED=1`, `P25_ENABLED=1`, or `NXDN_ENABLED=1` is set in `/var/www/html/alltune2/config.ini`
 - `/opt/MMDVM_Bridge/dvswitch.sh` exists
 - your real `MYNODE` and `DVSWITCH_NODE` values are set
-- D-Star already works from the terminal
+- the mode already works from the terminal
 
 Manual D-Star test:
 
@@ -658,7 +775,29 @@ Manual D-Star disconnect:
 /opt/MMDVM_Bridge/dvswitch.sh tune 4000#
 ```
 
-If these manual commands do not work, fix the base D-Star / DVSwitch / MMDVM_Bridge setup first.
+Manual P25 test:
+
+```bash
+/opt/MMDVM_Bridge/dvswitch.sh mode P25
+/opt/MMDVM_Bridge/dvswitch.sh tune YOUR_P25_TARGET
+```
+
+Manual NXDN test:
+
+```bash
+/opt/MMDVM_Bridge/dvswitch.sh mode NXDN
+/opt/MMDVM_Bridge/dvswitch.sh tune YOUR_NXDN_TARGET
+```
+
+Manual P25 / NXDN disconnect:
+
+```bash
+/opt/MMDVM_Bridge/dvswitch.sh tune 0
+sleep 2
+/opt/MMDVM_Bridge/dvswitch.sh mode DMR
+```
+
+If these manual commands do not work, fix the base D-Star / P25 / NXDN / DVSwitch / MMDVM_Bridge setup first.
 
 ### If something still looks wrong
 
@@ -677,7 +816,7 @@ Do not guess values.
 - `/var/www/html/alltune2/config.ini`
 - `/var/www/html/alltune2/tgif-hblink/hblink.cfg`
 
-Set `DSTAR_ENABLED=1` only on systems where D-Star is already working. Leave it set to `0` on systems that do not use D-Star.
+Set `DSTAR_ENABLED=1`, `P25_ENABLED=1`, or `NXDN_ENABLED=1` only on systems where those modes are already working. Leave them set to `0` on systems that do not use those modes.
 
 ### Review this:
 
@@ -714,8 +853,9 @@ Current release notes may include both code-only updates and setup-level updates
 For this release series, important recent changes include:
 
 - Managed D-Star support when enabled in local config
-- D-Star Live Status / keyed activity support
-- D-Star Favorites support when enabled
+- Managed P25 and NXDN support when enabled in local config
+- D-Star, P25, and NXDN Live Status / keyed activity support
+- D-Star, P25, and NXDN Favorites support when enabled
 - TGIF / HBLink connect speed improvement
 - HBLink runtime retune improvement
 - HBLink log file growth disabled
