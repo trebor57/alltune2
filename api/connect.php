@@ -232,16 +232,38 @@ function dvswitch_tune(string $value): string
     return shell_run($command);
 }
 
-function dvswitch_disconnect_target_for_mode(string $mode): string
+function managed_digital_mode_label(string $mode): string
 {
-    return normalize_mode($mode) === 'DSTAR'
-        ? '4000#'
-        : 'disconnect';
+    return match (normalize_mode($mode)) {
+        'DSTAR' => 'D-STAR',
+        'P25' => 'P25',
+        'NXDN' => 'NXDN',
+        default => strtoupper(trim($mode)),
+    };
+}
+
+function is_managed_digital_mode(string $mode): bool
+{
+    return in_array(normalize_mode($mode), ['DSTAR', 'P25', 'NXDN'], true);
 }
 
 function dvswitch_disconnect_mode(string $mode): string
 {
-    return dvswitch_tune(dvswitch_disconnect_target_for_mode($mode));
+    $normalized = normalize_mode($mode);
+
+    if ($normalized === 'DSTAR') {
+        return dvswitch_tune('4000#');
+    }
+
+    if (in_array($normalized, ['P25', 'NXDN'], true)) {
+        $output = dvswitch_tune('0');
+        pause_seconds(2.0);
+        $output .= "
+" . dvswitch_mode('DMR');
+        return trim($output);
+    }
+
+    return dvswitch_tune('disconnect');
 }
 
 function dvswitch_mode(string $value): string
@@ -274,6 +296,14 @@ function normalize_mode(string $mode): string
 
     if (in_array($mode, ['D-STAR', 'D STAR', 'DSTAR'], true)) {
         return 'DSTAR';
+    }
+
+    if (in_array($mode, ['P-25', 'P 25', 'P25'], true)) {
+        return 'P25';
+    }
+
+    if (in_array($mode, ['N-XDN', 'N XDN', 'NXDN'], true)) {
+        return 'NXDN';
     }
 
     return $mode;
@@ -408,6 +438,27 @@ function normalize_dstar_target(string $target): string
     }
 
     if (!preg_match('/^[A-Z0-9]{4,16}$/', $value)) {
+        return '';
+    }
+
+    return $value;
+}
+
+function normalize_managed_digital_target(string $mode, string $target): string
+{
+    $normalizedMode = normalize_mode($mode);
+
+    if ($normalizedMode === 'DSTAR') {
+        return normalize_dstar_target($target);
+    }
+
+    $value = strtoupper(trim($target));
+
+    if ($value === '') {
+        return '';
+    }
+
+    if (!preg_match('/^[A-Z0-9._:-]{1,64}$/', $value)) {
         return '';
     }
 
@@ -607,7 +658,7 @@ function disconnect_selected_dvswitch_link(string $myNode, string $dvSwitchNode)
     $dmrNetwork = normalize_mode((string) ($_SESSION['dmr_network'] ?? ''));
 
     $hasDmrRuntime = $dmrNetwork === 'BM' || $dmrNetwork === 'TGIF';
-    $hasYsfRuntime = in_array($lastMode, ['YSF', 'DSTAR'], true);
+    $hasYsfRuntime = in_array($lastMode, ['YSF', 'DSTAR', 'P25', 'NXDN'], true);
 
     if ($hasDmrRuntime || $hasYsfRuntime) {
         dvswitch_disconnect_mode($lastMode);
@@ -686,7 +737,7 @@ function disconnect_dvswitch_runtime(string $myNode, string $dvSwitchNode): void
     $dmrNetwork = normalize_mode((string) ($_SESSION['dmr_network'] ?? ''));
 
     $hasDmrRuntime = $dmrNetwork === 'BM' || $dmrNetwork === 'TGIF';
-    $hasYsfRuntime = in_array($lastMode, ['YSF', 'DSTAR'], true);
+    $hasYsfRuntime = in_array($lastMode, ['YSF', 'DSTAR', 'P25', 'NXDN'], true);
     $shouldDisconnectDvSwitchNode = $dvSwitchNode !== '' && (
         $dvswitchAutoloaded ||
         $hasDmrRuntime ||
@@ -754,7 +805,7 @@ function disconnect_only_dvswitch_link(string $myNode, string $dvSwitchNode): vo
     $dvswitchAutoloaded = !empty($_SESSION['dvswitch_autoloaded']);
 
     $hasDmrRuntime = $dmrNetwork === 'BM' || $dmrNetwork === 'TGIF';
-    $hasYsfRuntime = in_array($lastMode, ['YSF', 'DSTAR'], true);
+    $hasYsfRuntime = in_array($lastMode, ['YSF', 'DSTAR', 'P25', 'NXDN'], true);
 
     if ($hasDmrRuntime || $hasYsfRuntime) {
         dvswitch_disconnect_mode($lastMode);
@@ -852,8 +903,8 @@ function session_forces_private_node(): bool
     $dmrNetwork = normalize_mode((string) ($_SESSION['dmr_network'] ?? ''));
     $dmrActiveNetwork = normalize_mode((string) ($_SESSION['dmr_active_network'] ?? ''));
 
-    return in_array($selectedMode, ['BM', 'TGIF', 'YSF', 'DSTAR'], true)
-        || in_array($lastMode, ['BM', 'TGIF', 'YSF', 'DSTAR'], true)
+    return in_array($selectedMode, ['BM', 'TGIF', 'YSF', 'DSTAR', 'P25', 'NXDN'], true)
+        || in_array($lastMode, ['BM', 'TGIF', 'YSF', 'DSTAR', 'P25', 'NXDN'], true)
         || in_array($dmrNetwork, ['BM', 'TGIF'], true)
         || in_array($dmrActiveNetwork, ['BM', 'TGIF'], true)
         || !empty($_SESSION['dmr_ready'])
@@ -938,7 +989,7 @@ function session_payload(string $statusText, array $extra = []): array
         'dvswitch_active_mode' => (string) ($_SESSION['dvswitch_active_mode'] ?? ''),
         'bm_receive_active' => $bmActive,
         'tgif_hblink_active' => $tgifActive,
-        'dvswitch_link_active' => !empty($_SESSION['dvswitch_autoloaded']) || !empty($_SESSION['dmr_ready']) || in_array(normalize_mode((string) ($_SESSION['last_mode'] ?? '')), ['YSF', 'DSTAR'], true) || $bmActive || $tgifActive,
+        'dvswitch_link_active' => !empty($_SESSION['dvswitch_autoloaded']) || !empty($_SESSION['dmr_ready']) || in_array(normalize_mode((string) ($_SESSION['last_mode'] ?? '')), ['YSF', 'DSTAR', 'P25', 'NXDN'], true) || $bmActive || $tgifActive,
     ], $extra);
 }
 
@@ -980,7 +1031,7 @@ if ($mode === 'ASL') {
     $_SESSION['selected_mode'] = $mode;
 }
 
-if (in_array($mode, ['BM', 'TGIF', 'YSF', 'DSTAR'], true)) {
+if (in_array($mode, ['BM', 'TGIF', 'YSF', 'DSTAR', 'P25', 'NXDN'], true)) {
     $_SESSION['autoload_dvswitch'] = true;
 }
 
@@ -989,6 +1040,8 @@ $dvSwitchNode = $config->getString('DVSWITCH_NODE', '');
 $bmPassword = $config->getString('BM_SelfcarePassword', '');
 $tgifPassword = $config->getString('TGIF_HotspotSecurityKey', '');
 $dstarEnabled = config_flag_enabled($config, 'DSTAR_ENABLED');
+$p25Enabled = config_flag_enabled($config, 'P25_ENABLED');
+$nxdnEnabled = config_flag_enabled($config, 'NXDN_ENABLED');
 $autoloadDvSwitchMode = normalize_autoload_dvswitch_mode($_SESSION['autoload_dvswitch_mode'] ?? 'transceive');
 $disconnectBeforeConnect = !empty($_SESSION['disconnect_before_connect']);
 
@@ -997,6 +1050,14 @@ $hasRealDvSwitchNode = has_real_config_value($dvSwitchNode);
 $hasRealBmPassword = has_real_config_value($bmPassword);
 $hasRealTgifPassword = has_real_config_value($tgifPassword);
 $hasDstarConfigured = $hasRealMyNode && $hasRealDvSwitchNode && $dstarEnabled && dvswitch_script_available();
+$hasP25Configured = $hasRealMyNode && $hasRealDvSwitchNode && $p25Enabled && dvswitch_script_available();
+$hasNxdnConfigured = $hasRealMyNode && $hasRealDvSwitchNode && $nxdnEnabled && dvswitch_script_available();
+
+$managedDigitalConfigured = [
+    'DSTAR' => $hasDstarConfigured,
+    'P25' => $hasP25Configured,
+    'NXDN' => $hasNxdnConfigured,
+];
 
 if ($action === 'remember_autoload') {
     $status = (string) ($_SESSION['last_status'] ?? 'IDLE - NO CONNECTIONS');
@@ -1170,7 +1231,7 @@ if ($action === 'connect') {
     }
 
     if ($rawTarget === '' && $digitsOnlyTarget === '' && $bmTarget === '') {
-        $_SESSION['last_status'] = 'ERROR: INVALID TG / NODE / YSF';
+        $_SESSION['last_status'] = 'ERROR: INVALID TG / NODE / YSF / DIGITAL TARGET';
         respond(session_payload($_SESSION['last_status']), 422);
     }
 
@@ -1255,16 +1316,18 @@ if ($action === 'connect') {
         respond(session_payload($_SESSION['last_status']));
     }
 
-    if ($mode === 'DSTAR') {
-        if (!$hasDstarConfigured) {
-            $_SESSION['last_status'] = 'ERROR: D-STAR NOT CONFIGURED';
+    if (is_managed_digital_mode($mode)) {
+        $modeLabel = managed_digital_mode_label($mode);
+
+        if (empty($managedDigitalConfigured[$mode])) {
+            $_SESSION['last_status'] = 'ERROR: ' . $modeLabel . ' NOT CONFIGURED';
             respond(session_payload($_SESSION['last_status']), 500);
         }
 
-        $connectTarget = normalize_dstar_target($rawTarget);
+        $connectTarget = normalize_managed_digital_target($mode, $rawTarget);
 
         if ($connectTarget === '') {
-            $_SESSION['last_status'] = 'ERROR: INVALID D-STAR TARGET';
+            $_SESSION['last_status'] = 'ERROR: INVALID ' . $modeLabel . ' TARGET';
             respond(session_payload($_SESSION['last_status']), 422);
         }
 
@@ -1297,7 +1360,9 @@ if ($action === 'connect') {
             clear_runtime_targets();
         } else {
             $currentDmrNetwork = normalize_mode((string) ($_SESSION['dmr_network'] ?? ''));
-            if ($currentDmrNetwork === 'BM' || $currentDmrNetwork === 'TGIF') {
+            $currentLastMode = normalize_mode((string) ($_SESSION['last_mode'] ?? ''));
+
+            if ($currentDmrNetwork === 'BM' || $currentDmrNetwork === 'TGIF' || in_array($currentLastMode, ['YSF', 'DSTAR', 'P25', 'NXDN'], true)) {
                 disconnect_dvswitch_runtime($myNode, $dvSwitchNode);
                 clear_runtime_targets();
             }
@@ -1307,19 +1372,19 @@ if ($action === 'connect') {
         $_SESSION['dvswitch_active_mode'] = $autoloadDvSwitchMode;
         pause_seconds(0.5);
 
-        dvswitch_mode('DSTAR');
+        dvswitch_mode($mode);
         pause_seconds(0.5);
 
         dvswitch_tune($connectTarget);
 
-        $_SESSION['last_mode'] = 'DSTAR';
+        $_SESSION['last_mode'] = $mode;
         $_SESSION['last_target'] = $connectTarget;
         $_SESSION['pending_target'] = $connectTarget;
         clear_dmr_session_state();
         clear_dmr_active_state();
         $_SESSION['dvswitch_autoloaded'] = true;
 
-        $_SESSION['last_status'] = 'CONNECTED: D-STAR TARGET ' . $connectTarget;
+        $_SESSION['last_status'] = 'CONNECTED: ' . $modeLabel . ' TARGET ' . $connectTarget;
         respond(session_payload($_SESSION['last_status']));
     }
 
@@ -1342,7 +1407,7 @@ if ($action === 'connect') {
             $currentDmrNetwork = normalize_mode((string) ($_SESSION['dmr_network'] ?? ''));
             $currentLastMode = normalize_mode((string) ($_SESSION['last_mode'] ?? ''));
 
-            if (!bm_receive_is_active() && (in_array($currentLastMode, ['YSF', 'DSTAR'], true) || $currentDmrNetwork === 'TGIF')) {
+            if (!bm_receive_is_active() && (in_array($currentLastMode, ['YSF', 'DSTAR', 'P25', 'NXDN'], true) || $currentDmrNetwork === 'TGIF')) {
                 disconnect_dvswitch_runtime($myNode, $dvSwitchNode);
                 clear_runtime_targets();
             }
@@ -1410,7 +1475,7 @@ if ($action === 'connect') {
             $currentNetwork = normalize_mode((string) ($_SESSION['dmr_network'] ?? ''));
             $currentLastMode = normalize_mode((string) ($_SESSION['last_mode'] ?? ''));
 
-            if ($currentNetwork === 'BM' || in_array($currentLastMode, ['YSF', 'DSTAR'], true)) {
+            if ($currentNetwork === 'BM' || in_array($currentLastMode, ['YSF', 'DSTAR', 'P25', 'NXDN'], true)) {
                 disconnect_dvswitch_runtime($myNode, $dvSwitchNode);
                 clear_runtime_targets();
                 $tgifWasActive = false;
@@ -1488,14 +1553,14 @@ if ($trackedAllstarNode !== '') {
 $lastMode = normalize_mode((string) ($_SESSION['last_mode'] ?? ''));
 $dvswitchAutoloaded = !empty($_SESSION['dvswitch_autoloaded']);
 
-if (in_array($lastMode, ['YSF', 'DSTAR'], true)) {
+if (in_array($lastMode, ['YSF', 'DSTAR', 'P25', 'NXDN'], true)) {
     if ($hasRealDvSwitchNode) {
         asterisk_ilink_disconnect($myNode, $dvSwitchNode);
         pause_seconds(0.5);
     }
     dvswitch_disconnect_mode($lastMode);
     clear_runtime_targets();
-    $_SESSION['last_status'] = 'DISCONNECTED: ' . ($lastMode === 'DSTAR' ? 'D-STAR' : 'YSF');
+    $_SESSION['last_status'] = 'DISCONNECTED: ' . managed_digital_mode_label($lastMode);
     respond(session_payload($_SESSION['last_status']));
 }
 

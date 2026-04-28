@@ -57,6 +57,8 @@ $myNode = trim((string) $config->get('MYNODE', ''));
 $bmPassword = trim((string) $config->get('BM_SelfcarePassword', ''));
 $tgifKey = trim((string) $config->get('TGIF_HotspotSecurityKey', ''));
 $dstarEnabled = config_flag_enabled($config, 'DSTAR_ENABLED');
+$p25Enabled = config_flag_enabled($config, 'P25_ENABLED');
+$nxdnEnabled = config_flag_enabled($config, 'NXDN_ENABLED');
 $dvswitchScriptAvailable = is_file('/opt/MMDVM_Bridge/dvswitch.sh');
 
 $hasRealMyNode = !is_placeholder_config_value($myNode);
@@ -74,6 +76,8 @@ $modeAvailability = [
     'TGIF'  => $hasRealMyNode && $hasRealDvSwitchNode && $hasRealTgifKey,
     'YSF'   => $hasRealMyNode && $hasRealDvSwitchNode,
     'DSTAR' => $hasRealMyNode && $hasRealDvSwitchNode && $dstarEnabled && $dvswitchScriptAvailable,
+    'P25'   => $hasRealMyNode && $hasRealDvSwitchNode && $p25Enabled && $dvswitchScriptAvailable,
+    'NXDN'  => $hasRealMyNode && $hasRealDvSwitchNode && $nxdnEnabled && $dvswitchScriptAvailable,
 ];
 
 $autoloadDvSwitch = isset($_SESSION['autoload_dvswitch'])
@@ -109,7 +113,7 @@ $lastTarget = (string) ($_SESSION['last_target'] ?? '');
 $pendingTarget = (string) ($_SESSION['pending_target'] ?? $_SESSION['pending_tg'] ?? '');
 $dmrNetwork = strtoupper((string) ($_SESSION['dmr_network'] ?? ''));
 $dmrReady = !empty($_SESSION['dmr_ready']);
-$dvswitchLinkActive = !empty($_SESSION['dvswitch_autoloaded']) || $dmrReady || $lastMode === 'YSF';
+$dvswitchLinkActive = !empty($_SESSION['dvswitch_autoloaded']) || $dmrReady || in_array($lastMode, ['YSF', 'DSTAR', 'P25', 'NXDN'], true);
 
 $nodeStatsUrl = $hasRealMyNode
     ? 'https://stats.allstarlink.org/stats/' . rawurlencode($myNode)
@@ -137,6 +141,14 @@ $modeOptions = [
 
 if ($modeAvailability['DSTAR']) {
     $modeOptions['DSTAR'] = 'D-Star';
+}
+
+if ($modeAvailability['P25']) {
+    $modeOptions['P25'] = 'P25';
+}
+
+if ($modeAvailability['NXDN']) {
+    $modeOptions['NXDN'] = 'NXDN';
 }
 
 if (!array_key_exists($selectedMode, $modeOptions)) {
@@ -246,6 +258,8 @@ $activityLines[] = [
                         data-tgif-configured="<?= $modeAvailability['TGIF'] ? '1' : '0' ?>"
                         data-ysf-configured="<?= $modeAvailability['YSF'] ? '1' : '0' ?>"
                         data-dstar-configured="<?= $modeAvailability['DSTAR'] ? '1' : '0' ?>"
+                        data-p25-configured="<?= $modeAvailability['P25'] ? '1' : '0' ?>"
+                        data-nxdn-configured="<?= $modeAvailability['NXDN'] ? '1' : '0' ?>"
                     >
                         <div class="control-grid">
                             <label class="sr-only" for="target">TG / Node / YSF #</label>
@@ -434,7 +448,7 @@ $activityLines[] = [
                     <div class="helper-panel helper-panel-standalone" id="helper-panel">
                         <div class="helper-title">Network Flow</div>
                         <p class="helper-text" id="helper-text">
-                            BrandMeister, TGIF, YSF, AllStarLink, and EchoLink are all one-step connects. Enter or load the target and press Connect once. BrandMeister private calls are supported with a single trailing #. Disconnect removes the current managed connection. Disconnect DVSwitch removes only the configured DVSwitch link and stops BM receive mode if it is active. Disconnect All performs a full reset. With Disconnect before Connect off, BM, TGIF, or YSF can stay up while you add direct AllStarLink or EchoLink connections. When Disconnect before Connect is on, a new managed connect clears the earlier managed session first. When DVSwitch auto-load is enabled, the configured DVSwitch link is loaded using the selected link mode.
+                            BrandMeister, TGIF, YSF, AllStarLink, and EchoLink are all one-step connects. Enter or load the target and press Connect once. BrandMeister private calls are supported with a single trailing #. Disconnect removes the current managed connection. Disconnect DVSwitch removes only the configured DVSwitch link and stops BM receive mode if it is active. Disconnect All performs a full reset. With Disconnect before Connect off, BM, TGIF, YSF, D-Star, P25, or NXDN can stay up while you add direct AllStarLink or EchoLink connections. When Disconnect before Connect is on, a new managed connect clears the earlier managed session first. When DVSwitch auto-load is enabled, the configured DVSwitch link is loaded using the selected link mode.
                         </p>
                     </div>
                 </div>
@@ -464,6 +478,14 @@ $activityLines[] = [
                         <div class="status-box">
                             <div class="status-box-label">D-Star</div>
                             <div class="status-box-value" id="status-dstar">Idle</div>
+                        </div>
+                        <div class="status-box">
+                            <div class="status-box-label">P25</div>
+                            <div class="status-box-value" id="status-p25">Idle</div>
+                        </div>
+                        <div class="status-box">
+                            <div class="status-box-label">NXDN</div>
+                            <div class="status-box-value" id="status-nxdn">Idle</div>
                         </div>
                         <div class="status-box status-box-wide">
                             <div class="status-box-label">AllStarLink / EchoLink</div>

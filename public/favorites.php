@@ -25,6 +25,14 @@ $dstarAvailable = $hasRealMyNode
     && $hasRealDvSwitchNode
     && config_flag_enabled($config, 'DSTAR_ENABLED')
     && is_file('/opt/MMDVM_Bridge/dvswitch.sh');
+$p25Available = $hasRealMyNode
+    && $hasRealDvSwitchNode
+    && config_flag_enabled($config, 'P25_ENABLED')
+    && is_file('/opt/MMDVM_Bridge/dvswitch.sh');
+$nxdnAvailable = $hasRealMyNode
+    && $hasRealDvSwitchNode
+    && config_flag_enabled($config, 'NXDN_ENABLED')
+    && is_file('/opt/MMDVM_Bridge/dvswitch.sh');
 
 function e(mixed $value): string
 {
@@ -80,8 +88,20 @@ function normalize_mode(string $mode): string
         return 'ECHO';
     }
 
+    if (in_array($value, ['D-STAR', 'D STAR', 'DSTAR'], true)) {
+        return 'DSTAR';
+    }
+
+    if (in_array($value, ['P-25', 'P 25', 'P25'], true)) {
+        return 'P25';
+    }
+
+    if (in_array($value, ['N-XDN', 'N XDN', 'NXDN'], true)) {
+        return 'NXDN';
+    }
+
     return match ($value) {
-        'BM', 'TGIF', 'ASL', 'ECHO', 'YSF', 'DSTAR' => $value,
+        'BM', 'TGIF', 'ASL', 'ECHO', 'YSF', 'DSTAR', 'P25', 'NXDN' => $value,
         default => 'BM',
     };
 }
@@ -94,6 +114,8 @@ function mode_display_label(string $mode): string
         'ASL' => 'ASL',
         'ECHO' => 'E/L',
         'DSTAR' => 'D-Star',
+        'P25' => 'P25',
+        'NXDN' => 'NXDN',
         default => $normalized,
     };
 }
@@ -177,6 +199,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $messageType = 'error';
         } elseif ($mode === 'DSTAR' && !$dstarAvailable) {
             $message = 'D-Star favorites cannot be saved until D-Star is enabled in config.ini and the DVSwitch script is available.';
+            $messageType = 'error';
+        } elseif ($mode === 'P25' && !$p25Available) {
+            $message = 'P25 favorites cannot be saved until P25 is enabled in config.ini and the DVSwitch script is available.';
+            $messageType = 'error';
+        } elseif ($mode === 'NXDN' && !$nxdnAvailable) {
+            $message = 'NXDN favorites cannot be saved until NXDN is enabled in config.ini and the DVSwitch script is available.';
             $messageType = 'error';
         } else {
             $updated = false;
@@ -273,6 +301,14 @@ if ($formMode === 'DSTAR' && !array_key_exists('DSTAR', $modeOptions)) {
     $modeOptions['DSTAR'] = 'D-Star';
 }
 
+if ($formMode === 'P25' && !array_key_exists('P25', $modeOptions)) {
+    $modeOptions['P25'] = 'P25';
+}
+
+if ($formMode === 'NXDN' && !array_key_exists('NXDN', $modeOptions)) {
+    $modeOptions['NXDN'] = 'NXDN';
+}
+
 $navItems = [
     ['label' => 'Dashboard', 'href' => '/alltune2/public/index.php', 'active' => false],
     ['label' => 'Favorites', 'href' => '/alltune2/public/favorites.php', 'active' => true],
@@ -290,6 +326,14 @@ $modeOptions = [
 
 if ($dstarAvailable) {
     $modeOptions['DSTAR'] = 'D-Star';
+}
+
+if ($p25Available) {
+    $modeOptions['P25'] = 'P25';
+}
+
+if ($nxdnAvailable) {
+    $modeOptions['NXDN'] = 'NXDN';
 }
 ?>
 <!DOCTYPE html>
@@ -514,7 +558,7 @@ if ($dstarAvailable) {
                             class="control"
                             type="text"
                             name="target"
-                            placeholder="TG / Node / YSF / D-Star target"
+                            placeholder="TG / Node / YSF / Digital target"
                             value="<?= e($formTarget) ?>"
                             required
                         >
@@ -550,7 +594,7 @@ if ($dstarAvailable) {
 
                     <?php if (!$dstarAvailable): ?>
                         <div class="favorites-note" style="margin-top:8px;">
-                            D-Star favorites are hidden until DSTAR_ENABLED=1 is set in config.ini and the DVSwitch script is available.
+                            D-Star, P25, and NXDN favorites are hidden until the matching *_ENABLED=1 setting is set in config.ini and the DVSwitch script is available.
                         </div>
                     <?php endif; ?>
                 </form>
@@ -575,7 +619,7 @@ if ($dstarAvailable) {
                             <thead>
                             <tr>
                                 <th>#</th>
-                                <th>TG / Node / YSF / D-Star</th>
+                                <th>TG / Node / YSF / Digital</th>
                                 <th>Station Name</th>
                                 <th>Description</th>
                                 <th>Mode</th>

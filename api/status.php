@@ -61,6 +61,14 @@ function normalize_mode(?string $mode): string
         return 'DSTAR';
     }
 
+    if (in_array($value, ['P-25', 'P 25', 'P25'], true)) {
+        return 'P25';
+    }
+
+    if (in_array($value, ['N-XDN', 'N XDN', 'NXDN'], true)) {
+        return 'NXDN';
+    }
+
     return $value;
 }
 
@@ -92,6 +100,21 @@ function active_dvswitch_mode_label(string $mode): string
     return '-';
 }
 
+function managed_digital_mode_label(string $mode): string
+{
+    return match (normalize_mode($mode)) {
+        'DSTAR' => 'D-Star',
+        'P25' => 'P25',
+        'NXDN' => 'NXDN',
+        default => strtoupper(trim($mode)),
+    };
+}
+
+function is_managed_digital_mode(string $mode): bool
+{
+    return in_array(normalize_mode($mode), ['DSTAR', 'P25', 'NXDN'], true);
+}
+
 function normalize_link_mode_label(mixed $mode): string
 {
     $value = strtolower(trim((string) $mode));
@@ -113,6 +136,12 @@ function mask_value(string $value): string
     }
 
     return substr($trimmed, 0, 2) . str_repeat('*', max(0, $length - 4)) . substr($trimmed, -2);
+}
+
+function config_flag_enabled(Config $config, string $key): bool
+{
+    $value = strtolower(trim((string) $config->get($key, '0')));
+    return in_array($value, ['1', 'true', 'yes', 'on', 'enabled'], true);
 }
 
 function load_favorites_file(string $path): array
@@ -735,7 +764,7 @@ $dmrActiveTarget = trim((string) ($_SESSION['dmr_active_target'] ?? ''));
 $myNode = $config->getString('MYNODE', '');
 $dvSwitchNode = $config->getString('DVSWITCH_NODE', '');
 $dvswitchAutoloaded = !empty($_SESSION['dvswitch_autoloaded']);
-$dvswitchLinkActive = $dvswitchAutoloaded || $dmrReady || in_array($lastMode, ['YSF', 'DSTAR'], true);
+$dvswitchLinkActive = $dvswitchAutoloaded || $dmrReady || in_array($lastMode, ['YSF', 'DSTAR', 'P25', 'NXDN'], true);
 
 $forcedPrivateNode = session_forces_private_node($selectedMode, $lastMode, $dmrNetwork, $dmrActiveNetwork, $dmrReady, $dvswitchAutoloaded);
 $autoloadDvSwitch = $autoloadDvSwitch || $forcedPrivateNode;
@@ -795,11 +824,15 @@ $bmState = 'Idle';
 $tgifState = 'Idle';
 $ysfState = 'Idle';
 $dstarState = 'Idle';
+$p25State = 'Idle';
+$nxdnState = 'Idle';
 $allstarState = 'No links';
 $bmKeyed = false;
 $tgifKeyed = false;
 $ysfKeyed = false;
 $dstarKeyed = false;
+$p25Keyed = false;
+$nxdnKeyed = false;
 $allstarKeyed = false;
 
 if ($bmReceive['active'] && $bmReceive['target'] !== '') {
@@ -830,6 +863,14 @@ if ($lastMode === 'DSTAR' && $lastTarget !== '') {
     $dstarState = 'Connected: ' . $lastTarget;
 }
 
+if ($lastMode === 'P25' && $lastTarget !== '') {
+    $p25State = 'Connected: ' . $lastTarget;
+}
+
+if ($lastMode === 'NXDN' && $lastTarget !== '') {
+    $nxdnState = 'Connected: ' . $lastTarget;
+}
+
 $liveAllstar = fetch_live_allstar_links_via_ami($myNode);
 if ($liveAllstar['available']) {
     $allstarConnectedNodes = $liveAllstar['links'];
@@ -852,7 +893,7 @@ foreach ($allstarConnectedNodes as $link) {
     $lastKeyedRaw = trim((string) ($link['last_keyed'] ?? '-1'));
     $recentlyKeyed = preg_match('/^-?\\d+$/', $lastKeyedRaw) === 1
         && (int) $lastKeyedRaw >= 0
-        && (int) $lastKeyedRaw <= 10;
+        && (int) $lastKeyedRaw <= 5;
 
     $isKeyed = !empty($link['keyed']) || $recentlyKeyed;
     if ($isKeyed) {
@@ -869,11 +910,15 @@ $bmActive = $dmrActiveNetwork === 'BM' || ($dmrNetwork === 'BM' && $dmrReady) ||
 $tgifActive = $dmrActiveNetwork === 'TGIF' || ($dmrNetwork === 'TGIF' && $dmrReady) || $hblinkTgif['active'];
 $ysfActive = $lastMode === 'YSF' && $lastTarget !== '';
 $dstarActive = $lastMode === 'DSTAR' && $lastTarget !== '';
+$p25Active = $lastMode === 'P25' && $lastTarget !== '';
+$nxdnActive = $lastMode === 'NXDN' && $lastTarget !== '';
 
 $bmKeyed = $bmActive && $dvswitchNodeKeyed;
 $tgifKeyed = $tgifActive && $dvswitchNodeKeyed;
 $ysfKeyed = $ysfActive && $dvswitchNodeKeyed;
 $dstarKeyed = $dstarActive && $dvswitchNodeKeyed;
+$p25Keyed = $p25Active && $dvswitchNodeKeyed;
+$nxdnKeyed = $nxdnActive && $dvswitchNodeKeyed;
 
 
 $activity = [];
@@ -912,10 +957,10 @@ if ($dmrActivityValue !== '') {
         'label' => 'DMR Network',
         'value' => $dmrActivityValue,
     ];
-} elseif ($lastMode === 'DSTAR' && $lastTarget !== '') {
+} elseif (is_managed_digital_mode($lastMode) && $lastTarget !== '') {
     $activity[] = [
         'label' => 'Digital Network',
-        'value' => 'D-Star (' . $lastTarget . ')',
+        'value' => managed_digital_mode_label($lastMode) . ' (' . $lastTarget . ')',
     ];
 }
 
@@ -1022,6 +1067,9 @@ $payload = [
         'dvswitch_node' => $dvSwitchNode,
         'has_bm_password' => $config->has('BM_SelfcarePassword'),
         'has_tgif_key' => $config->has('TGIF_HotspotSecurityKey'),
+        'dstar_enabled' => config_flag_enabled($config, 'DSTAR_ENABLED'),
+        'p25_enabled' => config_flag_enabled($config, 'P25_ENABLED'),
+        'nxdn_enabled' => config_flag_enabled($config, 'NXDN_ENABLED'),
         'bm_password_masked' => mask_value($config->getString('BM_SelfcarePassword', '')),
         'tgif_key_masked' => mask_value($config->getString('TGIF_HotspotSecurityKey', '')),
     ],
@@ -1059,6 +1107,20 @@ $payload = [
             'status' => $dstarState,
             'active' => $dstarActive,
             'keyed' => $dstarKeyed,
+        ],
+        'p25' => [
+            'state' => $p25State,
+            'label' => $p25State,
+            'status' => $p25State,
+            'active' => $p25Active,
+            'keyed' => $p25Keyed,
+        ],
+        'nxdn' => [
+            'state' => $nxdnState,
+            'label' => $nxdnState,
+            'status' => $nxdnState,
+            'active' => $nxdnActive,
+            'keyed' => $nxdnKeyed,
         ],
         'allstar' => [
             'state' => $allstarState,
@@ -1099,6 +1161,20 @@ $payload = [
         'status' => $dstarState,
         'active' => $dstarActive,
         'keyed' => $dstarKeyed,
+    ],
+    'p25' => [
+        'state' => $p25State,
+        'label' => $p25State,
+        'status' => $p25State,
+        'active' => $p25Active,
+        'keyed' => $p25Keyed,
+    ],
+    'nxdn' => [
+        'state' => $nxdnState,
+        'label' => $nxdnState,
+        'status' => $nxdnState,
+        'active' => $nxdnActive,
+        'keyed' => $nxdnKeyed,
     ],
 
     'allstar' => [

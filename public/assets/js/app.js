@@ -6,7 +6,7 @@
         busy: false,
         pollTimer: null,
         quickStatusTimers: [],
-        pollIntervalMs: 3000,
+        pollIntervalMs: 2000,
         lastRequestedUiMode: '',
         preferredAslUiMode: 'ASL',
         favoriteSortKey: '',
@@ -48,6 +48,8 @@
         statusTgif: document.getElementById('status-tgif'),
         statusYsf: document.getElementById('status-ysf'),
         statusDstar: document.getElementById('status-dstar'),
+        statusP25: document.getElementById('status-p25'),
+        statusNxdn: document.getElementById('status-nxdn'),
         statusAllstar: document.getElementById('status-allstar'),
         statusAllstarLinks: document.getElementById('status-allstar-links'),
         brandingTitle: document.getElementById('branding-title'),
@@ -356,7 +358,7 @@
         return nodes;
     }
 
-    function linkLooksKeyed(link, holdSeconds = 10) {
+    function linkLooksKeyed(link, holdSeconds = 5) {
         if (link?.keyed) {
             return true;
         }
@@ -567,6 +569,22 @@
             return 'DSTAR';
         }
 
+        if ([
+            'P-25',
+            'P 25',
+            'P25',
+        ].includes(value)) {
+            return 'P25';
+        }
+
+        if ([
+            'N-XDN',
+            'N XDN',
+            'NXDN',
+        ].includes(value)) {
+            return 'NXDN';
+        }
+
         return value;
     }
 
@@ -583,7 +601,7 @@
 
     function modeForcesDvSwitch(mode) {
         const normalized = normalizeMode(mode);
-        return normalized === 'BM' || normalized === 'TGIF' || normalized === 'YSF' || normalized === 'DSTAR';
+        return normalized === 'BM' || normalized === 'TGIF' || normalized === 'YSF' || normalized === 'DSTAR' || normalized === 'P25' || normalized === 'NXDN';
     }
 
     function syncAutoloadUiForMode(mode) {
@@ -681,6 +699,14 @@
             return 'D-Star';
         }
 
+        if (normalized === 'P25') {
+            return 'P25';
+        }
+
+        if (normalized === 'NXDN') {
+            return 'NXDN';
+        }
+
         return normalized;
     }
 
@@ -737,6 +763,8 @@
             TGIF: 4,
             YSF: 5,
             'D-Star': 6,
+            P25: 7,
+            NXDN: 8,
         };
 
         const multiplier = direction === 'desc' ? -1 : 1;
@@ -1039,6 +1067,8 @@
                 TGIF: dataset.tgifConfigured === '1',
                 YSF: dataset.ysfConfigured === '1',
                 DSTAR: dataset.dstarConfigured === '1',
+                P25: dataset.p25Configured === '1',
+                NXDN: dataset.nxdnConfigured === '1',
             },
         };
     }
@@ -1078,8 +1108,12 @@
             return `D-Star is not configured on this system. Real MYNODE and DVSWITCH_NODE values plus DSTAR_ENABLED=1 are required in ${configPath}, and /opt/MMDVM_Bridge/dvswitch.sh must exist. Connect is disabled until that is configured.`;
         }
 
-        if (normalized === 'P25' || normalized === 'NXDN') {
-            return `${normalized} is not configured on this system yet. Update ${configPath} and confirm the DVSwitch mode path before using it.`;
+        if (normalized === 'P25') {
+            return `P25 is not configured on this system. Real MYNODE and DVSWITCH_NODE values plus P25_ENABLED=1 are required in ${configPath}, and /opt/MMDVM_Bridge/dvswitch.sh must exist. Connect is disabled until that is configured.`;
+        }
+
+        if (normalized === 'NXDN') {
+            return `NXDN is not configured on this system. Real MYNODE and DVSWITCH_NODE values plus NXDN_ENABLED=1 are required in ${configPath}, and /opt/MMDVM_Bridge/dvswitch.sh must exist. Connect is disabled until that is configured.`;
         }
 
         return `This mode is not configured on this system. Update ${configPath} with real values before using it. Connect is disabled until configuration is complete.`;
@@ -1095,6 +1129,8 @@
         const tgif = payload.networks?.tgif || payload.tgif || null;
         const ysf = payload.networks?.ysf || payload.ysf || null;
         const dstar = payload.networks?.dstar || payload.dstar || null;
+        const p25 = payload.networks?.p25 || payload.p25 || null;
+        const nxdn = payload.networks?.nxdn || payload.nxdn || null;
 
         const explicitFlag =
             payload.dvswitch_link_active ??
@@ -1109,7 +1145,7 @@
         const lastMode = normalizeMode(payload.last_mode ?? system.last_mode ?? '');
         const autoload = !!(payload.autoload_dvswitch ?? system.autoload_dvswitch ?? false);
 
-        if (dmrReady || dmrNetwork !== '' || lastMode === 'YSF' || lastMode === 'DSTAR') {
+        if (dmrReady || dmrNetwork !== '' || ['YSF', 'DSTAR', 'P25', 'NXDN'].includes(lastMode)) {
             return true;
         }
 
@@ -1117,7 +1153,9 @@
             textLooksActive(bm?.label || bm?.state || bm?.status) ||
             textLooksActive(tgif?.label || tgif?.state || tgif?.status) ||
             textLooksActive(ysf?.label || ysf?.state || ysf?.status) ||
-            textLooksActive(dstar?.label || dstar?.state || dstar?.status)
+            textLooksActive(dstar?.label || dstar?.state || dstar?.status) ||
+            textLooksActive(p25?.label || p25?.state || p25?.status) ||
+            textLooksActive(nxdn?.label || nxdn?.state || nxdn?.status)
         )) {
             return true;
         }
@@ -1126,7 +1164,9 @@
             textLooksActive(bm?.label || bm?.state || bm?.status) ||
             textLooksActive(tgif?.label || tgif?.state || tgif?.status) ||
             textLooksActive(ysf?.label || ysf?.state || ysf?.status) ||
-            textLooksActive(dstar?.label || dstar?.state || dstar?.status)
+            textLooksActive(dstar?.label || dstar?.state || dstar?.status) ||
+            textLooksActive(p25?.label || p25?.state || p25?.status) ||
+            textLooksActive(nxdn?.label || nxdn?.state || nxdn?.status)
         ) {
             return true;
         }
@@ -1161,7 +1201,11 @@
                 return true;
             }
 
-            if (label === 'LAST MODE' && (value === 'YSF' || value === 'DSTAR')) {
+            if (label === 'DIGITAL NETWORK' && value !== '' && value !== '-') {
+                return true;
+            }
+
+            if (label === 'LAST MODE' && ['YSF', 'DSTAR', 'P25', 'NXDN'].includes(value)) {
                 return true;
             }
         }
@@ -1169,11 +1213,17 @@
         const bmText = String(els.statusBm?.textContent || '').trim();
         const tgifText = String(els.statusTgif?.textContent || '').trim();
         const ysfText = String(els.statusYsf?.textContent || '').trim();
+        const dstarText = String(els.statusDstar?.textContent || '').trim();
+        const p25Text = String(els.statusP25?.textContent || '').trim();
+        const nxdnText = String(els.statusNxdn?.textContent || '').trim();
 
         if (
             textLooksActive(bmText) ||
             textLooksActive(tgifText) ||
-            textLooksActive(ysfText)
+            textLooksActive(ysfText) ||
+            textLooksActive(dstarText) ||
+            textLooksActive(p25Text) ||
+            textLooksActive(nxdnText)
         ) {
             return true;
         }
@@ -1184,6 +1234,8 @@
             statusText.includes('(TGIF)') ||
             statusText.includes('CONNECTED: YSF TARGET') ||
             statusText.includes('CONNECTED: D-STAR TARGET') ||
+            statusText.includes('CONNECTED: P25 TARGET') ||
+            statusText.includes('CONNECTED: NXDN TARGET') ||
             statusText.includes('WAITING: BM READY') ||
             statusText.includes('WAITING: TGIF READY')
         ) {
@@ -1402,6 +1454,18 @@
             return disconnectFirst
                 ? 'D-Star is a one-step managed DVSwitch connect. Enter or load a D-Star target such as REF030EL and press CONNECT once. AllTune2 switches DVSwitch to DSTAR mode, tunes the target, and forces the private DVSwitch node link automatically. DISCONNECT removes the current D-Star connection. DISCONNECT DVSWITCH removes only the configured DVSwitch link. DISCONNECT ALL does a full reset.'
                 : 'D-Star is a one-step managed DVSwitch connect. Enter or load a D-Star target such as REF030EL and press CONNECT once. AllTune2 switches DVSwitch to DSTAR mode, tunes the target, and forces the private DVSwitch node link automatically. With Disconnect before Connect off, D-Star can stay up while you add direct AllStarLink or EchoLink connections.';
+        }
+
+        if (mode === 'P25') {
+            return disconnectFirst
+                ? 'P25 is a one-step managed DVSwitch connect. Enter or load a P25 target and press CONNECT once. AllTune2 switches DVSwitch to P25 mode, tunes the target, and forces the private DVSwitch node link automatically. DISCONNECT clears the P25 tune path and returns DVSwitch to DMR mode. DISCONNECT DVSWITCH removes only the configured DVSwitch link. DISCONNECT ALL does a full reset.'
+                : 'P25 is a one-step managed DVSwitch connect. Enter or load a P25 target and press CONNECT once. AllTune2 switches DVSwitch to P25 mode, tunes the target, and forces the private DVSwitch node link automatically. With Disconnect before Connect off, P25 can stay up while you add direct AllStarLink or EchoLink connections.';
+        }
+
+        if (mode === 'NXDN') {
+            return disconnectFirst
+                ? 'NXDN is a one-step managed DVSwitch connect. Enter or load an NXDN target and press CONNECT once. AllTune2 switches DVSwitch to NXDN mode, tunes the target, and forces the private DVSwitch node link automatically. DISCONNECT clears the NXDN tune path and returns DVSwitch to DMR mode. DISCONNECT DVSWITCH removes only the configured DVSwitch link. DISCONNECT ALL does a full reset.'
+                : 'NXDN is a one-step managed DVSwitch connect. Enter or load an NXDN target and press CONNECT once. AllTune2 switches DVSwitch to NXDN mode, tunes the target, and forces the private DVSwitch node link automatically. With Disconnect before Connect off, NXDN can stay up while you add direct AllStarLink or EchoLink connections.';
         }
 
         if (mode === 'ASL') {
@@ -1747,6 +1811,8 @@
         const tgif = payload.networks?.tgif || payload.tgif || null;
         const ysf = payload.networks?.ysf || payload.ysf || null;
         const dstar = payload.networks?.dstar || payload.dstar || null;
+        const p25 = payload.networks?.p25 || payload.p25 || null;
+        const nxdn = payload.networks?.nxdn || payload.nxdn || null;
         const allstar = payload.allstar || payload.networks?.allstar || null;
 
         setStatusCardText(
@@ -1776,6 +1842,20 @@
             'Idle'
         );
         applyKeyedStateToCard(els.statusDstar, payloadModeLooksActive(dstar) && dvswitchLinkLooksKeyed(allstar));
+
+        setStatusCardText(
+            els.statusP25,
+            p25?.label || p25?.state || p25?.status,
+            'Idle'
+        );
+        applyKeyedStateToCard(els.statusP25, payloadModeLooksActive(p25) && dvswitchLinkLooksKeyed(allstar));
+
+        setStatusCardText(
+            els.statusNxdn,
+            nxdn?.label || nxdn?.state || nxdn?.status,
+            'Idle'
+        );
+        applyKeyedStateToCard(els.statusNxdn, payloadModeLooksActive(nxdn) && dvswitchLinkLooksKeyed(allstar));
 
         applyImmediateAllstarSnapshot(allstar);
 
@@ -1874,6 +1954,8 @@
         const tgif = payload.networks?.tgif || payload.tgif || null;
         const ysf = payload.networks?.ysf || payload.ysf || null;
         const dstar = payload.networks?.dstar || payload.dstar || null;
+        const p25 = payload.networks?.p25 || payload.p25 || null;
+        const nxdn = payload.networks?.nxdn || payload.nxdn || null;
         const allstar = payload.allstar || payload.networks?.allstar || null;
 
         if (bm) {
@@ -1894,6 +1976,16 @@
         if (dstar) {
             setStatusCardText(els.statusDstar, dstar?.label || dstar?.state || dstar?.status, 'Idle');
             applyKeyedStateToCard(els.statusDstar, payloadModeLooksActive(dstar) && dvswitchLinkLooksKeyed(allstar));
+        }
+
+        if (p25) {
+            setStatusCardText(els.statusP25, p25?.label || p25?.state || p25?.status, 'Idle');
+            applyKeyedStateToCard(els.statusP25, payloadModeLooksActive(p25) && dvswitchLinkLooksKeyed(allstar));
+        }
+
+        if (nxdn) {
+            setStatusCardText(els.statusNxdn, nxdn?.label || nxdn?.state || nxdn?.status, 'Idle');
+            applyKeyedStateToCard(els.statusNxdn, payloadModeLooksActive(nxdn) && dvswitchLinkLooksKeyed(allstar));
         }
 
         if (allstar) {
@@ -1982,8 +2074,8 @@
     function refreshStatusSoonAfterAction() {
         clearQuickStatusRefreshes();
 
-        // Normal polling stays at 3000 ms. This short burst only runs after user actions.
-        [250, 900, 1700, 2600].forEach((delayMs) => {
+        // Normal polling stays moderate at 2000 ms. This short burst only runs after user actions.
+        [150, 600, 1200, 1900].forEach((delayMs) => {
             queueStatusRefresh(delayMs);
         });
     }
