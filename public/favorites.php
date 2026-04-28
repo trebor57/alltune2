@@ -297,15 +297,23 @@ $formName = $editFavorite['name'] ?? '';
 $formDescription = $editFavorite['description'] ?? '';
 $formMode = $editFavorite['mode'] ?? 'BM';
 
-if ($formMode === 'DSTAR' && !array_key_exists('DSTAR', $modeOptions)) {
+$modeOptions = [
+    'BM' => 'BrandMeister',
+    'TGIF' => 'TGIF',
+    'ASL' => 'AllStarLink',
+    'ECHO' => 'EchoLink',
+    'YSF' => 'YSF',
+];
+
+if ($dstarAvailable || $formMode === 'DSTAR') {
     $modeOptions['DSTAR'] = 'D-Star';
 }
 
-if ($formMode === 'P25' && !array_key_exists('P25', $modeOptions)) {
+if ($p25Available || $formMode === 'P25') {
     $modeOptions['P25'] = 'P25';
 }
 
-if ($formMode === 'NXDN' && !array_key_exists('NXDN', $modeOptions)) {
+if ($nxdnAvailable || $formMode === 'NXDN') {
     $modeOptions['NXDN'] = 'NXDN';
 }
 
@@ -315,26 +323,6 @@ $navItems = [
     ['label' => 'Node Stats', 'href' => $nodeStatsUrl, 'active' => false, 'target' => '_blank'],
     ['label' => 'DVSwitch', 'href' => $dvswitchHref, 'active' => false, 'target' => '_blank'],
 ];
-
-$modeOptions = [
-    'BM' => 'BrandMeister',
-    'TGIF' => 'TGIF',
-    'ASL' => 'AllStarLink',
-    'ECHO' => 'EchoLink',
-    'YSF' => 'YSF',
-];
-
-if ($dstarAvailable) {
-    $modeOptions['DSTAR'] = 'D-Star';
-}
-
-if ($p25Available) {
-    $modeOptions['P25'] = 'P25';
-}
-
-if ($nxdnAvailable) {
-    $modeOptions['NXDN'] = 'NXDN';
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
