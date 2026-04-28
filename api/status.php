@@ -115,6 +115,27 @@ function is_managed_digital_mode(string $mode): bool
     return in_array(normalize_mode($mode), ['DSTAR', 'P25', 'NXDN'], true);
 }
 
+function is_managed_dvswitch_session_mode(string $mode): bool
+{
+    return in_array(normalize_mode($mode), ['BM', 'TGIF', 'YSF', 'DSTAR', 'P25', 'NXDN'], true);
+}
+
+function active_managed_dvswitch_mode(string $lastMode): string
+{
+    $managedMode = normalize_mode((string) ($_SESSION['managed_dvswitch_mode'] ?? ''));
+    if (is_managed_dvswitch_session_mode($managedMode)) {
+        return $managedMode;
+    }
+
+    return is_managed_dvswitch_session_mode($lastMode) ? normalize_mode($lastMode) : '';
+}
+
+function active_managed_dvswitch_target(string $lastTarget): string
+{
+    $managedTarget = trim((string) ($_SESSION['managed_dvswitch_target'] ?? ''));
+    return $managedTarget !== '' ? $managedTarget : trim($lastTarget);
+}
+
 function normalize_link_mode_label(mixed $mode): string
 {
     $value = strtolower(trim((string) $mode));
@@ -722,7 +743,7 @@ function session_may_have_tgif_runtime(string $selectedMode, string $lastMode, s
 function session_forces_private_node(string $selectedMode, string $lastMode, string $dmrNetwork, string $dmrActiveNetwork, bool $dmrReady, bool $dvswitchAutoloaded): bool
 {
     return in_array($selectedMode, ['BM', 'TGIF', 'YSF', 'DSTAR'], true)
-        || in_array($lastMode, ['BM', 'TGIF', 'YSF', 'DSTAR'], true)
+        || in_array($lastMode, ['BM', 'TGIF', 'YSF', 'DSTAR', 'P25', 'NXDN'], true)
         || in_array($dmrNetwork, ['BM', 'TGIF'], true)
         || in_array($dmrActiveNetwork, ['BM', 'TGIF'], true)
         || $dmrReady
@@ -734,6 +755,8 @@ $favorites = load_favorites_file(dirname(__DIR__) . '/data/favorites.txt');
 $selectedMode = normalize_mode((string) ($_SESSION['selected_mode'] ?? 'BM'));
 $lastMode = normalize_mode((string) ($_SESSION['last_mode'] ?? ''));
 $lastTarget = trim((string) ($_SESSION['last_target'] ?? ''));
+$managedDvSwitchMode = active_managed_dvswitch_mode($lastMode);
+$managedDvSwitchTarget = active_managed_dvswitch_target($lastTarget);
 $pendingTarget = trim((string) ($_SESSION['pending_target'] ?? $_SESSION['pending_tg'] ?? ''));
 $lastStatus = trim((string) ($_SESSION['last_status'] ?? 'IDLE - NO CONNECTIONS'));
 if (!isset($_SESSION['autoload_dvswitch'])) {
@@ -764,9 +787,9 @@ $dmrActiveTarget = trim((string) ($_SESSION['dmr_active_target'] ?? ''));
 $myNode = $config->getString('MYNODE', '');
 $dvSwitchNode = $config->getString('DVSWITCH_NODE', '');
 $dvswitchAutoloaded = !empty($_SESSION['dvswitch_autoloaded']);
-$dvswitchLinkActive = $dvswitchAutoloaded || $dmrReady || in_array($lastMode, ['YSF', 'DSTAR', 'P25', 'NXDN'], true);
+$dvswitchLinkActive = $dvswitchAutoloaded || $dmrReady || $managedDvSwitchMode !== '';
 
-$forcedPrivateNode = session_forces_private_node($selectedMode, $lastMode, $dmrNetwork, $dmrActiveNetwork, $dmrReady, $dvswitchAutoloaded);
+$forcedPrivateNode = session_forces_private_node($selectedMode, $managedDvSwitchMode !== '' ? $managedDvSwitchMode : $lastMode, $dmrNetwork, $dmrActiveNetwork, $dmrReady, $dvswitchAutoloaded);
 $autoloadDvSwitch = $autoloadDvSwitch || $forcedPrivateNode;
 
 $bmReceive = session_may_have_bm_runtime($selectedMode, $lastMode, $dmrNetwork, $dmrActiveNetwork, $lastStatus)
@@ -855,20 +878,20 @@ if ($hblinkTgif['active'] && $hblinkTgif['target'] !== '') {
     $tgifState = 'Preparing';
 }
 
-if ($lastMode === 'YSF' && $lastTarget !== '') {
-    $ysfState = 'Connected: ' . $lastTarget;
+if ($managedDvSwitchMode === 'YSF' && $managedDvSwitchTarget !== '') {
+    $ysfState = 'Connected: ' . $managedDvSwitchTarget;
 }
 
-if ($lastMode === 'DSTAR' && $lastTarget !== '') {
-    $dstarState = 'Connected: ' . $lastTarget;
+if ($managedDvSwitchMode === 'DSTAR' && $managedDvSwitchTarget !== '') {
+    $dstarState = 'Connected: ' . $managedDvSwitchTarget;
 }
 
-if ($lastMode === 'P25' && $lastTarget !== '') {
-    $p25State = 'Connected: ' . $lastTarget;
+if ($managedDvSwitchMode === 'P25' && $managedDvSwitchTarget !== '') {
+    $p25State = 'Connected: ' . $managedDvSwitchTarget;
 }
 
-if ($lastMode === 'NXDN' && $lastTarget !== '') {
-    $nxdnState = 'Connected: ' . $lastTarget;
+if ($managedDvSwitchMode === 'NXDN' && $managedDvSwitchTarget !== '') {
+    $nxdnState = 'Connected: ' . $managedDvSwitchTarget;
 }
 
 $liveAllstar = fetch_live_allstar_links_via_ami($myNode);
@@ -908,10 +931,10 @@ foreach ($allstarConnectedNodes as $link) {
 
 $bmActive = $dmrActiveNetwork === 'BM' || ($dmrNetwork === 'BM' && $dmrReady) || $bmReceive['active'];
 $tgifActive = $dmrActiveNetwork === 'TGIF' || ($dmrNetwork === 'TGIF' && $dmrReady) || $hblinkTgif['active'];
-$ysfActive = $lastMode === 'YSF' && $lastTarget !== '';
-$dstarActive = $lastMode === 'DSTAR' && $lastTarget !== '';
-$p25Active = $lastMode === 'P25' && $lastTarget !== '';
-$nxdnActive = $lastMode === 'NXDN' && $lastTarget !== '';
+$ysfActive = $managedDvSwitchMode === 'YSF' && $managedDvSwitchTarget !== '';
+$dstarActive = $managedDvSwitchMode === 'DSTAR' && $managedDvSwitchTarget !== '';
+$p25Active = $managedDvSwitchMode === 'P25' && $managedDvSwitchTarget !== '';
+$nxdnActive = $managedDvSwitchMode === 'NXDN' && $managedDvSwitchTarget !== '';
 
 $bmKeyed = $bmActive && $dvswitchNodeKeyed;
 $tgifKeyed = $tgifActive && $dvswitchNodeKeyed;
@@ -957,10 +980,10 @@ if ($dmrActivityValue !== '') {
         'label' => 'DMR Network',
         'value' => $dmrActivityValue,
     ];
-} elseif (is_managed_digital_mode($lastMode) && $lastTarget !== '') {
+} elseif (is_managed_digital_mode($managedDvSwitchMode) && $managedDvSwitchTarget !== '') {
     $activity[] = [
         'label' => 'Digital Network',
-        'value' => managed_digital_mode_label($lastMode) . ' (' . $lastTarget . ')',
+        'value' => managed_digital_mode_label($managedDvSwitchMode) . ' (' . $managedDvSwitchTarget . ')',
     ];
 }
 
@@ -1009,6 +1032,8 @@ $payload = [
         'selected_mode' => $selectedMode,
         'last_mode' => $lastMode,
         'last_target' => $lastTarget,
+        'managed_dvswitch_mode' => $managedDvSwitchMode,
+        'managed_dvswitch_target' => $managedDvSwitchTarget,
         'pending_target' => $pendingTarget,
         'autoload_dvswitch' => $autoloadDvSwitch,
         'autoload_dvswitch_mode' => $autoloadDvSwitchMode,

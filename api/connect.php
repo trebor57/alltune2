@@ -630,6 +630,8 @@ function disconnect_selected_dvswitch_link(string $myNode, string $dvSwitchNode)
         );
 
         clear_dmr_active_state();
+
+        clear_managed_dvswitch_state();
         unset($_SESSION['last_mode'], $_SESSION['last_target'], $_SESSION['pending_target']);
         return;
     }
@@ -650,11 +652,13 @@ function disconnect_selected_dvswitch_link(string $myNode, string $dvSwitchNode)
         );
 
         clear_dmr_active_state();
+
+        clear_managed_dvswitch_state();
         unset($_SESSION['last_mode'], $_SESSION['last_target'], $_SESSION['pending_target']);
         return;
     }
 
-    $lastMode = normalize_mode((string) ($_SESSION['last_mode'] ?? ''));
+    $lastMode = active_managed_dvswitch_mode();
     $dmrNetwork = normalize_mode((string) ($_SESSION['dmr_network'] ?? ''));
 
     $hasDmrRuntime = $dmrNetwork === 'BM' || $dmrNetwork === 'TGIF';
@@ -678,6 +682,8 @@ function disconnect_selected_dvswitch_link(string $myNode, string $dvSwitchNode)
 
     clear_dmr_active_state();
 
+    clear_managed_dvswitch_state();
+
     if ($hasYsfRuntime || $hasDmrRuntime) {
         unset($_SESSION['last_mode'], $_SESSION['last_target'], $_SESSION['pending_target']);
     }
@@ -696,6 +702,46 @@ function clear_dmr_active_state(): void
     );
 }
 
+function is_managed_dvswitch_session_mode(string $mode): bool
+{
+    return in_array(normalize_mode($mode), ['BM', 'TGIF', 'YSF', 'DSTAR', 'P25', 'NXDN'], true);
+}
+
+function set_managed_dvswitch_state(string $mode, string $target): void
+{
+    $_SESSION['managed_dvswitch_mode'] = normalize_mode($mode);
+    $_SESSION['managed_dvswitch_target'] = trim($target);
+}
+
+function clear_managed_dvswitch_state(): void
+{
+    unset(
+        $_SESSION['managed_dvswitch_mode'],
+        $_SESSION['managed_dvswitch_target']
+    );
+}
+
+function active_managed_dvswitch_mode(): string
+{
+    $managedMode = normalize_mode((string) ($_SESSION['managed_dvswitch_mode'] ?? ''));
+    if (is_managed_dvswitch_session_mode($managedMode)) {
+        return $managedMode;
+    }
+
+    $lastMode = normalize_mode((string) ($_SESSION['last_mode'] ?? ''));
+    return is_managed_dvswitch_session_mode($lastMode) ? $lastMode : '';
+}
+
+function active_managed_dvswitch_target(): string
+{
+    $managedTarget = trim((string) ($_SESSION['managed_dvswitch_target'] ?? ''));
+    if ($managedTarget !== '') {
+        return $managedTarget;
+    }
+
+    return trim((string) ($_SESSION['last_target'] ?? ''));
+}
+
 function clear_runtime_targets(): void
 {
     unset(
@@ -706,7 +752,9 @@ function clear_runtime_targets(): void
         $_SESSION['dmr_network'],
         $_SESSION['dmr_ready'],
         $_SESSION['dvswitch_autoloaded'],
-        $_SESSION['dvswitch_active_mode']
+        $_SESSION['dvswitch_active_mode'],
+        $_SESSION['managed_dvswitch_mode'],
+        $_SESSION['managed_dvswitch_target']
     );
 
     clear_dmr_active_state();
@@ -717,6 +765,19 @@ function disconnect_dvswitch_runtime(string $myNode, string $dvSwitchNode): void
     if (bm_receive_is_active()) {
         bm_receive_stop();
         pause_seconds(0.5);
+        unset(
+            $_SESSION['dvswitch_autoloaded'],
+            $_SESSION['dvswitch_active_mode'],
+            $_SESSION['dmr_network'],
+            $_SESSION['dmr_ready'],
+            $_SESSION['pending_tg'],
+            $_SESSION['last_mode'],
+            $_SESSION['last_target'],
+            $_SESSION['pending_target']
+        );
+        clear_dmr_active_state();
+        clear_managed_dvswitch_state();
+
         return;
     }
 
@@ -729,10 +790,23 @@ function disconnect_dvswitch_runtime(string $myNode, string $dvSwitchNode): void
             pause_seconds(0.5);
         }
 
+        unset(
+            $_SESSION['dvswitch_autoloaded'],
+            $_SESSION['dvswitch_active_mode'],
+            $_SESSION['dmr_network'],
+            $_SESSION['dmr_ready'],
+            $_SESSION['pending_tg'],
+            $_SESSION['last_mode'],
+            $_SESSION['last_target'],
+            $_SESSION['pending_target']
+        );
+        clear_dmr_active_state();
+        clear_managed_dvswitch_state();
+
         return;
     }
 
-    $lastMode = normalize_mode((string) ($_SESSION['last_mode'] ?? ''));
+    $lastMode = active_managed_dvswitch_mode();
     $dvswitchAutoloaded = !empty($_SESSION['dvswitch_autoloaded']);
     $dmrNetwork = normalize_mode((string) ($_SESSION['dmr_network'] ?? ''));
 
@@ -753,6 +827,19 @@ function disconnect_dvswitch_runtime(string $myNode, string $dvSwitchNode): void
         asterisk_ilink_disconnect($myNode, $dvSwitchNode);
         pause_seconds(0.5);
     }
+
+    unset(
+        $_SESSION['dvswitch_autoloaded'],
+        $_SESSION['dvswitch_active_mode'],
+        $_SESSION['dmr_network'],
+        $_SESSION['dmr_ready'],
+        $_SESSION['pending_tg'],
+        $_SESSION['last_mode'],
+        $_SESSION['last_target'],
+        $_SESSION['pending_target']
+    );
+    clear_dmr_active_state();
+    clear_managed_dvswitch_state();
 }
 
 function disconnect_only_dvswitch_link(string $myNode, string $dvSwitchNode): void
@@ -774,6 +861,8 @@ function disconnect_only_dvswitch_link(string $myNode, string $dvSwitchNode): vo
         );
 
         clear_dmr_active_state();
+
+        clear_managed_dvswitch_state();
         unset($_SESSION['last_mode'], $_SESSION['last_target'], $_SESSION['pending_target']);
         return;
     }
@@ -796,11 +885,13 @@ function disconnect_only_dvswitch_link(string $myNode, string $dvSwitchNode): vo
         );
 
         clear_dmr_active_state();
+
+        clear_managed_dvswitch_state();
         unset($_SESSION['last_mode'], $_SESSION['last_target'], $_SESSION['pending_target']);
         return;
     }
 
-    $lastMode = normalize_mode((string) ($_SESSION['last_mode'] ?? ''));
+    $lastMode = active_managed_dvswitch_mode();
     $dmrNetwork = normalize_mode((string) ($_SESSION['dmr_network'] ?? ''));
     $dvswitchAutoloaded = !empty($_SESSION['dvswitch_autoloaded']);
 
@@ -826,6 +917,8 @@ function disconnect_only_dvswitch_link(string $myNode, string $dvSwitchNode): vo
     );
 
     clear_dmr_active_state();
+
+    clear_managed_dvswitch_state();
 
     if ($hasYsfRuntime || $hasDmrRuntime) {
         unset($_SESSION['last_mode'], $_SESSION['last_target'], $_SESSION['pending_target']);
@@ -977,6 +1070,8 @@ function session_payload(string $statusText, array $extra = []): array
         'selected_mode' => (string) ($_SESSION['selected_mode'] ?? 'BM'),
         'last_mode' => (string) ($_SESSION['last_mode'] ?? ''),
         'last_target' => (string) ($_SESSION['last_target'] ?? ''),
+        'managed_dvswitch_mode' => active_managed_dvswitch_mode(),
+        'managed_dvswitch_target' => active_managed_dvswitch_target(),
         'pending_target' => (string) ($_SESSION['pending_target'] ?? ''),
         'pending_tg' => (string) ($_SESSION['pending_tg'] ?? ''),
         'autoload_dvswitch' => $forcedAutoload || !empty($_SESSION['autoload_dvswitch']),
@@ -989,7 +1084,7 @@ function session_payload(string $statusText, array $extra = []): array
         'dvswitch_active_mode' => (string) ($_SESSION['dvswitch_active_mode'] ?? ''),
         'bm_receive_active' => $bmActive,
         'tgif_hblink_active' => $tgifActive,
-        'dvswitch_link_active' => !empty($_SESSION['dvswitch_autoloaded']) || !empty($_SESSION['dmr_ready']) || in_array(normalize_mode((string) ($_SESSION['last_mode'] ?? '')), ['YSF', 'DSTAR', 'P25', 'NXDN'], true) || $bmActive || $tgifActive,
+        'dvswitch_link_active' => !empty($_SESSION['dvswitch_autoloaded']) || !empty($_SESSION['dmr_ready']) || active_managed_dvswitch_mode() !== '' || $bmActive || $tgifActive,
     ], $extra);
 }
 
@@ -1308,6 +1403,7 @@ if ($action === 'connect') {
         $_SESSION['last_mode'] = 'YSF';
         $_SESSION['last_target'] = $rawTarget;
         $_SESSION['pending_target'] = $rawTarget;
+        set_managed_dvswitch_state('YSF', $rawTarget);
         clear_dmr_session_state();
         clear_dmr_active_state();
         $_SESSION['dvswitch_autoloaded'] = true;
@@ -1380,6 +1476,7 @@ if ($action === 'connect') {
         $_SESSION['last_mode'] = $mode;
         $_SESSION['last_target'] = $connectTarget;
         $_SESSION['pending_target'] = $connectTarget;
+        set_managed_dvswitch_state($mode, $connectTarget);
         clear_dmr_session_state();
         clear_dmr_active_state();
         $_SESSION['dvswitch_autoloaded'] = true;
@@ -1425,6 +1522,7 @@ if ($action === 'connect') {
         $_SESSION['last_mode'] = 'BM';
         $_SESSION['last_target'] = $connectTarget;
         $_SESSION['pending_target'] = $connectTarget;
+        set_managed_dvswitch_state('BM', $connectTarget);
         $_SESSION['pending_tg'] = $connectTarget;
         $_SESSION['dmr_network'] = 'BM';
         $_SESSION['dmr_ready'] = true;
@@ -1502,6 +1600,7 @@ if ($action === 'connect') {
         $_SESSION['last_mode'] = 'TGIF';
         $_SESSION['last_target'] = $connectTarget;
         $_SESSION['pending_target'] = $connectTarget;
+        set_managed_dvswitch_state('TGIF', $connectTarget);
         $_SESSION['pending_tg'] = $connectTarget;
         $_SESSION['dmr_network'] = 'TGIF';
         $_SESSION['dmr_ready'] = true;
@@ -1550,7 +1649,8 @@ if ($trackedAllstarNode !== '') {
     respond(session_payload($_SESSION['last_status']));
 }
 
-$lastMode = normalize_mode((string) ($_SESSION['last_mode'] ?? ''));
+$lastMode = active_managed_dvswitch_mode();
+$lastTarget = active_managed_dvswitch_target();
 $dvswitchAutoloaded = !empty($_SESSION['dvswitch_autoloaded']);
 
 if (in_array($lastMode, ['YSF', 'DSTAR', 'P25', 'NXDN'], true)) {
