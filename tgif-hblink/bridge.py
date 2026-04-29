@@ -32,6 +32,9 @@ This program currently only works with group voice calls.
 
 # Python modules we need
 import sys
+import json
+import os
+from datetime import datetime, timezone
 from bitarray import bitarray
 from time import time
 import importlib.util
@@ -55,6 +58,97 @@ import pickle
 # The module needs logging, but handlers, etc. are controlled by the parent
 import logging
 logger = logging.getLogger(__name__)
+
+TGIF_ACTIVITY_LOG = '/var/www/html/alltune2/logs/tgif-activity.jsonl'
+TGIF_ACTIVITY_LOG_MAX_BYTES = 512 * 1024
+
+
+def _tgif_activity_utc(ts):
+    try:
+        return datetime.fromtimestamp(float(ts), timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
+    except Exception:
+        return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
+
+
+def _tgif_activity_int(value):
+    try:
+        return int_id(value)
+    except Exception:
+        try:
+            return int(value)
+        except Exception:
+            return str(value)
+
+
+def _tgif_activity_alias(value, table):
+    try:
+        return str(get_alias(value, table))
+    except Exception:
+        return ''
+
+
+def _tgif_activity_write(event):
+    try:
+        log_dir = os.path.dirname(TGIF_ACTIVITY_LOG)
+        os.makedirs(log_dir, mode=0o775, exist_ok=True)
+
+        try:
+            if os.path.exists(TGIF_ACTIVITY_LOG) and os.path.getsize(TGIF_ACTIVITY_LOG) >= TGIF_ACTIVITY_LOG_MAX_BYTES:
+                os.replace(TGIF_ACTIVITY_LOG, TGIF_ACTIVITY_LOG + '.1')
+        except Exception:
+            pass
+
+        with open(TGIF_ACTIVITY_LOG, 'a', encoding='utf-8') as activity_file:
+            activity_file.write(json.dumps(event, separators=(',', ':'), sort_keys=True) + '\n')
+    except Exception:
+        # This feed is observability-only. Never let logging affect TGIF/HBLink audio.
+        return
+
+
+def tgif_activity_start(system, stream_id, rf_src, peer_id, dst_id, slot):
+    try:
+        now = time()
+        _tgif_activity_write({
+            'ts': round(now, 3),
+            'utc': _tgif_activity_utc(now),
+            'event': 'start',
+            'direction': 'rx',
+            'system': str(system),
+            'stream_id': _tgif_activity_int(stream_id),
+            'src_id': _tgif_activity_int(rf_src),
+            'src_alias': _tgif_activity_alias(rf_src, subscriber_ids),
+            'peer_id': _tgif_activity_int(peer_id),
+            'peer_alias': _tgif_activity_alias(peer_id, peer_ids),
+            'dst_tg': _tgif_activity_int(dst_id),
+            'dst_alias': _tgif_activity_alias(dst_id, talkgroup_ids),
+            'slot': int(slot),
+        })
+    except Exception:
+        return
+
+
+def tgif_activity_end(system, stream_id, rf_src, peer_id, dst_id, slot, duration):
+    try:
+        now = time()
+        _tgif_activity_write({
+            'ts': round(now, 3),
+            'utc': _tgif_activity_utc(now),
+            'event': 'end',
+            'direction': 'rx',
+            'system': str(system),
+            'stream_id': _tgif_activity_int(stream_id),
+            'src_id': _tgif_activity_int(rf_src),
+            'src_alias': _tgif_activity_alias(rf_src, subscriber_ids),
+            'peer_id': _tgif_activity_int(peer_id),
+            'peer_alias': _tgif_activity_alias(peer_id, peer_ids),
+            'dst_tg': _tgif_activity_int(dst_id),
+            'dst_alias': _tgif_activity_alias(dst_id, talkgroup_ids),
+            'slot': int(slot),
+            'duration': round(float(duration), 2),
+        })
+    except Exception:
+        return
+
 
 
 # Does anybody read this stuff? There's a PEP somewhere that says I should do this.
@@ -300,6 +394,7 @@ class routerOBP(OPENBRIDGE):
 
                 logger.info('(%s) *CALL START* STREAM ID: %s SUB: %s (%s) PEER: %s (%s) TGID %s (%s), TS %s', \
                         self._system, int_id(_stream_id), get_alias(_rf_src, subscriber_ids), int_id(_rf_src), get_alias(_peer_id, peer_ids), int_id(_peer_id), get_alias(_dst_id, talkgroup_ids), int_id(_dst_id), _slot)
+                tgif_activity_start(self._system, _stream_id, _rf_src, _peer_id, _dst_id, _slot)
                 if CONFIG['REPORTS']['REPORT']:
                     self._report.send_bridgeEvent('GROUP VOICE,START,RX,{},{},{},{},{},{}'.format(self._system, int_id(_stream_id), int_id(_peer_id), int_id(_rf_src), _slot, int_id(_dst_id)).encode(encoding='utf-8', errors='ignore'))
 
@@ -456,6 +551,7 @@ class routerOBP(OPENBRIDGE):
                 call_duration = pkt_time - self.STATUS[_stream_id]['START']
                 logger.info('(%s) *CALL END*   STREAM ID: %s SUB: %s (%s) PEER: %s (%s) TGID %s (%s), TS %s, Duration: %.2f', \
                         self._system, int_id(_stream_id), get_alias(_rf_src, subscriber_ids), int_id(_rf_src), get_alias(_peer_id, peer_ids), int_id(_peer_id), get_alias(_dst_id, talkgroup_ids), int_id(_dst_id), _slot, call_duration)
+                tgif_activity_end(self._system, _stream_id, _rf_src, _peer_id, _dst_id, _slot, call_duration)
                 if CONFIG['REPORTS']['REPORT']:
                    self._report.send_bridgeEvent('GROUP VOICE,END,RX,{},{},{},{},{},{},{:.2f}'.format(self._system, int_id(_stream_id), int_id(_peer_id), int_id(_rf_src), _slot, int_id(_dst_id), call_duration).encode(encoding='utf-8', errors='ignore'))
                 removed = self.STATUS.pop(_stream_id)
@@ -543,6 +639,7 @@ class routerHBP(HBSYSTEM):
                 self.STATUS[_slot]['RX_START'] = pkt_time
                 logger.info('(%s) *CALL START* STREAM ID: %s SUB: %s (%s) PEER: %s (%s) TGID %s (%s), TS %s', \
                         self._system, int_id(_stream_id), get_alias(_rf_src, subscriber_ids), int_id(_rf_src), get_alias(_peer_id, peer_ids), int_id(_peer_id), get_alias(_dst_id, talkgroup_ids), int_id(_dst_id), _slot)
+                tgif_activity_start(self._system, _stream_id, _rf_src, _peer_id, _dst_id, _slot)
                 if CONFIG['REPORTS']['REPORT']:
                     self._report.send_bridgeEvent('GROUP VOICE,START,RX,{},{},{},{},{},{}'.format(self._system, int_id(_stream_id), int_id(_peer_id), int_id(_rf_src), _slot, int_id(_dst_id)).encode(encoding='utf-8', errors='ignore'))
 
@@ -704,6 +801,7 @@ class routerHBP(HBSYSTEM):
                 call_duration = pkt_time - self.STATUS[_slot]['RX_START']
                 logger.info('(%s) *CALL END*   STREAM ID: %s SUB: %s (%s) PEER: %s (%s) TGID %s (%s), TS %s, Duration: %.2f', \
                         self._system, int_id(_stream_id), get_alias(_rf_src, subscriber_ids), int_id(_rf_src), get_alias(_peer_id, peer_ids), int_id(_peer_id), get_alias(_dst_id, talkgroup_ids), int_id(_dst_id), _slot, call_duration)
+                tgif_activity_end(self._system, _stream_id, _rf_src, _peer_id, _dst_id, _slot, call_duration)
                 if CONFIG['REPORTS']['REPORT']:
                    self._report.send_bridgeEvent('GROUP VOICE,END,RX,{},{},{},{},{},{},{:.2f}'.format(self._system, int_id(_stream_id), int_id(_peer_id), int_id(_rf_src), _slot, int_id(_dst_id), call_duration).encode(encoding='utf-8', errors='ignore'))
 
