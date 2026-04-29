@@ -247,20 +247,8 @@ function is_managed_digital_mode(string $mode): bool
     return in_array(normalize_mode($mode), ['DSTAR', 'P25', 'NXDN'], true);
 }
 
-function gateway_unlink_talkgroup_zero(string $mode): string
+function gateway_udp_command(string $label, int $port, string $payload): string
 {
-    $normalized = normalize_mode($mode);
-
-    $port = match ($normalized) {
-        'P25' => 6074,
-        'NXDN' => 6075,
-        default => 0,
-    };
-
-    if ($port === 0) {
-        return '';
-    }
-
     $socket = @stream_socket_client(
         'udp://127.0.0.1:' . $port,
         $errno,
@@ -270,33 +258,62 @@ function gateway_unlink_talkgroup_zero(string $mode): string
     );
 
     if ($socket === false) {
-        return sprintf('%s gateway unlink failed on UDP port %d', $normalized, $port);
+        return sprintf(
+            '%s gateway cleanup failed on UDP port %d: %s',
+            $label,
+            $port,
+            $errstr !== '' ? $errstr : ('error ' . (string) $errno)
+        );
     }
 
-    fwrite($socket, 'TalkGroup0');
+    fwrite($socket, $payload);
     fclose($socket);
 
-    return sprintf('%s gateway unlink sent: TalkGroup0 to UDP port %d', $normalized, $port);
+    return sprintf('%s gateway cleanup sent: %s to UDP port %d', $label, $payload, $port);
+}
+
+function cleanup_all_dvswitch_gateway_links(): string
+{
+    $messages = [];
+
+    $messages[] = gateway_udp_command('YSF', 6073, 'disconnect');
+    $messages[] = gateway_udp_command('P25', 6074, 'TalkGroup0');
+    $messages[] = gateway_udp_command('NXDN', 6075, 'TalkGroup0');
+
+    $messages[] = dvswitch_mode('DSTAR');
+    pause_seconds(0.5);
+    $messages[] = dvswitch_tune('       U');
+    pause_seconds(0.5);
+    $messages[] = dvswitch_mode('DMR');
+    pause_seconds(0.5);
+    $messages[] = dvswitch_tune('0');
+
+    return trim(implode(PHP_EOL, array_filter($messages)));
 }
 
 function dvswitch_disconnect_mode(string $mode): string
 {
     $normalized = normalize_mode($mode);
+    $output = cleanup_all_dvswitch_gateway_links();
+
+    if ($output !== '') {
+        pause_seconds(0.5);
+    }
 
     if ($normalized === 'DSTAR') {
-        return dvswitch_tune('4000#');
+        $output .= PHP_EOL . dvswitch_tune('4000#');
+        return trim($output);
     }
 
     if (in_array($normalized, ['P25', 'NXDN'], true)) {
-        $output = gateway_unlink_talkgroup_zero($normalized);
-        pause_seconds(0.5);
         $output .= PHP_EOL . dvswitch_tune('0');
         pause_seconds(2.0);
         $output .= PHP_EOL . dvswitch_mode('DMR');
         return trim($output);
     }
 
-    return dvswitch_tune('disconnect');
+    $output .= PHP_EOL . dvswitch_tune('disconnect');
+    return trim($output);
 }
 
 function dvswitch_mode(string $value): string
