@@ -247,6 +247,38 @@ function is_managed_digital_mode(string $mode): bool
     return in_array(normalize_mode($mode), ['DSTAR', 'P25', 'NXDN'], true);
 }
 
+function gateway_unlink_talkgroup_zero(string $mode): string
+{
+    $normalized = normalize_mode($mode);
+
+    $port = match ($normalized) {
+        'P25' => 6074,
+        'NXDN' => 6075,
+        default => 0,
+    };
+
+    if ($port === 0) {
+        return '';
+    }
+
+    $socket = @stream_socket_client(
+        'udp://127.0.0.1:' . $port,
+        $errno,
+        $errstr,
+        1.0,
+        STREAM_CLIENT_CONNECT
+    );
+
+    if ($socket === false) {
+        return sprintf('%s gateway unlink failed on UDP port %d', $normalized, $port);
+    }
+
+    fwrite($socket, 'TalkGroup0');
+    fclose($socket);
+
+    return sprintf('%s gateway unlink sent: TalkGroup0 to UDP port %d', $normalized, $port);
+}
+
 function dvswitch_disconnect_mode(string $mode): string
 {
     $normalized = normalize_mode($mode);
@@ -256,10 +288,11 @@ function dvswitch_disconnect_mode(string $mode): string
     }
 
     if (in_array($normalized, ['P25', 'NXDN'], true)) {
-        $output = dvswitch_tune('0');
+        $output = gateway_unlink_talkgroup_zero($normalized);
+        pause_seconds(0.5);
+        $output .= PHP_EOL . dvswitch_tune('0');
         pause_seconds(2.0);
-        $output .= "
-" . dvswitch_mode('DMR');
+        $output .= PHP_EOL . dvswitch_mode('DMR');
         return trim($output);
     }
 
