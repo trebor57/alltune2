@@ -1470,11 +1470,27 @@ if ($action === 'connect') {
             }
 
             clear_runtime_targets();
+        } else {
+            $currentLastMode = normalize_mode((string) ($_SESSION['last_mode'] ?? ''));
+
+            if (in_array($currentLastMode, ['P25', 'NXDN', 'DSTAR'], true)) {
+                $cleanupOutput = cleanup_previous_managed_gateway_link($currentLastMode);
+                if ($cleanupOutput !== '') {
+                    pause_seconds(0.3);
+                }
+                $keepDvSwitchLinkLoaded = true;
+            } elseif ($currentLastMode === 'YSF') {
+                $keepDvSwitchLinkLoaded = true;
+            }
         }
 
-        load_dvswitch_link($myNode, $dvSwitchNode, $autoloadDvSwitchMode);
-        $_SESSION['dvswitch_active_mode'] = $autoloadDvSwitchMode;
-        pause_seconds(0.5);
+        if (!$keepDvSwitchLinkLoaded) {
+            load_dvswitch_link($myNode, $dvSwitchNode, $autoloadDvSwitchMode);
+            $_SESSION['dvswitch_active_mode'] = $autoloadDvSwitchMode;
+            pause_seconds(0.5);
+        } else {
+            $_SESSION['dvswitch_active_mode'] = $autoloadDvSwitchMode;
+        }
 
         dvswitch_mode('YSF');
         pause_seconds(0.5);
@@ -1697,7 +1713,14 @@ if ($action === 'connect') {
             $currentNetwork = normalize_mode((string) ($_SESSION['dmr_network'] ?? ''));
             $currentLastMode = normalize_mode((string) ($_SESSION['last_mode'] ?? ''));
 
-            if ($currentNetwork === 'BM' || in_array($currentLastMode, ['YSF', 'DSTAR', 'P25', 'NXDN'], true)) {
+            if (in_array($currentLastMode, ['YSF', 'DSTAR', 'P25', 'NXDN'], true)) {
+                $cleanupOutput = cleanup_previous_managed_gateway_link($currentLastMode);
+                if ($cleanupOutput !== '') {
+                    pause_seconds(0.3);
+                }
+                clear_runtime_targets();
+                $tgifWasActive = false;
+            } elseif ($currentNetwork === 'BM') {
                 disconnect_dvswitch_runtime($myNode, $dvSwitchNode);
                 clear_runtime_targets();
                 $tgifWasActive = false;
