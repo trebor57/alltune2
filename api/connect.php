@@ -291,6 +291,35 @@ function cleanup_all_dvswitch_gateway_links(): string
     return trim(implode(PHP_EOL, array_filter($messages)));
 }
 
+
+function cleanup_previous_managed_gateway_link(string $mode): string
+{
+    $normalized = normalize_mode($mode);
+
+    if ($normalized === 'YSF') {
+        return gateway_udp_command('YSF', 6073, 'disconnect');
+    }
+
+    if ($normalized === 'P25') {
+        return gateway_udp_command('P25', 6074, 'TalkGroup0');
+    }
+
+    if ($normalized === 'NXDN') {
+        return gateway_udp_command('NXDN', 6075, 'TalkGroup0');
+    }
+
+    if ($normalized === 'DSTAR') {
+        $messages = [];
+        $messages[] = dvswitch_mode('DSTAR');
+        pause_seconds(0.5);
+        $messages[] = dvswitch_tune('       U');
+        pause_seconds(0.5);
+        return trim(implode(PHP_EOL, array_filter($messages)));
+    }
+
+    return '';
+}
+
 function dvswitch_disconnect_mode(string $mode): string
 {
     $normalized = normalize_mode($mode);
@@ -1412,6 +1441,8 @@ if ($action === 'connect') {
             respond(session_payload($_SESSION['last_status']), 500);
         }
 
+        $keepDvSwitchLinkLoaded = false;
+
         if ($disconnectBeforeConnect) {
             disconnect_managed_links_before_connect($myNode, $dvSwitchNode);
         } elseif (hblink_tgif_is_active()) {
@@ -1477,6 +1508,31 @@ if ($action === 'connect') {
             respond(session_payload($_SESSION['last_status']), 422);
         }
 
+        $currentDmrNetwork = normalize_mode((string) ($_SESSION['dmr_network'] ?? ''));
+        $currentLastMode = normalize_mode((string) ($_SESSION['last_mode'] ?? ''));
+        $sameManagedDigitalMode = $currentLastMode === $mode
+            && in_array($mode, ['DSTAR', 'P25', 'NXDN'], true)
+            && $currentDmrNetwork !== 'BM'
+            && $currentDmrNetwork !== 'TGIF'
+            && !$disconnectBeforeConnect;
+
+        if ($sameManagedDigitalMode) {
+            dvswitch_mode($mode);
+            pause_seconds(0.2);
+            dvswitch_tune($connectTarget);
+
+            $_SESSION['last_mode'] = $mode;
+            $_SESSION['last_target'] = $connectTarget;
+            $_SESSION['pending_target'] = $connectTarget;
+            set_managed_dvswitch_state($mode, $connectTarget);
+            clear_dmr_session_state();
+            clear_dmr_active_state();
+            $_SESSION['dvswitch_autoloaded'] = true;
+
+            $_SESSION['last_status'] = 'CONNECTED: ' . $modeLabel . ' TARGET ' . $connectTarget;
+            respond(session_payload($_SESSION['last_status']));
+        }
+
         if ($disconnectBeforeConnect) {
             disconnect_managed_links_before_connect($myNode, $dvSwitchNode);
         } elseif (hblink_tgif_is_active()) {
@@ -1505,18 +1561,28 @@ if ($action === 'connect') {
 
             clear_runtime_targets();
         } else {
-            $currentDmrNetwork = normalize_mode((string) ($_SESSION['dmr_network'] ?? ''));
-            $currentLastMode = normalize_mode((string) ($_SESSION['last_mode'] ?? ''));
+            $switchingManagedDigitalMode = in_array($currentLastMode, ['YSF', 'DSTAR', 'P25', 'NXDN'], true)
+                && $currentLastMode !== $mode;
 
-            if ($currentDmrNetwork === 'BM' || $currentDmrNetwork === 'TGIF' || in_array($currentLastMode, ['YSF', 'DSTAR', 'P25', 'NXDN'], true)) {
+            if ($switchingManagedDigitalMode) {
+                $cleanupOutput = cleanup_previous_managed_gateway_link($currentLastMode);
+                if ($cleanupOutput !== '') {
+                    pause_seconds(0.3);
+                }
+                $keepDvSwitchLinkLoaded = true;
+            } elseif ($currentDmrNetwork === 'BM' || $currentDmrNetwork === 'TGIF' || in_array($currentLastMode, ['YSF', 'DSTAR', 'P25', 'NXDN'], true)) {
                 disconnect_dvswitch_runtime($myNode, $dvSwitchNode);
                 clear_runtime_targets();
             }
         }
 
-        load_dvswitch_link($myNode, $dvSwitchNode, $autoloadDvSwitchMode);
-        $_SESSION['dvswitch_active_mode'] = $autoloadDvSwitchMode;
-        pause_seconds(0.5);
+        if (!$keepDvSwitchLinkLoaded) {
+            load_dvswitch_link($myNode, $dvSwitchNode, $autoloadDvSwitchMode);
+            $_SESSION['dvswitch_active_mode'] = $autoloadDvSwitchMode;
+            pause_seconds(0.5);
+        } else {
+            $_SESSION['dvswitch_active_mode'] = $autoloadDvSwitchMode;
+        }
 
         dvswitch_mode($mode);
         pause_seconds(0.5);
@@ -1554,9 +1620,17 @@ if ($action === 'connect') {
             $currentDmrNetwork = normalize_mode((string) ($_SESSION['dmr_network'] ?? ''));
             $currentLastMode = normalize_mode((string) ($_SESSION['last_mode'] ?? ''));
 
-            if (!bm_receive_is_active() && (in_array($currentLastMode, ['YSF', 'DSTAR', 'P25', 'NXDN'], true) || $currentDmrNetwork === 'TGIF')) {
-                disconnect_dvswitch_runtime($myNode, $dvSwitchNode);
-                clear_runtime_targets();
+            if (!bm_receive_is_active()) {
+                if (in_array($currentLastMode, ['YSF', 'DSTAR', 'P25', 'NXDN'], true)) {
+                    $cleanupOutput = cleanup_previous_managed_gateway_link($currentLastMode);
+                    if ($cleanupOutput !== '') {
+                        pause_seconds(0.3);
+                    }
+                    clear_runtime_targets();
+                } elseif ($currentDmrNetwork === 'TGIF') {
+                    disconnect_dvswitch_runtime($myNode, $dvSwitchNode);
+                    clear_runtime_targets();
+                }
             }
         }
 
