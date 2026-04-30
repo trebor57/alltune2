@@ -756,28 +756,12 @@
     }
 
     function compareFavoriteModes(left, right, direction) {
-        const order = {
-            ASL: 1,
-            BM: 2,
-            'E/L': 3,
-            TGIF: 4,
-            YSF: 5,
-            'D-Star': 6,
-            P25: 7,
-            NXDN: 8,
-        };
-
-        const multiplier = direction === 'desc' ? -1 : 1;
-        const leftMode = favoriteModeLabel(left);
-        const rightMode = favoriteModeLabel(right);
-        const leftRank = order[leftMode] ?? 999;
-        const rightRank = order[rightMode] ?? 999;
-
-        if (leftRank !== rightRank) {
-            return (leftRank - rightRank) * multiplier;
-        }
-
-        return 0;
+        return compareFavoriteValues(
+            favoriteModeLabel(left),
+            favoriteModeLabel(right),
+            'text',
+            direction
+        );
     }
 
     function getSortedFavorites(items) {

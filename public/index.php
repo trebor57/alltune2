@@ -262,13 +262,13 @@ $activityLines[] = [
                         data-nxdn-configured="<?= $modeAvailability['NXDN'] ? '1' : '0' ?>"
                     >
                         <div class="control-grid">
-                            <label class="sr-only" for="target">TG / Node / YSF #</label>
+                            <label class="sr-only" for="target">TG / Node #</label>
                             <input
                                 id="target"
                                 name="target"
                                 class="control"
                                 type="text"
-                                placeholder="TG / Node / YSF #"
+                                placeholder="TG / Node #"
                                 value="<?= e($targetValue) ?>"
                             >
 
@@ -521,7 +521,7 @@ $activityLines[] = [
         <article class="card favorites-card">
             <div class="card-header">
                 <span>Saved Favorites</span>
-                <span class="meta-line">Shared BM / TGIF / YSF / AllStar / EchoLink</span>
+                <span class="meta-line">Shared BM / TGIF / YSF / D-Star / P25 / NXDN / AllStar / EchoLink</span>
             </div>
             <div class="card-body card-body-tight">
                 <div class="favorites-table-wrap">
@@ -530,7 +530,7 @@ $activityLines[] = [
                         <tr>
                             <th>
                                 <button type="button" class="favorites-sort-button" data-sort-key="target" data-sort-type="mixed">
-                                    TG / Node / YSF
+                                    TG / Node #
                                     <span class="favorites-sort-indicator" aria-hidden="true"></span>
                                 </button>
                             </th>

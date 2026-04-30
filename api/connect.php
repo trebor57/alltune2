@@ -325,20 +325,12 @@ function dvswitch_disconnect_mode(string $mode): string
     $normalized = normalize_mode($mode);
     $output = cleanup_all_dvswitch_gateway_links();
 
+    if (in_array($normalized, ['YSF', 'DSTAR', 'P25', 'NXDN'], true)) {
+        return trim($output);
+    }
+
     if ($output !== '') {
         pause_seconds(0.5);
-    }
-
-    if ($normalized === 'DSTAR') {
-        $output .= PHP_EOL . dvswitch_tune('4000#');
-        return trim($output);
-    }
-
-    if (in_array($normalized, ['P25', 'NXDN'], true)) {
-        $output .= PHP_EOL . dvswitch_tune('0');
-        pause_seconds(2.0);
-        $output .= PHP_EOL . dvswitch_mode('DMR');
-        return trim($output);
     }
 
     $output .= PHP_EOL . dvswitch_tune('disconnect');
