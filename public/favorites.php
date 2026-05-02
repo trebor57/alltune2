@@ -120,6 +120,60 @@ function mode_display_label(string $mode): string
     };
 }
 
+
+function compare_favorites_by_target(array $left, array $right): int
+{
+    $leftTarget = trim((string) ($left['target'] ?? ''));
+    $rightTarget = trim((string) ($right['target'] ?? ''));
+
+    $leftIsNumeric = ctype_digit($leftTarget);
+    $rightIsNumeric = ctype_digit($rightTarget);
+
+    if ($leftIsNumeric && $rightIsNumeric) {
+        $numberCompare = (int) $leftTarget <=> (int) $rightTarget;
+
+        if ($numberCompare !== 0) {
+            return $numberCompare;
+        }
+    } elseif ($leftIsNumeric !== $rightIsNumeric) {
+        return $leftIsNumeric ? -1 : 1;
+    } else {
+        $naturalCompare = strnatcasecmp($leftTarget, $rightTarget);
+
+        if ($naturalCompare !== 0) {
+            return $naturalCompare;
+        }
+    }
+
+    $modeCompare = strnatcasecmp(
+        mode_display_label((string) ($left['mode'] ?? 'BM')),
+        mode_display_label((string) ($right['mode'] ?? 'BM'))
+    );
+
+    if ($modeCompare !== 0) {
+        return $modeCompare;
+    }
+
+    $nameCompare = strnatcasecmp(
+        (string) ($left['name'] ?? ''),
+        (string) ($right['name'] ?? '')
+    );
+
+    if ($nameCompare !== 0) {
+        return $nameCompare;
+    }
+
+    return strnatcasecmp(
+        (string) ($left['description'] ?? ''),
+        (string) ($right['description'] ?? '')
+    );
+}
+
+function sort_favorites_by_target(array &$favorites): void
+{
+    usort($favorites, 'compare_favorites_by_target');
+}
+
 function load_favorites(string $path): array
 {
     if (!is_file($path)) {
@@ -269,6 +323,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $favorites = load_favorites($favoritesPath);
+sort_favorites_by_target($favorites);
 
 if (isset($_GET['saved'])) {
     $message = 'Favorite saved.';
@@ -486,6 +541,177 @@ $navItems = [
             padding: 10px 12px;
         }
 
+        /* favorites-manage-color-polish */
+        .favorites-page-stack .card-header {
+            border-bottom-color: rgba(216, 108, 242, 0.28);
+        }
+
+        .favorites-page-stack .meta-line {
+            color: #f3dcff;
+        }
+
+        .favorites-form-grid .control {
+            border-color: rgba(216, 108, 242, 0.28);
+            background: rgba(15, 10, 20, 0.72);
+        }
+
+        .favorites-form-grid .control:focus {
+            border-color: rgba(255, 125, 242, 0.76);
+            box-shadow: 0 0 0 2px rgba(255, 125, 242, 0.14);
+        }
+
+        .favorites-page-stack .btn-primary {
+            border-color: rgba(46, 204, 113, 0.72);
+            background: linear-gradient(180deg, rgba(46, 204, 113, 0.28), rgba(22, 122, 63, 0.28));
+            color: #b9ffd0;
+        }
+
+        .favorites-page-stack .btn-primary:hover {
+            border-color: rgba(46, 204, 113, 0.95);
+            background: rgba(46, 204, 113, 0.22);
+        }
+
+        .favorites-page-stack .btn-danger {
+            border-color: rgba(255, 82, 120, 0.82);
+            background: rgba(255, 45, 95, 0.24);
+            color: #ffc5d3;
+        }
+
+        .favorites-page-stack .btn-danger:hover {
+            background: rgba(255, 45, 95, 0.34);
+            border-color: rgba(255, 95, 145, 0.96);
+        }
+
+        .favorites-note {
+            margin-top: 8px;
+            padding: 8px 10px;
+            border: 1px solid rgba(255, 193, 7, 0.36);
+            border-radius: 10px;
+            background: rgba(255, 193, 7, 0.08);
+            color: #ffd37a;
+            font-size: 0.78rem;
+            line-height: 1.25;
+        }
+
+        .favorites-manage-table th:nth-child(1) {
+            color: #ff7df2;
+        }
+
+        .favorites-manage-table th:nth-child(2) {
+            color: #9ef59e;
+        }
+
+        .favorites-manage-table th:nth-child(3) {
+            color: #8ff3f7;
+        }
+
+        .favorites-manage-table th:nth-child(4) {
+            color: #ffd37a;
+        }
+
+        .favorites-manage-table th:nth-child(5) {
+            color: #d7b7ff;
+        }
+
+        .favorites-manage-table th:nth-child(6) {
+            color: #a9c8ff;
+        }
+
+        .favorites-manage-table .favorite-target {
+            color: #9ef59e;
+            font-weight: 850;
+        }
+
+        .favorites-manage-table .favorite-name {
+            color: #8ff3f7;
+            font-weight: 750;
+        }
+
+        .favorites-manage-table .favorite-description {
+            color: #ffd37a;
+        }
+
+        .favorites-manage-table .favorite-mode-cell {
+            text-align: center;
+        }
+
+        .favorites-manage-table .favorite-mode-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 78px;
+            padding: 4px 9px;
+            border-radius: 999px;
+            border: 1px solid rgba(216, 108, 242, 0.38);
+            background: rgba(138, 13, 140, 0.22);
+            color: #ffffff;
+            font-size: 0.68rem;
+            font-weight: 850;
+            line-height: 1;
+            text-transform: uppercase;
+            white-space: nowrap;
+            box-sizing: border-box;
+        }
+
+        .favorites-manage-table tbody tr[data-mode="BM"] .favorite-mode-badge {
+            background: rgba(38, 220, 90, 0.34);
+            border-color: rgba(38, 220, 90, 0.90);
+            color: #b8ffca;
+        }
+
+        .favorites-manage-table tbody tr[data-mode="TGIF"] .favorite-mode-badge {
+            background: rgba(255, 190, 0, 0.36);
+            border-color: rgba(255, 190, 0, 0.92);
+            color: #ffe58f;
+        }
+
+        .favorites-manage-table tbody tr[data-mode="YSF"] .favorite-mode-badge {
+            background: rgba(0, 220, 255, 0.32);
+            border-color: rgba(0, 220, 255, 0.92);
+            color: #b8f8ff;
+        }
+
+        .favorites-manage-table tbody tr[data-mode="DSTAR"] .favorite-mode-badge {
+            background: rgba(40, 95, 255, 0.38);
+            border-color: rgba(95, 145, 255, 0.95);
+            color: #d4e2ff;
+        }
+
+        .favorites-manage-table tbody tr[data-mode="P25"] .favorite-mode-badge {
+            background: rgba(255, 105, 35, 0.38);
+            border-color: rgba(255, 130, 70, 0.95);
+            color: #ffd0b5;
+        }
+
+        .favorites-manage-table tbody tr[data-mode="NXDN"] .favorite-mode-badge {
+            background: rgba(178, 72, 255, 0.40);
+            border-color: rgba(205, 128, 255, 0.95);
+            color: #edd2ff;
+        }
+
+        .favorites-manage-table tbody tr[data-mode="ASL"] .favorite-mode-badge {
+            background: rgba(255, 45, 95, 0.38);
+            border-color: rgba(255, 90, 130, 0.95);
+            color: #ffc5d3;
+        }
+
+        .favorites-manage-table tbody tr[data-mode="ECHO"] .favorite-mode-badge {
+            background: rgba(255, 55, 180, 0.46);
+            border-color: rgba(255, 95, 205, 1);
+            color: #ffe1f4;
+        }
+
+        .edit-link {
+            background: rgba(64, 120, 255, 0.22);
+            color: #c7ddff;
+            border-color: rgba(88, 166, 255, 0.82);
+        }
+
+        .edit-link:hover {
+            background: rgba(64, 120, 255, 0.34);
+            border-color: rgba(88, 166, 255, 1);
+        }
+
         @media (max-width: 1080px) {
             .favorites-form-grid {
                 grid-template-columns: 1fr 1fr;
@@ -581,7 +807,7 @@ $navItems = [
                     </div>
 
                     <?php if (!$dstarAvailable): ?>
-                        <div class="favorites-note" style="margin-top:8px;">
+                        <div class="favorites-note">
                             D-Star, P25, and NXDN favorites are hidden until the matching *_ENABLED=1 setting is set in config.ini and the DVSwitch script is available.
                         </div>
                     <?php endif; ?>
@@ -621,14 +847,16 @@ $navItems = [
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($favorites as $favorite): ?>
-                                    <tr>
+                                    <tr data-mode="<?= e((string) $favorite['mode']) ?>">
                                         <td>
                                             <input type="checkbox" name="remove_ids[]" value="<?= e($favorite['id']) ?>">
                                         </td>
                                         <td class="favorite-target"><?= e($favorite['target']) ?></td>
-                                        <td><?= e($favorite['name']) ?></td>
-                                        <td><?= e($favorite['description'] !== '' ? $favorite['description'] : '-') ?></td>
-                                        <td class="favorite-mode"><?= e(mode_display_label((string) $favorite['mode'])) ?></td>
+                                        <td class="favorite-name"><?= e($favorite['name']) ?></td>
+                                        <td class="favorite-description"><?= e($favorite['description'] !== '' ? $favorite['description'] : '-') ?></td>
+                                        <td class="favorite-mode-cell">
+                                            <span class="favorite-mode-badge"><?= e(mode_display_label((string) $favorite['mode'])) ?></span>
+                                        </td>
                                         <td>
                                             <a class="edit-link" href="/alltune2/public/favorites.php?edit=<?= e($favorite['id']) ?>">
                                                 Edit

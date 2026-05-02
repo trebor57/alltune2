@@ -1738,3 +1738,102 @@ select.control {
     opacity: 1 !important;
     text-shadow: 0 0 4px rgba(255, 125, 242, 0.45);
 }
+
+/* Control Center node badge and Saved Favorites shared-network line polish */
+.control-node-badge {
+    color: #b9ffd0 !important;
+    border-color: rgba(46, 204, 113, 0.88) !important;
+    background: rgba(46, 204, 113, 0.20) !important;
+    box-shadow: 0 0 8px rgba(46, 204, 113, 0.18);
+    font-weight: 900;
+}
+
+.favorites-network-line {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    color: #f3dcff;
+    font-weight: 800;
+}
+
+.favorites-network-line .shared-label {
+    color: #ff7df2;
+    font-weight: 900;
+    text-shadow: 0 0 4px rgba(255, 125, 242, 0.35);
+}
+
+.favorites-network-line .separator {
+    color: rgba(235, 220, 245, 0.52);
+}
+
+.favorites-network-line .net-bm {
+    color: #b8ffca;
+}
+
+.favorites-network-line .net-tgif {
+    color: #ffe58f;
+}
+
+.favorites-network-line .net-ysf {
+    color: #b8f8ff;
+}
+
+.favorites-network-line .net-dstar {
+    color: #d4e2ff;
+}
+
+.favorites-network-line .net-p25 {
+    color: #ffd0b5;
+}
+
+.favorites-network-line .net-nxdn {
+    color: #edd2ff;
+}
+
+.favorites-network-line .net-asl {
+    color: #ffc5d3;
+}
+
+.favorites-network-line .net-echo {
+    color: #ffe1f4;
+}
+
+@media (max-width: 760px) {
+    .favorites-network-line {
+        justify-content: flex-start;
+    }
+}
+
+/* Final polish: white Shared label and bright pink Control Center node badge */
+.control-node-badge {
+    color: #ffffff !important;
+    border-color: rgba(255, 125, 242, 0.95) !important;
+    background: linear-gradient(180deg, rgba(255, 125, 242, 0.42), rgba(138, 13, 140, 0.52)) !important;
+    box-shadow: 0 0 10px rgba(255, 125, 242, 0.28);
+    font-weight: 900;
+}
+
+.favorites-network-line .shared-label {
+    color: #ffffff !important;
+    text-shadow: 0 0 4px rgba(255, 255, 255, 0.22);
+    font-weight: 900;
+}
+
+/* Tone down Control Center node badge glow while keeping it clickable */
+.control-node-badge {
+    color: #ffffff !important;
+    border-color: rgba(255, 125, 242, 0.62) !important;
+    background: linear-gradient(180deg, rgba(255, 125, 242, 0.28), rgba(138, 13, 140, 0.38)) !important;
+    box-shadow: none !important;
+    text-decoration: none !important;
+}
+
+.control-node-badge:hover,
+.control-node-badge:focus-visible {
+    border-color: rgba(255, 125, 242, 0.85) !important;
+    background: linear-gradient(180deg, rgba(255, 125, 242, 0.36), rgba(138, 13, 140, 0.48)) !important;
+    box-shadow: 0 0 5px rgba(255, 125, 242, 0.18) !important;
+    text-decoration: none !important;
+}

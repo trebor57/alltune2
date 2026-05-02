@@ -240,7 +240,13 @@ $activityLines[] = [
             <article class="card">
                 <div class="card-header">
                     <span>Control Center</span>
-                    <span class="badge">Node <?= e($displayMyNode) ?></span>
+                    <a
+                        class="badge control-node-badge"
+                        href="<?= e($nodeStatsUrl) ?>"
+                        target="_blank"
+                        rel="noopener"
+                        title="Open AllStar stats for node <?= e($displayMyNode) ?>"
+                    >Node <?= e($displayMyNode) ?></a>
                 </div>
 
                 <div class="card-body">
@@ -521,7 +527,24 @@ $activityLines[] = [
         <article class="card favorites-card">
             <div class="card-header">
                 <span>Saved Favorites</span>
-                <span class="meta-line">Shared BM / TGIF / YSF / D-Star / P25 / NXDN / AllStar / EchoLink</span>
+                <span class="meta-line favorites-network-line">
+                    <span class="shared-label">Shared —</span>
+                    <span class="net-bm">BM</span>
+                    <span class="separator">/</span>
+                    <span class="net-tgif">TGIF</span>
+                    <span class="separator">/</span>
+                    <span class="net-ysf">YSF</span>
+                    <span class="separator">/</span>
+                    <span class="net-dstar">D-Star</span>
+                    <span class="separator">/</span>
+                    <span class="net-p25">P25</span>
+                    <span class="separator">/</span>
+                    <span class="net-nxdn">NXDN</span>
+                    <span class="separator">/</span>
+                    <span class="net-asl">AllStar</span>
+                    <span class="separator">/</span>
+                    <span class="net-echo">EchoLink</span>
+                </span>
             </div>
             <div class="card-body card-body-tight">
                 <div class="favorites-table-wrap">
