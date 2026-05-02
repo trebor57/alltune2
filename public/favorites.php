@@ -806,11 +806,6 @@ $navItems = [
                         </button>
                     </div>
 
-                    <?php if (!$dstarAvailable): ?>
-                        <div class="favorites-note">
-                            D-Star, P25, and NXDN favorites are hidden until the matching *_ENABLED=1 setting is set in config.ini and the DVSwitch script is available.
-                        </div>
-                    <?php endif; ?>
                 </form>
             </div>
         </article>
