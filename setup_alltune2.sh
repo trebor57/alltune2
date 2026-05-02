@@ -53,6 +53,9 @@ ASTERISK_SUDOERS_FILE="/etc/sudoers.d/alltune2-asterisk"
 BM_RECEIVE_SUDOERS_FILE="/etc/sudoers.d/alltune2-bm-receive"
 TGIF_HELPER_SUDOERS_FILE="/etc/sudoers.d/alltune2-hblink"
 
+BM_RECEIVE_LOG_FILE="/var/log/alltune2-bm-receive.log"
+BM_RECEIVE_LOGROTATE_FILE="/etc/logrotate.d/alltune2-bm-receive"
+
 EXPECTED_ASTERISK_SUDOERS_RULE="${WEB_USER} ALL=(root) NOPASSWD: ${ASTERISK_BIN}"
 EXPECTED_BM_RECEIVE_SUDOERS_RULE="${WEB_USER} ALL=(root) NOPASSWD: ${BM_RECEIVE_HELPER}"
 EXPECTED_TGIF_HELPER_SUDOERS_RULE="${WEB_USER} ALL=(root) NOPASSWD: ${TGIF_HELPER}"
@@ -404,6 +407,76 @@ ensure_tgif_runtime_local_files() {
             warn "set_hblink_tg.sh is not executable yet; rules.py will be generated later."
         fi
     fi
+}
+
+
+validate_json_file() {
+    local file="$1"
+
+    python3 - "$file" <<'JSONPY'
+import json
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+
+try:
+    with path.open('r', encoding='utf-8') as handle:
+        json.load(handle)
+except Exception as exc:
+    print(str(exc), file=sys.stderr)
+    sys.exit(1)
+JSONPY
+}
+
+move_bad_tgif_alias_file_aside() {
+    local file="$1"
+    local reason="$2"
+    local timestamp
+    local backup_file
+
+    timestamp="$(date +%Y%m%d-%H%M%S)"
+    backup_file="${file}.bad-${timestamp}"
+
+    warn "TGIF/HBLink alias file is ${reason}: ${file}"
+    warn "Moving bad alias file aside: ${backup_file}"
+
+    mv -f "$file" "$backup_file"
+    chmod 0644 "$backup_file" 2>/dev/null || true
+    chown root:root "$backup_file" 2>/dev/null || true
+}
+
+validate_tgif_alias_json_files() {
+    log "Validating TGIF/HBLink alias JSON files..."
+
+    local alias_files=(
+        "$TGIF_DIR/peer_ids.json"
+        "$TGIF_DIR/subscriber_ids.json"
+        "$TGIF_DIR/talkgroup_ids.json"
+    )
+
+    local file
+
+    for file in "${alias_files[@]}"; do
+        if [[ ! -e "$file" ]]; then
+            warn "TGIF/HBLink alias file is missing and will be downloaded/regenerated when HBLink needs it: $file"
+            continue
+        fi
+
+        if [[ ! -s "$file" ]]; then
+            move_bad_tgif_alias_file_aside "$file" "missing data or zero bytes"
+            continue
+        fi
+
+        if ! validate_json_file "$file" >/dev/null 2>&1; then
+            move_bad_tgif_alias_file_aside "$file" "invalid JSON"
+            continue
+        fi
+
+        chmod 0644 "$file"
+        chown root:root "$file"
+        log "TGIF/HBLink alias JSON looks valid: $file"
+    done
 }
 
 requirements_hash() {
@@ -820,6 +893,38 @@ check_external_config_hints() {
     warn "Review TGIF/HBLink identity fields carefully. Systems often require both a base DMR ID and a hotspot/repeater-style suffixed radio ID in the HBLink/MMDVM config files."
 }
 
+create_or_update_logrotate_files() {
+    log "Ensuring BM receive log rotation exists..."
+
+    touch "$BM_RECEIVE_LOG_FILE"
+    chmod 0644 "$BM_RECEIVE_LOG_FILE"
+    chown root:root "$BM_RECEIVE_LOG_FILE"
+
+    cat > "$BM_RECEIVE_LOGROTATE_FILE" <<EOF
+$BM_RECEIVE_LOG_FILE {
+    size 1M
+    rotate 5
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+    create 0644 root root
+}
+EOF
+
+    chmod 0644 "$BM_RECEIVE_LOGROTATE_FILE"
+    chown root:root "$BM_RECEIVE_LOGROTATE_FILE"
+
+    if command -v logrotate >/dev/null 2>&1; then
+        logrotate -d "$BM_RECEIVE_LOGROTATE_FILE" >/dev/null 2>&1 || fail "logrotate validation failed for $BM_RECEIVE_LOGROTATE_FILE"
+    else
+        warn "logrotate command not found. Installed $BM_RECEIVE_LOGROTATE_FILE, but rotation cannot run until logrotate is installed."
+    fi
+
+    log "Installed BM receive logrotate file: $BM_RECEIVE_LOGROTATE_FILE"
+}
+
 check_sudoers_requirement() {
     log "Checking installed sudoers files..."
 
@@ -891,6 +996,8 @@ show_summary() {
     echo "Asterisk sudoers:     $ASTERISK_SUDOERS_FILE"
     echo "BM helper sudoers:    $BM_RECEIVE_SUDOERS_FILE"
     echo "TGIF helper sudoers:  $TGIF_HELPER_SUDOERS_FILE"
+    echo "BM receive log:       $BM_RECEIVE_LOG_FILE"
+    echo "BM logrotate:         $BM_RECEIVE_LOGROTATE_FILE"
     echo
 
     echo "Notes:"
@@ -941,6 +1048,7 @@ main() {
     check_dvswitch_dependencies
     check_helper_local_paths
     ensure_tgif_runtime_local_files
+    validate_tgif_alias_json_files
 
     step "Checking TGIF/HBLink Python environment..."
     build_tgif_venv
@@ -948,6 +1056,7 @@ main() {
     step "Applying permissions and sudoers..."
     set_permissions
     create_or_update_sudoers_files
+    create_or_update_logrotate_files
 
     step "Running installer self-checks..."
     check_php_syntax

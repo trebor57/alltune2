@@ -529,26 +529,30 @@ $activityLines[] = [
                         <thead>
                         <tr>
                             <th>
-                                <button type="button" class="favorites-sort-button" data-sort-key="target" data-sort-type="mixed">
-                                    TG / Node #
+                                <button type="button" class="favorites-sort-button" data-sort-key="target" data-sort-type="mixed" title="Sort by TG / Node #">
+                                    <span class="favorites-sort-label">TG / Node #</span>
+                                    <span class="favorites-sort-hint">sort target</span>
                                     <span class="favorites-sort-indicator" aria-hidden="true"></span>
                                 </button>
                             </th>
                             <th>
-                                <button type="button" class="favorites-sort-button" data-sort-key="name" data-sort-type="text">
-                                    Station Name
+                                <button type="button" class="favorites-sort-button" data-sort-key="name" data-sort-type="text" title="Sort by Station Name">
+                                    <span class="favorites-sort-label">Station Name</span>
+                                    <span class="favorites-sort-hint">sort name</span>
                                     <span class="favorites-sort-indicator" aria-hidden="true"></span>
                                 </button>
                             </th>
                             <th>
-                                <button type="button" class="favorites-sort-button" data-sort-key="description" data-sort-type="text">
-                                    Description
+                                <button type="button" class="favorites-sort-button" data-sort-key="description" data-sort-type="text" title="Sort by Description">
+                                    <span class="favorites-sort-label">Description</span>
+                                    <span class="favorites-sort-hint">sort notes</span>
                                     <span class="favorites-sort-indicator" aria-hidden="true"></span>
                                 </button>
                             </th>
                             <th>
-                                <button type="button" class="favorites-sort-button" data-sort-key="mode" data-sort-type="text">
-                                    Mode
+                                <button type="button" class="favorites-sort-button" data-sort-key="mode" data-sort-type="text" title="Sort by Mode">
+                                    <span class="favorites-sort-label">Mode</span>
+                                    <span class="favorites-sort-hint">sort network</span>
                                     <span class="favorites-sort-indicator" aria-hidden="true"></span>
                                 </button>
                             </th>

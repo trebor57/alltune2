@@ -2129,8 +2129,11 @@
             );
 
             if (action === 'send_dtmf') {
-                if (els.dtmfCode && !isErrorStatus(responsePayload.status_text || responsePayload.status || responsePayload.last_status || '')) {
+                const dtmfStatusText = responsePayload.status_text || responsePayload.status || responsePayload.last_status || '';
+
+                if (els.dtmfCode && !isErrorStatus(dtmfStatusText)) {
                     els.dtmfCode.value = '';
+                    els.dtmfCode.dispatchEvent(new Event('input', { bubbles: true }));
                 }
             } else if (action === 'disconnect_all') {
                 markAudioSettleWindow(1500);

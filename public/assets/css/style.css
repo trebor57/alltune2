@@ -1320,3 +1320,421 @@ select.control {
 .favorites-table tbody tr[data-target] {
     align-self: start;
 }
+
+/* Dashboard favorites sort header polish */
+.favorites-table thead {
+    padding: 9px 10px;
+}
+
+.favorites-table thead tr {
+    align-items: stretch;
+}
+
+.favorites-table thead th {
+    text-align: center;
+}
+
+.favorites-sort-button {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+        "label indicator"
+        "hint indicator";
+    align-items: center;
+    justify-items: center;
+    width: 100%;
+    min-height: 44px;
+    padding: 6px 8px;
+    border: 1px solid rgba(216, 108, 242, 0.22);
+    border-radius: 12px;
+    background: rgba(15, 10, 20, 0.28);
+    text-align: center;
+    line-height: 1.05;
+}
+
+.favorites-sort-button:hover,
+.favorites-sort-button:focus-visible {
+    background: rgba(216, 108, 242, 0.16);
+    border-color: rgba(216, 108, 242, 0.58);
+    box-shadow: 0 0 0 2px rgba(216, 108, 242, 0.10);
+}
+
+.favorites-sort-label {
+    grid-area: label;
+    font-size: 0.76rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.favorites-sort-hint {
+    grid-area: hint;
+    margin-top: 3px;
+    color: rgba(235, 220, 245, 0.68);
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.favorites-sort-indicator {
+    grid-area: indicator;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    margin-left: 5px;
+    border-radius: 999px;
+    border: 1px solid currentColor;
+    font-size: 0.64rem;
+    font-weight: 900;
+    opacity: 0.85;
+}
+
+.favorites-sort-indicator:empty::before {
+    content: "↕";
+}
+
+.favorites-table thead th:nth-child(1) .favorites-sort-button {
+    color: #9ef59e;
+}
+
+.favorites-table thead th:nth-child(2) .favorites-sort-button {
+    color: #8ff3f7;
+}
+
+.favorites-table thead th:nth-child(3) .favorites-sort-button {
+    color: #ffd37a;
+}
+
+.favorites-table thead th:nth-child(4) .favorites-sort-button {
+    color: #d7b7ff;
+}
+/* End dashboard favorites sort header polish */
+
+/* Dashboard favorites compact sort header fix */
+.favorites-table thead {
+    padding: 5px 8px;
+    overflow: hidden;
+}
+
+.favorites-table thead tr {
+    display: grid;
+    grid-template-columns: 29% 27% 31% 13%;
+    gap: 5px;
+    align-items: center;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.favorites-table thead th {
+    min-width: 0;
+    overflow: hidden;
+}
+
+.favorites-sort-button {
+    min-height: 30px;
+    padding: 4px 5px;
+    border-radius: 9px;
+    gap: 0;
+    overflow: hidden;
+}
+
+.favorites-sort-label {
+    font-size: 0.66rem;
+    line-height: 1;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.favorites-sort-hint {
+    margin-top: 2px;
+    font-size: 0.49rem;
+    line-height: 1;
+    opacity: 0.82;
+}
+
+.favorites-sort-indicator {
+    min-width: 14px;
+    width: 14px;
+    height: 14px;
+    margin-left: 3px;
+    font-size: 0.52rem;
+}
+
+.favorites-table thead th:nth-child(4) .favorites-sort-button {
+    padding-left: 3px;
+    padding-right: 3px;
+}
+
+.favorites-table thead th:nth-child(4) .favorites-sort-label {
+    font-size: 0.64rem;
+}
+
+.favorites-table thead th:nth-child(4) .favorites-sort-hint {
+    font-size: 0.47rem;
+}
+
+@media (max-width: 900px) {
+    .favorites-table thead tr {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    .favorites-table thead tr {
+        grid-template-columns: 1fr;
+    }
+}
+/* End dashboard favorites compact sort header fix */
+
+/* Make dashboard favorites sort boxes smaller centered pills */
+.favorites-table thead {
+    padding: 4px 8px;
+}
+
+.favorites-table thead tr {
+    grid-template-columns: 25% 25% 34% 16%;
+    gap: 4px;
+}
+
+.favorites-table thead th {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-width: 0;
+}
+
+.favorites-sort-button {
+    width: auto;
+    min-width: 92px;
+    max-width: 145px;
+    min-height: 24px;
+    padding: 3px 7px;
+    border-radius: 8px;
+}
+
+.favorites-table thead th:nth-child(1) .favorites-sort-button {
+    max-width: 128px;
+}
+
+.favorites-table thead th:nth-child(2) .favorites-sort-button {
+    max-width: 145px;
+}
+
+.favorites-table thead th:nth-child(3) .favorites-sort-button {
+    max-width: 140px;
+}
+
+.favorites-table thead th:nth-child(4) .favorites-sort-button {
+    min-width: 76px;
+    max-width: 88px;
+}
+
+.favorites-sort-label {
+    font-size: 0.60rem;
+    line-height: 1;
+}
+
+.favorites-sort-hint {
+    margin-top: 1px;
+    font-size: 0.42rem;
+    line-height: 1;
+}
+
+.favorites-sort-indicator {
+    min-width: 11px;
+    width: 11px;
+    height: 11px;
+    margin-left: 2px;
+    font-size: 0.42rem;
+}
+
+.favorites-table thead th:nth-child(4) .favorites-sort-label {
+    font-size: 0.56rem;
+}
+
+.favorites-table thead th:nth-child(4) .favorites-sort-hint {
+    font-size: 0.38rem;
+}
+
+/* Final dashboard favorites sort pill sizing/alignment pass */
+.favorites-table thead tr {
+    grid-template-columns: 25% 25% 34% 16%;
+}
+
+.favorites-table thead th:nth-child(1) {
+    justify-content: center;
+}
+
+.favorites-table thead th:nth-child(2) {
+    justify-content: center;
+}
+
+.favorites-table thead th:nth-child(3) {
+    justify-content: center;
+    padding-left: 18px;
+}
+
+.favorites-table thead th:nth-child(4) {
+    justify-content: center;
+    padding-left: 8px;
+}
+
+.favorites-table thead th:nth-child(1) .favorites-sort-button {
+    min-width: 138px;
+    max-width: 156px;
+}
+
+.favorites-table thead th:nth-child(2) .favorites-sort-button {
+    min-width: 146px;
+    max-width: 166px;
+}
+
+.favorites-table thead th:nth-child(3) .favorites-sort-button {
+    min-width: 146px;
+    max-width: 170px;
+}
+
+.favorites-table thead th:nth-child(4) .favorites-sort-button {
+    min-width: 96px;
+    max-width: 112px;
+}
+
+.favorites-sort-label {
+    font-size: 0.62rem;
+}
+
+.favorites-sort-hint {
+    font-size: 0.43rem;
+}
+
+.favorites-table thead th:nth-child(4) .favorites-sort-label {
+    font-size: 0.58rem;
+}
+
+.favorites-table thead th:nth-child(4) .favorites-sort-hint {
+    font-size: 0.39rem;
+}
+
+/* Final align dashboard favorites sort pills with 4-across card columns */
+.favorites-table thead tr {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+}
+
+.favorites-table thead th {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    min-width: 0 !important;
+}
+
+.favorites-table thead th .favorites-sort-button {
+    width: 72% !important;
+    max-width: 190px !important;
+    min-width: 150px !important;
+}
+
+.favorites-table thead th:nth-child(4) .favorites-sort-button {
+    width: 58% !important;
+    min-width: 118px !important;
+    max-width: 145px !important;
+}
+
+.favorites-sort-label {
+    font-size: 0.66rem !important;
+}
+
+.favorites-sort-hint {
+    font-size: 0.45rem !important;
+}
+
+.favorites-table thead th:nth-child(4) .favorites-sort-label {
+    font-size: 0.62rem !important;
+}
+
+.favorites-table thead th:nth-child(4) .favorites-sort-hint {
+    font-size: 0.42rem !important;
+}
+
+/* Final dashboard favorites sort/header cleanup */
+.favorites-table thead tr {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+}
+
+.favorites-table thead th {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    padding: 0 !important;
+    min-width: 0 !important;
+}
+
+/* Hide old stray Action header cell if it still exists */
+.favorites-table thead th:nth-child(n+5) {
+    display: none !important;
+}
+
+/* Wider sort pills */
+.favorites-table thead th .favorites-sort-button {
+    width: 84% !important;
+    max-width: 240px !important;
+    min-width: 170px !important;
+}
+
+.favorites-table thead th:nth-child(4) .favorites-sort-button {
+    width: 74% !important;
+    max-width: 180px !important;
+    min-width: 125px !important;
+}
+
+.favorites-sort-label {
+    font-size: 0.68rem !important;
+}
+
+.favorites-sort-hint {
+    font-size: 0.46rem !important;
+}
+
+.favorites-table thead th:nth-child(4) .favorites-sort-label {
+    font-size: 0.63rem !important;
+}
+
+.favorites-table thead th:nth-child(4) .favorites-sort-hint {
+    font-size: 0.42rem !important;
+}
+
+/* Brighten dashboard favorites sort hint text */
+.favorites-sort-hint {
+    color: #f3dcff !important;
+    opacity: 1 !important;
+    text-shadow: 0 0 2px rgba(255, 255, 255, 0.18);
+}
+
+.favorites-table thead th:nth-child(4) .favorites-sort-hint {
+    color: #f3dcff !important;
+    opacity: 1 !important;
+}
+
+/* Brighten dashboard favorites Mode sort label */
+.favorites-table thead th:nth-child(4) .favorites-sort-label {
+    color: #efe0ff !important;
+    opacity: 1 !important;
+    text-shadow: 0 0 2px rgba(255, 255, 255, 0.22);
+}
+
+/* Make dashboard favorites Mode sort label bright pink */
+.favorites-table thead th:nth-child(4) .favorites-sort-label {
+    color: #ff7df2 !important;
+    opacity: 1 !important;
+    text-shadow: 0 0 4px rgba(255, 125, 242, 0.45);
+}
