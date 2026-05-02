@@ -541,6 +541,29 @@ $navItems = [
             padding: 10px 12px;
         }
 
+        /* favorites-mode-dropdown-polish */
+        .favorites-form-grid select.control {
+            appearance: auto;
+            -webkit-appearance: menulist;
+            -moz-appearance: menulist;
+            cursor: pointer;
+            padding-right: 34px;
+            color: #f3dcff;
+            border-color: rgba(88, 166, 255, 0.62);
+            background-color: rgba(10, 8, 16, 0.92);
+        }
+
+        .favorites-form-grid select.control:hover,
+        .favorites-form-grid select.control:focus {
+            border-color: rgba(88, 166, 255, 0.95);
+            box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.16);
+        }
+
+        .favorites-form-grid select.control option {
+            background: #090712;
+            color: #f3dcff;
+        }
+
         /* favorites-manage-color-polish */
         .favorites-page-stack .card-header {
             border-bottom-color: rgba(216, 108, 242, 0.28);
