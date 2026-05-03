@@ -2316,6 +2316,10 @@
         els.statusAllstarLinks.addEventListener('click', (event) => {
             const dvswitchButton = event.target.closest('[data-disconnect-dvswitch]');
             if (dvswitchButton && !state.busy) {
+                dvswitchButton.disabled = true;
+                dvswitchButton.classList.add('connected-node-button-pending');
+                dvswitchButton.textContent = 'Disconnecting...';
+
                 sendAction('disconnect_dvswitch', {
                     target: '',
                     tgNum: '',
@@ -2548,3 +2552,27 @@
 
     document.addEventListener('DOMContentLoaded', init);
 })();
+
+/* Saved Favorites: reset list scroll position after using sort headers */
+document.addEventListener('click', function (event) {
+    const sortButton = event.target.closest('.favorites-sort-button');
+
+    if (!sortButton) {
+        return;
+    }
+
+    window.requestAnimationFrame(function () {
+        window.requestAnimationFrame(function () {
+            const section = sortButton.closest('.favorites-section') || document;
+            const scrollTargets = section.querySelectorAll(
+                '.favorites-table-wrap, .favorites-card .card-body-tight'
+            );
+
+            scrollTargets.forEach(function (target) {
+                if (target && target.scrollHeight > target.clientHeight) {
+                    target.scrollTop = 0;
+                }
+            });
+        });
+    });
+});
