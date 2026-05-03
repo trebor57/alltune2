@@ -504,7 +504,7 @@ $activityLines[] = [
                 </div>
             </article>
 
-            <article class="card">
+            <article class="card activity-card">
                 <div class="card-header">
                     <span>Activity</span>
                     <span class="meta-line">Read only</span>

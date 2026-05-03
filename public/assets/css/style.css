@@ -1837,3 +1837,503 @@ select.control {
     box-shadow: 0 0 5px rgba(255, 125, 242, 0.18) !important;
     text-decoration: none !important;
 }
+
+/* Live Status connected-node cards */
+.connected-nodes-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 8px 0 5px;
+    color: #f3dcff;
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.connected-nodes-header span:last-child {
+    color: #ff7df2;
+}
+
+.connected-nodes-helper {
+    margin: 0 0 8px;
+    color: rgba(235, 220, 245, 0.78);
+    font-size: 0.68rem;
+    line-height: 1.25;
+}
+
+.connected-nodes-list {
+    display: grid;
+    gap: 7px;
+}
+
+.connected-node-card {
+    display: grid;
+    grid-template-columns: 94px minmax(0, 1fr) 126px 150px;
+    gap: 9px;
+    align-items: center;
+    padding: 8px 9px;
+    border: 1px solid rgba(216, 108, 242, 0.24);
+    border-radius: 12px;
+    background: rgba(15, 10, 20, 0.45);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.015);
+}
+
+.connected-node-card.keyed {
+    border-color: rgba(255, 149, 0, 0.74);
+    background: rgba(255, 149, 0, 0.10);
+    box-shadow: 0 0 10px rgba(255, 149, 0, 0.18);
+}
+
+.connected-node-badge {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 5px 6px;
+    border-radius: 10px;
+    border: 1px solid rgba(216, 108, 242, 0.42);
+    text-align: center;
+    line-height: 1.05;
+}
+
+.connected-node-badge strong {
+    font-size: 0.76rem;
+    font-weight: 950;
+    color: #ffffff;
+}
+
+.connected-node-badge span {
+    margin-top: 2px;
+    font-size: 0.55rem;
+    font-weight: 850;
+    color: rgba(255, 255, 255, 0.84);
+    text-transform: uppercase;
+}
+
+.connected-node-badge-dvswitch {
+    background: rgba(88, 166, 255, 0.20);
+    border-color: rgba(88, 166, 255, 0.78);
+}
+
+.connected-node-badge-asl {
+    background: rgba(255, 45, 95, 0.24);
+    border-color: rgba(255, 90, 130, 0.82);
+}
+
+.connected-node-badge-echo {
+    background: rgba(255, 55, 180, 0.28);
+    border-color: rgba(255, 95, 205, 0.92);
+}
+
+.connected-node-main {
+    min-width: 0;
+}
+
+.connected-node-title {
+    color: #ffffff;
+    font-size: 0.95rem;
+    font-weight: 900;
+    line-height: 1.1;
+}
+
+.connected-node-description {
+    margin-top: 3px;
+    color: #8ff3f7;
+    font-size: 0.72rem;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.connected-node-state {
+    display: grid;
+    gap: 2px;
+    justify-items: start;
+    min-width: 0;
+}
+
+.connected-node-mode {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 84px;
+    padding: 3px 7px;
+    border-radius: 999px;
+    background: rgba(46, 204, 113, 0.18);
+    border: 1px solid rgba(46, 204, 113, 0.62);
+    color: #b9ffd0;
+    font-size: 0.66rem;
+    font-weight: 900;
+}
+
+.connected-node-source,
+.connected-node-meta-item {
+    color: rgba(235, 220, 245, 0.76);
+    font-size: 0.61rem;
+    font-weight: 750;
+}
+
+.connected-node-keyed {
+    color: #ffd37a;
+    font-size: 0.61rem;
+    font-weight: 900;
+}
+
+.connected-node-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.connected-node-button {
+    min-width: 130px;
+    min-height: 30px;
+    padding: 5px 8px;
+    border-radius: 9px;
+    border: 1px solid rgba(255, 95, 95, 0.88);
+    background: rgba(198, 40, 30, 0.26);
+    color: #ffd0d0;
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.connected-node-button:hover,
+.connected-node-button:focus-visible {
+    background: rgba(198, 40, 30, 0.38);
+    border-color: rgba(255, 125, 125, 1);
+}
+
+.connected-node-button:disabled {
+    opacity: 0.62;
+    cursor: not-allowed;
+}
+
+.connected-node-button-dvswitch {
+    border-color: rgba(255, 193, 7, 0.82);
+    background: rgba(255, 193, 7, 0.18);
+    color: #ffe58f;
+}
+
+.connected-node-button-dvswitch:hover,
+.connected-node-button-dvswitch:focus-visible {
+    border-color: rgba(255, 210, 80, 1);
+    background: rgba(255, 193, 7, 0.28);
+}
+
+.allstar-links-empty {
+    margin-top: 8px;
+    padding: 9px 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(216, 108, 242, 0.18);
+    color: rgba(235, 220, 245, 0.74);
+    font-size: 0.76rem;
+    background: rgba(15, 10, 20, 0.35);
+}
+
+@media (max-width: 980px) {
+    .connected-node-card {
+        grid-template-columns: 88px minmax(0, 1fr);
+    }
+
+    .connected-node-state,
+    .connected-node-actions {
+        grid-column: 1 / -1;
+    }
+
+    .connected-node-actions {
+        justify-content: flex-start;
+    }
+}
+
+/* Keep expanded Live Status connected nodes from pushing Saved Favorites off-screen */
+.connected-nodes-list {
+    max-height: 178px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.connected-node-card {
+    min-height: 58px;
+}
+
+.connected-nodes-list::-webkit-scrollbar {
+    width: 7px;
+}
+
+.connected-nodes-list::-webkit-scrollbar-thumb {
+    background: rgba(216, 108, 242, 0.45);
+    border-radius: 999px;
+}
+
+.connected-nodes-list::-webkit-scrollbar-track {
+    background: rgba(15, 10, 20, 0.35);
+}
+
+/* Contain Live Status connected-node cards so Saved Favorites stays visible */
+#status-allstar-links {
+    max-height: 235px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+#status-allstar-links .connected-nodes-helper {
+    margin-bottom: 6px;
+}
+
+#status-allstar-links .connected-nodes-list {
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+}
+
+#status-allstar-links .connected-node-card {
+    min-height: 50px;
+    padding: 6px 8px;
+}
+
+#status-allstar-links .connected-node-badge {
+    min-height: 36px;
+}
+
+#status-allstar-links .connected-node-title {
+    font-size: 0.88rem;
+}
+
+#status-allstar-links .connected-node-description {
+    font-size: 0.68rem;
+}
+
+#status-allstar-links .connected-node-button {
+    min-height: 28px;
+    font-size: 0.64rem;
+}
+
+#status-allstar-links::-webkit-scrollbar {
+    width: 7px;
+}
+
+#status-allstar-links::-webkit-scrollbar-thumb {
+    background: rgba(216, 108, 242, 0.45);
+    border-radius: 999px;
+}
+
+#status-allstar-links::-webkit-scrollbar-track {
+    background: rgba(15, 10, 20, 0.35);
+}
+
+/* Keep top dashboard from pushing Saved Favorites off-screen */
+@media (min-width: 981px) {
+    .dashboard-grid {
+        align-items: start;
+    }
+
+    .right-stack {
+        min-height: 0;
+    }
+
+    .right-stack .card {
+        min-height: 0;
+    }
+
+    #status-allstar-links {
+        max-height: 150px !important;
+        overflow-y: auto !important;
+        padding-right: 4px;
+    }
+
+    #status-allstar-links .connected-nodes-header {
+        margin-top: 4px;
+    }
+
+    #status-allstar-links .connected-nodes-helper {
+        display: none;
+    }
+
+    #status-allstar-links .connected-nodes-list {
+        display: grid;
+        gap: 5px;
+    }
+
+    #status-allstar-links .connected-node-card {
+        grid-template-columns: 78px minmax(0, 1fr) 105px 136px;
+        gap: 6px;
+        min-height: 44px;
+        padding: 5px 6px;
+        border-radius: 10px;
+    }
+
+    #status-allstar-links .connected-node-badge {
+        min-height: 32px;
+        padding: 4px 5px;
+    }
+
+    #status-allstar-links .connected-node-badge strong {
+        font-size: 0.68rem;
+    }
+
+    #status-allstar-links .connected-node-badge span {
+        font-size: 0.48rem;
+    }
+
+    #status-allstar-links .connected-node-title {
+        font-size: 0.80rem;
+    }
+
+    #status-allstar-links .connected-node-description {
+        margin-top: 1px;
+        font-size: 0.60rem;
+    }
+
+    #status-allstar-links .connected-node-mode {
+        min-width: 72px;
+        padding: 2px 6px;
+        font-size: 0.58rem;
+    }
+
+    #status-allstar-links .connected-node-source,
+    #status-allstar-links .connected-node-meta-item,
+    #status-allstar-links .connected-node-keyed {
+        font-size: 0.54rem;
+    }
+
+    #status-allstar-links .connected-node-button {
+        min-width: 118px;
+        min-height: 25px;
+        padding: 4px 6px;
+        font-size: 0.58rem;
+    }
+}
+
+@media (min-width: 981px) and (max-height: 820px) {
+    #status-allstar-links {
+        max-height: 125px !important;
+    }
+}
+
+/* Trial: keep dashboard height sane by hiding Activity card for now */
+.activity-card {
+    display: none !important;
+}
+
+/* Trial: bridge-audio indication for external nodes when DVSwitch private link is keyed */
+.connected-node-card.bridge-audio {
+    border-color: rgba(0, 220, 255, 0.82) !important;
+    background: rgba(0, 220, 255, 0.10) !important;
+    box-shadow: 0 0 10px rgba(0, 220, 255, 0.16) !important;
+}
+
+.connected-node-card.bridge-audio .connected-node-keyed {
+    color: #b8f8ff !important;
+}
+
+.connected-node-card.bridge-audio .connected-node-mode {
+    border-color: rgba(0, 220, 255, 0.72) !important;
+    background: rgba(0, 220, 255, 0.16) !important;
+    color: #b8f8ff !important;
+}
+
+/* Let Live Status use the space freed by hiding Activity */
+@media (min-width: 981px) {
+    .dashboard-grid {
+        align-items: stretch !important;
+    }
+
+    .right-stack {
+        height: 100% !important;
+        min-height: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .right-stack > article.card:not(.activity-card) {
+        flex: 1 1 auto !important;
+        display: flex !important;
+        flex-direction: column !important;
+        min-height: 0 !important;
+    }
+
+    .right-stack > article.card:not(.activity-card) .card-body {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    #status-allstar-links {
+        flex: 1 1 auto !important;
+        max-height: 330px !important;
+        min-height: 210px !important;
+        overflow-y: auto !important;
+        padding-right: 4px;
+    }
+
+    #status-allstar-links .connected-nodes-list {
+        display: grid;
+        gap: 6px;
+    }
+
+    #status-allstar-links .connected-node-card {
+        min-height: 50px;
+    }
+}
+
+@media (min-width: 981px) and (max-height: 820px) {
+    #status-allstar-links {
+        max-height: 275px !important;
+        min-height: 185px !important;
+    }
+}
+
+/* Stabilize connected-node rows so audio/keyed state does not jolt the dashboard */
+@media (min-width: 981px) {
+    #status-allstar-links .connected-node-card {
+        height: 56px !important;
+        min-height: 56px !important;
+        max-height: 56px !important;
+        overflow: hidden !important;
+    }
+
+    #status-allstar-links .connected-node-state {
+        min-height: 40px !important;
+        align-content: center !important;
+    }
+
+    #status-allstar-links .connected-node-source,
+    #status-allstar-links .connected-node-meta-item,
+    #status-allstar-links .connected-node-keyed {
+        line-height: 1.05 !important;
+    }
+}
+
+/* Prevent Saved Favorites sort buttons from clipping after Live Status reflow */
+.favorites-section {
+    padding-top: 6px !important;
+}
+
+.favorites-card .card-body-tight {
+    padding-top: 12px !important;
+}
+
+.favorites-table-wrap {
+    padding-top: 6px !important;
+}
+
+.favorites-table thead {
+    overflow: visible !important;
+}
+
+.favorites-table thead tr {
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+}
+
+.favorites-sort-button {
+    margin-top: 3px !important;
+    margin-bottom: 3px !important;
+}

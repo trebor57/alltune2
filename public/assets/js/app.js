@@ -1602,54 +1602,146 @@
         const dvswitchNode = configuredDvSwitchNodeFromDom();
 
         if (links.length === 0) {
-            els.statusAllstarLinks.innerHTML = '<div>No links</div>';
+            els.statusAllstarLinks.innerHTML = `
+                <div class="allstar-links-empty">
+                    No AllStarLink / EchoLink links detected.
+                </div>
+            `;
             return;
         }
+
+        function normalizeLinkModeLabel(link) {
+            const raw = String(link?.mode_label ?? link?.link_mode ?? link?.mode ?? 'Connected').trim();
+            const normalized = raw.toLowerCase().replace(/[_-]+/g, ' ');
+
+            if (normalized === 'transceive' || normalized === 'transceive mode') {
+                return 'Transceive';
+            }
+
+            if (normalized === 'local monitor' || normalized === 'monitor' || normalized === 'local monitor mode') {
+                return 'Local Monitor';
+            }
+
+            return raw !== '' ? raw : 'Connected';
+        }
+
+        function networkInfoForLink(rawNode, isDvSwitchNode) {
+            if (isDvSwitchNode) {
+                return {
+                    label: 'DVSwitch',
+                    sublabel: 'Private Link',
+                    className: 'dvswitch',
+                    description: 'Private DVSwitch audio link',
+                };
+            }
+
+            const numericNode = Number(rawNode);
+            const looksEchoLink = Number.isFinite(numericNode) && numericNode >= 3000000;
+
+            if (looksEchoLink) {
+                return {
+                    label: 'E/L',
+                    sublabel: 'EchoLink',
+                    className: 'echo',
+                    description: 'EchoLink / direct node',
+                };
+            }
+
+            return {
+                label: 'ASL',
+                sublabel: 'AllStarLink',
+                className: 'asl',
+                description: 'AllStarLink direct node',
+            };
+        }
+
+        const bridgeAudioActive = dvswitchNode !== '' && links.some((link) => {
+            const rawNode = String(link?.node ?? link?.target ?? '').trim();
+            return rawNode === dvswitchNode && linkLooksKeyed(link);
+        });
 
         const rows = links.map((link) => {
             const rawNode = String(link.node ?? link.target ?? '').trim();
             const node = escapeHtml(rawNode);
-            const mode = escapeHtml(
-                String(link.mode_label ?? link.link_mode ?? link.mode ?? 'Connected').trim()
-            );
+            const linkModeLabel = normalizeLinkModeLabel(link);
+            const mode = escapeHtml(linkModeLabel);
+            const elapsed = escapeHtml(String(link.elapsed ?? '').trim());
+            const isLive = !!link.is_live;
             const isDvSwitchNode = dvswitchNode !== '' && rawNode === dvswitchNode;
+            const rowKeyed = linkLooksKeyed(link);
+            const isLocalMonitor = linkModeLabel.toLowerCase().includes('monitor');
+            const bridgeAudioForNode = bridgeAudioActive && !isDvSwitchNode && !isLocalMonitor;
+            const rowActive = rowKeyed || bridgeAudioForNode;
+            const network = networkInfoForLink(rawNode, isDvSwitchNode);
+
+            const liveLabel = isLive ? 'Live AMI' : 'Tracked';
+            const keyedText = rowKeyed
+                ? '<span class="connected-node-keyed">Audio Active</span>'
+                : (bridgeAudioForNode ? '<span class="connected-node-keyed">Audio via DVSwitch</span>' : '');
+            const elapsedText = elapsed !== ''
+                ? `<span class="connected-node-meta-item">Connected ${elapsed}</span>`
+                : '';
+
             const actionHtml = isDvSwitchNode
-                ? '<span style="opacity:0.7; font-size:0.82rem;">DVSwitch</span>'
+                ? `
+                    <button
+                        type="button"
+                        class="connected-node-button connected-node-button-dvswitch"
+                        data-disconnect-dvswitch="1"
+                        ${state.busy ? 'disabled' : ''}
+                    >
+                        Disconnect DVSwitch
+                    </button>
+                `
                 : `
                     <button
                         type="button"
-                        class="allstar-disconnect-button"
+                        class="connected-node-button allstar-disconnect-button"
                         data-disconnect-node="${node}"
-                        style="
-                            background:#6b46c1;
-                            color:#ffffff;
-                            border:1px solid #8b5cf6;
-                            border-radius:6px;
-                            padding:4px 10px;
-                            font-size:0.82rem;
-                            font-weight:600;
-                            cursor:pointer;
-                            opacity:${state.busy ? '0.7' : '1'};
-                        "
                         ${state.busy ? 'disabled' : ''}
                     >
-                        Disconnect
-                    </button>`;
-
-            const rowKeyed = linkLooksKeyed(link);
-            const keyedStyle = rowKeyed
-                ? 'background:rgba(255, 149, 0, 0.10); border-left:3px solid rgba(255,149,0,0.88); border-top:1px solid rgba(255,149,0,0.16); border-right:1px solid rgba(255,149,0,0.10); border-bottom:1px solid rgba(255,149,0,0.10); border-radius:10px; padding:6px 8px; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.02);'
-                : '';
+                        Disconnect ${node}
+                    </button>
+                `;
 
             return `
-                <div class="allstar-link-row${rowKeyed ? ' keyed' : ''}" style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:8px; ${keyedStyle}">
-                    <span class="allstar-link-text"${rowKeyed ? ' style="color:#ffe8b0; font-weight:700;"' : ''}>${node}${mode ? ' - ' + mode : ''}</span>
-                    ${actionHtml}
+                <div class="connected-node-card ${rowActive ? 'keyed' : ''} ${bridgeAudioForNode ? 'bridge-audio' : ''}" data-node="${node}" data-network="${escapeHtml(network.className)}">
+                    <div class="connected-node-badge connected-node-badge-${escapeHtml(network.className)}">
+                        <strong>${escapeHtml(network.label)}</strong>
+                        <span>${escapeHtml(network.sublabel)}</span>
+                    </div>
+
+                    <div class="connected-node-main">
+                        <div class="connected-node-title">Node ${node}</div>
+                        <div class="connected-node-description">${escapeHtml(network.description)}</div>
+                    </div>
+
+                    <div class="connected-node-state">
+                        <span class="connected-node-mode">${mode}</span>
+                        <span class="connected-node-source">${escapeHtml(liveLabel)}</span>
+                        ${elapsedText}
+                        ${keyedText}
+                    </div>
+
+                    <div class="connected-node-actions">
+                        ${actionHtml}
+                    </div>
                 </div>
             `;
         });
 
-        els.statusAllstarLinks.innerHTML = rows.join('');
+        els.statusAllstarLinks.innerHTML = `
+            <div class="connected-nodes-header">
+                <span>Connected Nodes</span>
+                <span>${links.length} active</span>
+            </div>
+            <div class="connected-nodes-helper">
+                Each row has its own disconnect action. The DVSwitch private link uses Disconnect DVSwitch.
+            </div>
+            <div class="connected-nodes-list">
+                ${rows.join('')}
+            </div>
+        `;
     }
 
     function refreshActivityPanel(payload) {
@@ -2222,6 +2314,15 @@
         }
 
         els.statusAllstarLinks.addEventListener('click', (event) => {
+            const dvswitchButton = event.target.closest('[data-disconnect-dvswitch]');
+            if (dvswitchButton && !state.busy) {
+                sendAction('disconnect_dvswitch', {
+                    target: '',
+                    tgNum: '',
+                });
+                return;
+            }
+
             const button = event.target.closest('[data-disconnect-node]');
             if (!button || state.busy) {
                 return;
@@ -2237,28 +2338,6 @@
                 target: selectedNode,
                 tgNum: selectedNode,
             });
-        });
-
-        els.statusAllstarLinks.addEventListener('mouseover', (event) => {
-            const button = event.target.closest('.allstar-disconnect-button');
-            if (!button || button.disabled) {
-                return;
-            }
-
-            button.style.background = '#7c3aed';
-            button.style.borderColor = '#a78bfa';
-            button.style.cursor = 'pointer';
-        });
-
-        els.statusAllstarLinks.addEventListener('mouseout', (event) => {
-            const button = event.target.closest('.allstar-disconnect-button');
-            if (!button) {
-                return;
-            }
-
-            button.style.background = '#6b46c1';
-            button.style.borderColor = '#8b5cf6';
-            button.style.cursor = button.disabled ? 'not-allowed' : 'pointer';
         });
     }
 
