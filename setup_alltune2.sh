@@ -55,6 +55,9 @@ TGIF_HELPER_SUDOERS_FILE="/etc/sudoers.d/alltune2-hblink"
 
 BM_RECEIVE_LOG_FILE="/var/log/alltune2-bm-receive.log"
 BM_RECEIVE_LOGROTATE_FILE="/etc/logrotate.d/alltune2-bm-receive"
+STFU_LOG_FILE="/var/log/STFU.log"
+BM_STFU_LOG_FILE="/var/log/bm-stfu.log"
+STFU_LOGROTATE_FILE="/etc/logrotate.d/alltune2-stfu"
 
 EXPECTED_ASTERISK_SUDOERS_RULE="${WEB_USER} ALL=(root) NOPASSWD: ${ASTERISK_BIN}"
 EXPECTED_BM_RECEIVE_SUDOERS_RULE="${WEB_USER} ALL=(root) NOPASSWD: ${BM_RECEIVE_HELPER}"
@@ -916,13 +919,35 @@ EOF
     chmod 0644 "$BM_RECEIVE_LOGROTATE_FILE"
     chown root:root "$BM_RECEIVE_LOGROTATE_FILE"
 
+    touch "$STFU_LOG_FILE" "$BM_STFU_LOG_FILE"
+    chmod 0644 "$STFU_LOG_FILE" "$BM_STFU_LOG_FILE"
+    chown root:root "$STFU_LOG_FILE" "$BM_STFU_LOG_FILE"
+
+    cat > "$STFU_LOGROTATE_FILE" <<EOF
+$STFU_LOG_FILE $BM_STFU_LOG_FILE {
+    size 1M
+    rotate 5
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+    create 0644 root root
+}
+EOF
+
+    chmod 0644 "$STFU_LOGROTATE_FILE"
+    chown root:root "$STFU_LOGROTATE_FILE"
+
     if command -v logrotate >/dev/null 2>&1; then
         logrotate -d "$BM_RECEIVE_LOGROTATE_FILE" >/dev/null 2>&1 || fail "logrotate validation failed for $BM_RECEIVE_LOGROTATE_FILE"
+        logrotate -d "$STFU_LOGROTATE_FILE" >/dev/null 2>&1 || fail "logrotate validation failed for $STFU_LOGROTATE_FILE"
     else
-        warn "logrotate command not found. Installed $BM_RECEIVE_LOGROTATE_FILE, but rotation cannot run until logrotate is installed."
+        warn "logrotate command not found. Installed $BM_RECEIVE_LOGROTATE_FILE and $STFU_LOGROTATE_FILE, but rotation cannot run until logrotate is installed."
     fi
 
     log "Installed BM receive logrotate file: $BM_RECEIVE_LOGROTATE_FILE"
+    log "Installed STFU logrotate file: $STFU_LOGROTATE_FILE"
 }
 
 check_sudoers_requirement() {
@@ -998,6 +1023,8 @@ show_summary() {
     echo "TGIF helper sudoers:  $TGIF_HELPER_SUDOERS_FILE"
     echo "BM receive log:       $BM_RECEIVE_LOG_FILE"
     echo "BM logrotate:         $BM_RECEIVE_LOGROTATE_FILE"
+    echo "STFU logs:            $STFU_LOG_FILE, $BM_STFU_LOG_FILE"
+    echo "STFU logrotate:       $STFU_LOGROTATE_FILE"
     echo
 
     echo "Notes:"

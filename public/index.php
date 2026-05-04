@@ -590,7 +590,7 @@ $activityLines[] = [
                     </table>
                 </div>
                 <div class="favorites-note">
-                    Shared favorites for BM, TGIF, YSF, AllStar, and EchoLink.
+                    Shared favorites for BM, TGIF, YSF, D-Star, P25, NXDN, AllStar, and EchoLink.
                 </div>
             </div>
         </article>
