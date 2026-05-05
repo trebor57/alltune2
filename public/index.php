@@ -256,6 +256,7 @@ $activityLines[] = [
                         data-config-path="/var/www/html/alltune2/config.ini"
                         data-has-real-mynode="<?= $hasRealMyNode ? '1' : '0' ?>"
                         data-has-real-dvswitch-node="<?= $hasRealDvSwitchNode ? '1' : '0' ?>"
+                        data-dvswitch-node="<?= e($displayDvSwitchNode) ?>"
                         data-has-real-bm-password="<?= $hasRealBmPassword ? '1' : '0' ?>"
                         data-has-real-tgif-key="<?= $hasRealTgifKey ? '1' : '0' ?>"
                         data-asl-configured="<?= $modeAvailability['ASL'] ? '1' : '0' ?>"
@@ -298,20 +299,27 @@ $activityLines[] = [
 
                         <div class="control-settings-grid">
                             <div class="control-settings-left">
-                                <label class="checkbox-inline" for="autoload_dvswitch">
+                                <div class="private-link-managed">
                                     <input
                                         type="checkbox"
                                         id="autoload_dvswitch"
                                         name="autoload_dvswitch"
                                         value="1"
+                                        class="private-link-managed-input"
                                         <?= $autoloadDvSwitch ? 'checked' : '' ?>
+                                        aria-hidden="true"
+                                        tabindex="-1"
                                     >
-                                    <span>
-                                        <span>
-                                            Auto-connect DVSwitch link<?= $displayDvSwitchNode !== '' ? ' (' . e($displayDvSwitchNode) . ')' : '' ?>
+
+                                    <div class="private-link-managed-card">
+                                        <span class="private-link-managed-label">
+                                            DVSwitch Private Link<?= $displayDvSwitchNode !== '' ? ' ' . e($displayDvSwitchNode) : '' ?>
                                         </span>
-                                    </span>
-                                </label>
+                                        <span class="private-link-managed-value">
+                                            Auto-managed
+                                        </span>
+                                    </div>
+                                </div>
 
                                 <label class="checkbox-inline" for="disconnect_before_connect">
                                     <input

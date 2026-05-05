@@ -1386,7 +1386,13 @@ if ($action === 'connect') {
     }
 
     if (is_dmr_mode($mode)) {
-        $pendingTarget = (string) ($_SESSION['pending_target'] ?? $_SESSION['pending_tg'] ?? '');
+        $previousModeForTargetFallback = normalize_mode((string) ($_SESSION['last_mode'] ?? $_SESSION['selected_mode'] ?? ''));
+        $pendingTarget = (string) ($_SESSION['pending_tg'] ?? '');
+
+        if ($pendingTarget === '' && in_array($previousModeForTargetFallback, ['BM', 'TGIF'], true)) {
+            $pendingTarget = (string) ($_SESSION['pending_target'] ?? '');
+        }
+
         $effectiveTarget = $mode === 'BM' ? $bmTarget : $digitsOnlyTarget;
 
         if ($effectiveTarget === '' && $pendingTarget !== '') {
@@ -1647,8 +1653,18 @@ if ($action === 'connect') {
             : bm_receive_start($connectTarget);
 
         if (empty($bmResult['ok'])) {
-            $_SESSION['last_status'] = 'ERROR: BM RECEIVE FAILED';
-            respond(session_payload($_SESSION['last_status'], ['bm_receive' => $bmResult]), 500);
+            $bmStatus = bm_receive_status();
+            $bmStatusTarget = trim((string) ($bmStatus['target'] ?? ''));
+
+            if (!empty($bmStatus['active']) && ($bmStatusTarget === '' || $bmStatusTarget === $connectTarget)) {
+                $bmResult = $bmStatus;
+            } else {
+                $_SESSION['last_status'] = 'ERROR: BM RECEIVE FAILED';
+                respond(session_payload($_SESSION['last_status'], [
+                    'bm_receive' => $bmResult,
+                    'bm_receive_status' => $bmStatus,
+                ]), 500);
+            }
         }
 
         $_SESSION['last_mode'] = 'BM';

@@ -2390,3 +2390,71 @@ select.control {
     filter: saturate(0.75);
     cursor: not-allowed !important;
 }
+
+/* Saved Favorites: protect sort header from dashboard/helper reflow */
+.favorites-card {
+    contain: layout paint;
+}
+
+.favorites-table-wrap {
+    overflow: auto !important;
+    contain: layout paint;
+}
+
+.favorites-table thead {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 50 !important;
+    transform: translateZ(0);
+}
+
+.favorites-table thead th {
+    overflow: visible !important;
+}
+
+.favorites-table thead th .favorites-sort-button {
+    transform: translateZ(0);
+}
+
+/* Control Center: DVSwitch private link is auto-managed, not a normal user checkbox */
+.private-link-managed {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    max-width: 100%;
+}
+
+.private-link-managed-input {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+.private-link-managed-card {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 31px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(88, 166, 255, 0.42);
+    background: rgba(88, 166, 255, 0.10);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035);
+}
+
+.private-link-managed-label {
+    color: #f4f7ff;
+    font-size: 0.78rem;
+    font-weight: 750;
+    letter-spacing: 0.01em;
+}
+
+.private-link-managed-value {
+    color: #8fd0ff;
+    font-size: 0.68rem;
+    font-weight: 850;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}

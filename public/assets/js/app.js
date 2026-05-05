@@ -7,7 +7,10 @@
         pollTimer: null,
         quickStatusTimers: [],
         pollIntervalMs: 2000,
+        fastPollIntervalMs: 650,
         lastRequestedUiMode: '',
+        userSelectionHoldUntil: 0,
+        cachedDvSwitchNode: '',
         preferredAslUiMode: 'ASL',
         favoriteSortKey: 'target',
         favoriteSortDirection: 'asc',
@@ -358,6 +361,22 @@
         return nodes;
     }
 
+    function withoutAllstarSnapshot(payload) {
+        if (!payload || typeof payload !== 'object') {
+            return payload;
+        }
+
+        const clone = { ...payload };
+        delete clone.allstar;
+
+        if (clone.networks && typeof clone.networks === 'object') {
+            clone.networks = { ...clone.networks };
+            delete clone.networks.allstar;
+        }
+
+        return clone;
+    }
+
     function linkLooksKeyed(link, holdSeconds = 5) {
         if (link?.keyed) {
             return true;
@@ -409,12 +428,29 @@
     }
 
     function configuredDvSwitchNodeFromDom() {
-        const checkboxLabel = document.querySelector('label[for="autoload_dvswitch"]');
-        const labelText = String(checkboxLabel?.textContent || '');
-        let match = labelText.match(/\((\d{3,})\)/);
+        const controlForm = document.getElementById('control-form');
+        const configuredNode = String(controlForm?.dataset?.dvswitchNode || '').trim();
+
+        if (configuredNode !== '') {
+            state.cachedDvSwitchNode = configuredNode;
+            return configuredNode;
+        }
+
+        const managedCard = document.querySelector('.private-link-managed-card');
+        let match = String(managedCard?.textContent || '').match(/\b(\d{3,})\b/);
 
         if (match) {
-            return String(match[1]).trim();
+            state.cachedDvSwitchNode = String(match[1]).trim();
+            return state.cachedDvSwitchNode;
+        }
+
+        const checkboxLabel = document.querySelector('label[for="autoload_dvswitch"]');
+        const labelText = String(checkboxLabel?.textContent || '');
+        match = labelText.match(/\((\d{3,})\)/);
+
+        if (match) {
+            state.cachedDvSwitchNode = String(match[1]).trim();
+            return state.cachedDvSwitchNode;
         }
 
         const activityRows = document.querySelectorAll('.activity-row');
@@ -433,11 +469,12 @@
 
             match = String(valueEl.textContent || '').match(/\((\d{3,})\)/);
             if (match) {
-                return String(match[1]).trim();
+                state.cachedDvSwitchNode = String(match[1]).trim();
+                return state.cachedDvSwitchNode;
             }
         }
 
-        return '';
+        return state.cachedDvSwitchNode || '';
     }
 
     function announceImmediateActionAudio(statusText) {
@@ -596,6 +633,20 @@
     function modeConfigKey(mode) {
         const normalized = normalizeMode(mode);
         return normalized === 'ECHO' ? 'ECHO' : normalized;
+    }
+
+
+    function holdUserSelection(milliseconds = 7000) {
+        state.userSelectionHoldUntil = Date.now() + milliseconds;
+    }
+
+    function userSelectionIsHeld() {
+        if (Date.now() > Number(state.userSelectionHoldUntil || 0)) {
+            state.userSelectionHoldUntil = 0;
+            return false;
+        }
+
+        return true;
     }
 
 
@@ -1596,10 +1647,27 @@
             return;
         }
 
-        const links = Array.isArray(allstarPayload?.connected_nodes)
+        const rawLinks = Array.isArray(allstarPayload?.connected_nodes)
             ? allstarPayload.connected_nodes
             : [];
         const dvswitchNode = configuredDvSwitchNodeFromDom();
+
+        const links = rawLinks.slice().sort((left, right) => {
+            const leftNode = String(left?.node ?? left?.target ?? '').trim();
+            const rightNode = String(right?.node ?? right?.target ?? '').trim();
+
+            const leftIsDvSwitch = dvswitchNode !== '' && leftNode === dvswitchNode;
+            const rightIsDvSwitch = dvswitchNode !== '' && rightNode === dvswitchNode;
+
+            if (leftIsDvSwitch !== rightIsDvSwitch) {
+                return leftIsDvSwitch ? -1 : 1;
+            }
+
+            return leftNode.localeCompare(rightNode, undefined, {
+                numeric: true,
+                sensitivity: 'base',
+            });
+        });
 
         if (links.length === 0) {
             els.statusAllstarLinks.innerHTML = `
@@ -1660,6 +1728,17 @@
             return rawNode === dvswitchNode && linkLooksKeyed(link);
         });
 
+        const externalBridgeAudioActive = dvswitchNode !== '' && links.some((link) => {
+            const rawNode = String(link?.node ?? link?.target ?? '').trim();
+            const label = normalizeLinkModeLabel(link).toLowerCase();
+            const isLocalMonitor = label.includes('monitor');
+
+            return rawNode !== ''
+                && rawNode !== dvswitchNode
+                && !isLocalMonitor
+                && linkLooksKeyed(link, 1);
+        });
+
         const rows = links.map((link) => {
             const rawNode = String(link.node ?? link.target ?? '').trim();
             const node = escapeHtml(rawNode);
@@ -1668,16 +1747,20 @@
             const elapsed = escapeHtml(String(link.elapsed ?? '').trim());
             const isLive = !!link.is_live;
             const isDvSwitchNode = dvswitchNode !== '' && rawNode === dvswitchNode;
-            const rowKeyed = linkLooksKeyed(link);
             const isLocalMonitor = linkModeLabel.toLowerCase().includes('monitor');
+            const keyedHoldSeconds = isDvSwitchNode ? 5 : 1;
+            const rowKeyed = (isDvSwitchNode || !isLocalMonitor) && linkLooksKeyed(link, keyedHoldSeconds);
             const bridgeAudioForNode = bridgeAudioActive && !isDvSwitchNode && !isLocalMonitor;
-            const rowActive = rowKeyed || bridgeAudioForNode;
+            const bridgeAudioForDvSwitch = isDvSwitchNode && externalBridgeAudioActive;
+            const rowActive = rowKeyed || bridgeAudioForNode || bridgeAudioForDvSwitch;
             const network = networkInfoForLink(rawNode, isDvSwitchNode);
 
             const liveLabel = isLive ? 'Live AMI' : 'Tracked';
             const keyedText = rowKeyed
                 ? '<span class="connected-node-keyed">Audio Active</span>'
-                : (bridgeAudioForNode ? '<span class="connected-node-keyed">Audio via DVSwitch</span>' : '');
+                : (bridgeAudioForDvSwitch
+                    ? '<span class="connected-node-keyed">Bridge Audio Active</span>'
+                    : (bridgeAudioForNode ? '<span class="connected-node-keyed">Audio via DVSwitch</span>' : ''));
             const elapsedText = elapsed !== ''
                 ? `<span class="connected-node-meta-item">Connected ${elapsed}</span>`
                 : '';
@@ -1935,7 +2018,7 @@
 
         applyImmediateAllstarSnapshot(allstar);
 
-        if (allowFieldSync && els.modeSelect && !state.busy) {
+        if (allowFieldSync && els.modeSelect && !state.busy && !userSelectionIsHeld()) {
             if (typeof payload.selected_mode === 'string') {
                 setSelectedModeValue(payload.selected_mode);
             } else if (typeof system.selected_mode === 'string') {
@@ -1943,7 +2026,7 @@
             }
         }
 
-        if (allowFieldSync && els.targetInput && !userIsEditingTarget() && !state.busy) {
+        if (allowFieldSync && els.targetInput && !userIsEditingTarget() && !state.busy && !userSelectionIsHeld()) {
             if (typeof payload.pending_target === 'string' && payload.pending_target !== '') {
                 els.targetInput.value = payload.pending_target;
             } else if (typeof system.pending_target === 'string' && system.pending_target !== '') {
@@ -2213,8 +2296,16 @@
                 responsePayload.selected_mode = 'ECHO';
             }
 
+            const uiPayload = useDirectEndpoint && (
+                action === 'connect' ||
+                action === 'disconnect' ||
+                action === 'disconnect_selected'
+            )
+                ? withoutAllstarSnapshot(responsePayload)
+                : responsePayload;
+
             applyActionStatus(
-                responsePayload,
+                uiPayload,
                 action === 'send_dtmf'
                     ? { preserveTarget: true, preserveMode: true }
                     : {}
@@ -2337,6 +2428,15 @@
                 return;
             }
 
+            button.disabled = true;
+            button.classList.add('connected-node-button-pending');
+            button.textContent = 'Disconnecting...';
+
+            const card = button.closest('.connected-node-card');
+            if (card) {
+                card.classList.add('disconnecting');
+            }
+
             sendAction('disconnect_selected', {
                 selected_node: selectedNode,
                 target: selectedNode,
@@ -2390,24 +2490,21 @@
             const target = row.getAttribute('data-target') || '';
             const mode = normalizeMode(row.getAttribute('data-mode') || 'BM');
 
+            holdUserSelection();
             els.targetInput.value = target;
             setSelectedModeValue(mode);
             updateHelperText();
             updateButtonsFromStatus(currentStatusText());
 
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth',
-            });
         });
     }
 
     function startPolling() {
         if (state.pollTimer) {
-            window.clearInterval(state.pollTimer);
+            window.clearTimeout(state.pollTimer);
         }
 
-        state.pollTimer = window.setInterval(async () => {
+        const runPoll = async () => {
             if (!state.busy) {
                 try {
                     await loadStatus();
@@ -2417,7 +2514,15 @@
                     updateActivityValue('Current Status', 'ERROR: STATUS UNAVAILABLE');
                 }
             }
-        }, state.pollIntervalMs);
+
+            const delay = currentDirectConnectedNodeCount() > 0
+                ? state.fastPollIntervalMs
+                : state.pollIntervalMs;
+
+            state.pollTimer = window.setTimeout(runPoll, delay);
+        };
+
+        state.pollTimer = window.setTimeout(runPoll, state.pollIntervalMs);
     }
 
     function init() {
@@ -2429,6 +2534,7 @@
 
         if (els.modeSelect) {
             els.modeSelect.addEventListener('change', () => {
+                holdUserSelection();
                 rememberPreferredAslUiMode(els.modeSelect.value);
                 syncAutoloadUiForMode(els.modeSelect.value);
                 updateHelperText();
