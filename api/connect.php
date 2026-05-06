@@ -73,8 +73,12 @@ function bm_receive_run(string $action, ?string $target = null): array
     ];
 }
 
-function bm_receive_status(): array
+function bm_receive_status(bool $fresh = false): array
 {
+    if ($fresh) {
+        $GLOBALS['bm_receive_status_cache'] = null;
+    }
+
     $cached = $GLOBALS['bm_receive_status_cache'] ?? null;
     if (is_array($cached)) {
         return $cached;
@@ -135,8 +139,12 @@ function hblink_tgif_run(string $action, ?string $target = null): array
     ];
 }
 
-function hblink_tgif_status(): array
+function hblink_tgif_status(bool $fresh = false): array
 {
+    if ($fresh) {
+        $GLOBALS['hblink_tgif_status_cache'] = null;
+    }
+
     $cached = $GLOBALS['hblink_tgif_status_cache'] ?? null;
     if (is_array($cached)) {
         return $cached;
@@ -1653,7 +1661,8 @@ if ($action === 'connect') {
             : bm_receive_start($connectTarget);
 
         if (empty($bmResult['ok'])) {
-            $bmStatus = bm_receive_status();
+            pause_seconds(0.5);
+            $bmStatus = bm_receive_status(true);
             $bmStatusTarget = trim((string) ($bmStatus['target'] ?? ''));
 
             if (!empty($bmStatus['active']) && ($bmStatusTarget === '' || $bmStatusTarget === $connectTarget)) {
@@ -1740,7 +1749,8 @@ if ($action === 'connect') {
             : hblink_tgif_start($connectTarget);
 
         if (empty($tgifResult['ok'])) {
-            $tgifStatus = hblink_tgif_status();
+            pause_seconds(0.5);
+            $tgifStatus = hblink_tgif_status(true);
             if (!empty($tgifStatus['active'])) {
                 $tgifResult = $tgifStatus;
             } else {

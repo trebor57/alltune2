@@ -58,6 +58,8 @@ BM_RECEIVE_LOGROTATE_FILE="/etc/logrotate.d/alltune2-bm-receive"
 STFU_LOG_FILE="/var/log/STFU.log"
 BM_STFU_LOG_FILE="/var/log/bm-stfu.log"
 STFU_LOGROTATE_FILE="/etc/logrotate.d/alltune2-stfu"
+APACHE_SECURITY_CONF_NAME="alltune2-security"
+APACHE_SECURITY_CONF_FILE="/etc/apache2/conf-available/${APACHE_SECURITY_CONF_NAME}.conf"
 
 EXPECTED_ASTERISK_SUDOERS_RULE="${WEB_USER} ALL=(root) NOPASSWD: ${ASTERISK_BIN}"
 EXPECTED_BM_RECEIVE_SUDOERS_RULE="${WEB_USER} ALL=(root) NOPASSWD: ${BM_RECEIVE_HELPER}"
@@ -950,6 +952,54 @@ EOF
     log "Installed STFU logrotate file: $STFU_LOGROTATE_FILE"
 }
 
+create_or_update_apache_security_conf() {
+    log "Ensuring Apache security hardening exists..."
+
+    if ! command -v apache2ctl >/dev/null 2>&1; then
+        warn "apache2ctl not found. Skipping Apache security config install. Protect $APP_DIR manually before exposing it on a network."
+        return
+    fi
+
+    if ! command -v a2enconf >/dev/null 2>&1; then
+        warn "a2enconf not found. Skipping Apache security config install. Protect $APP_DIR manually before exposing it on a network."
+        return
+    fi
+
+    mkdir -p /etc/apache2/conf-available
+
+    cat > "$APACHE_SECURITY_CONF_FILE" <<EOF
+# AllTune2 security hardening
+# Blocks direct web access to local config, runtime, helper, git, log, and data files.
+# PHP can still read these files locally from the filesystem.
+
+<Directory "$APP_DIR">
+    Options -Indexes
+
+    <FilesMatch "(^\.|^VERSION$|^README\.md$|^tree\.txt$|\.ini(\.example)?$|\.cfg(\.example)?$|\.json$|\.log$|\.bak$|\.pid$|\.state$|\.out$|\.lock$|\.db$|\.sqlite$|\.env$|\.yml$|\.yaml$|\.sh$|\.py$|composer\.(json|lock)$)">
+        Require all denied
+    </FilesMatch>
+</Directory>
+
+<DirectoryMatch "^$APP_DIR/(\.git|app|data|docs|logs|run|stfu|tgif-hblink)(/|$)">
+    Require all denied
+</DirectoryMatch>
+EOF
+
+    chmod 0644 "$APACHE_SECURITY_CONF_FILE"
+    chown root:root "$APACHE_SECURITY_CONF_FILE"
+
+    a2enconf "$APACHE_SECURITY_CONF_NAME" >/dev/null || fail "Failed to enable Apache security conf: $APACHE_SECURITY_CONF_NAME"
+    apache2ctl configtest >/dev/null || fail "Apache configtest failed after installing $APACHE_SECURITY_CONF_FILE"
+
+    if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet apache2; then
+        systemctl reload apache2 || fail "Failed to reload apache2 after installing $APACHE_SECURITY_CONF_FILE"
+    else
+        warn "Apache service is not active or systemctl is unavailable. Installed $APACHE_SECURITY_CONF_FILE, but Apache was not reloaded automatically."
+    fi
+
+    log "Installed Apache security conf: $APACHE_SECURITY_CONF_FILE"
+}
+
 check_sudoers_requirement() {
     log "Checking installed sudoers files..."
 
@@ -1025,10 +1075,12 @@ show_summary() {
     echo "BM logrotate:         $BM_RECEIVE_LOGROTATE_FILE"
     echo "STFU logs:            $STFU_LOG_FILE, $BM_STFU_LOG_FILE"
     echo "STFU logrotate:       $STFU_LOGROTATE_FILE"
+    echo "Apache security conf: $APACHE_SECURITY_CONF_FILE"
     echo
 
     echo "Notes:"
     echo "- Existing config.ini, favorites.txt, hblink.cfg, and MMDVM_Bridge.pre-hblink.ini are preserved."
+    echo "- Apache security hardening blocks direct browser access to config, git, data, logs, run, STFU, and TGIF/HBLink runtime files."
     echo "- If MMDVM_Bridge.hblink.ini is missing, setup creates it from the repo example file."
     echo "- BM is one-step and uses the AllTune2-local BM receive helper."
     echo "- TGIF uses the AllTune2-local HBLink helper and Python venv."
@@ -1084,6 +1136,7 @@ main() {
     set_permissions
     create_or_update_sudoers_files
     create_or_update_logrotate_files
+    create_or_update_apache_security_conf
 
     step "Running installer self-checks..."
     check_php_syntax
