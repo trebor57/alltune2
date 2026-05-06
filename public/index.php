@@ -268,178 +268,145 @@ $activityLines[] = [
                         data-p25-configured="<?= $modeAvailability['P25'] ? '1' : '0' ?>"
                         data-nxdn-configured="<?= $modeAvailability['NXDN'] ? '1' : '0' ?>"
                     >
-                        <div class="control-grid">
-                            <label class="sr-only" for="target">TG / Node #</label>
-                            <input
-                                id="target"
-                                name="target"
-                                class="control"
-                                type="text"
-                                placeholder="TG / Node #"
-                                value="<?= e($targetValue) ?>"
-                            >
+                        <div class="control-panel-redesign">
+                            <div class="control-top-row">
+                                <label class="sr-only" for="target">TG / Node #</label>
+                                <input
+                                    id="target"
+                                    name="target"
+                                    class="control control-target-entry"
+                                    type="text"
+                                    placeholder="TG / Node #"
+                                    value="<?= e($targetValue) ?>"
+                                >
 
-                            <label class="sr-only" for="mode">Mode</label>
-                            <select id="mode" name="mode" class="control">
-                                <?php foreach ($modeOptions as $value => $label): ?>
-                                    <option value="<?= e($value) ?>" <?= $selectedMode === $value ? 'selected' : '' ?>>
-                                        <?= e($label) ?>
+                                <label class="sr-only" for="mode">Mode</label>
+                                <select id="mode" name="mode" class="control control-network-select">
+                                    <?php foreach ($modeOptions as $value => $label): ?>
+                                        <option value="<?= e($value) ?>" <?= $selectedMode === $value ? 'selected' : '' ?>>
+                                            <?= e($label) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+
+                                <label class="sr-only" for="autoload_dvswitch_mode">Link Mode</label>
+                                <select
+                                    id="autoload_dvswitch_mode"
+                                    name="autoload_dvswitch_mode"
+                                    class="control control-link-mode-select"
+                                    aria-label="Link Mode"
+                                >
+                                    <option value="transceive" <?= $autoloadDvSwitchMode === 'transceive' ? 'selected' : '' ?>>
+                                        Transceive
                                     </option>
-                                <?php endforeach; ?>
-                            </select>
+                                    <option value="local_monitor" <?= $autoloadDvSwitchMode === 'local_monitor' ? 'selected' : '' ?>>
+                                        Local Monitor
+                                    </option>
+                                </select>
 
-                            <button type="button" class="btn btn-primary" id="connect-button">
-                                Connect
-                            </button>
-
-                            <button type="button" class="btn btn-danger" id="disconnect-button">
-                                Disconnect
-                            </button>
-                        </div>
-
-                        <div class="control-settings-grid">
-                            <div class="control-settings-left">
-                                <div class="private-link-managed">
-                                    <input
-                                        type="checkbox"
-                                        id="autoload_dvswitch"
-                                        name="autoload_dvswitch"
-                                        value="1"
-                                        class="private-link-managed-input"
-                                        <?= $autoloadDvSwitch ? 'checked' : '' ?>
-                                        aria-hidden="true"
-                                        tabindex="-1"
-                                    >
-
-                                    <div class="private-link-managed-card">
-                                        <span class="private-link-managed-label">
-                                            DVSwitch Private Link<?= $displayDvSwitchNode !== '' ? ' ' . e($displayDvSwitchNode) : '' ?>
-                                        </span>
-                                        <span class="private-link-managed-value">
-                                            Auto-managed
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <label class="checkbox-inline" for="disconnect_before_connect">
-                                    <input
-                                        type="checkbox"
-                                        id="disconnect_before_connect"
-                                        name="disconnect_before_connect"
-                                        value="1"
-                                        <?= $disconnectBeforeConnect ? 'checked' : '' ?>
-                                    >
-                                    <span>Disconnect before Connect</span>
-                                </label>
-
-                                <label class="checkbox-inline" for="audio_alerts">
-                                    <input
-                                        type="checkbox"
-                                        id="audio_alerts"
-                                        name="audio_alerts"
-                                        value="1"
-                                        checked
-                                    >
-                                    <span>Audio Alerts</span>
-                                </label>
+                                <button
+                                    type="button"
+                                    class="control-save-favorite-button"
+                                    id="save-favorite-button"
+                                    title="Save current manual entry as a favorite"
+                                    aria-haspopup="dialog"
+                                >
+                                    <span class="control-save-icon" aria-hidden="true">☆</span>
+                                    <span class="control-save-text">Save<br>Favorite</span>
+                                </button>
                             </div>
 
-                            <div class="control-settings-right">
-                                <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
-                                    <div style="display:flex; align-items:center; gap:10px; justify-content:flex-end;">
-                                        <button
-                                            type="button"
-                                            class="btn btn-warning"
-                                            id="disconnect-dvswitch-button"
-                                        >
-                                            Disconnect DVSwitch
-                                        </button>
+                            <div class="control-action-row">
+                                <button type="button" class="btn btn-primary control-action-button" id="connect-button">
+                                    Connect
+                                </button>
 
-                                        <button
-                                            type="button"
-                                            class="btn btn-danger"
-                                            id="disconnect-all-button"
-                                        >
-                                            Disconnect All
-                                        </button>
-                                    </div>
+                                <button type="button" class="btn btn-danger control-action-button" id="disconnect-button">
+                                    Disconnect
+                                </button>
 
-                                    <div style="display:flex; align-items:center; gap:6px; justify-content:flex-end;">
-                                        <label
-                                            for="dtmf-code"
-                                            style="font-size:0.68rem; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#f4a6ff;"
-                                        >
-                                            DTMF
-                                        </label>
+                                <button
+                                    type="button"
+                                    class="btn btn-warning control-action-button"
+                                    id="disconnect-dvswitch-button"
+                                >
+                                    Disconnect DVSwitch
+                                </button>
 
+                                <button
+                                    type="button"
+                                    class="btn btn-danger control-action-button btn-with-subtext"
+                                    id="disconnect-all-button"
+                                >
+                                    <span class="btn-main">Disconnect All</span>
+                                    <span class="btn-subtext">Restart Asterisk</span>
+                                </button>
+                            </div>
+
+                            <div class="control-utility-row control-utility-row-compact">
+                                <input
+                                    type="checkbox"
+                                    id="autoload_dvswitch"
+                                    name="autoload_dvswitch"
+                                    value="1"
+                                    class="private-link-managed-input"
+                                    <?= $autoloadDvSwitch ? 'checked' : '' ?>
+                                    aria-hidden="true"
+                                    tabindex="-1"
+                                >
+
+                                <div class="control-checkbox-group control-checkbox-group-primary">
+                                    <label class="checkbox-inline" for="disconnect_before_connect">
                                         <input
-                                            id="dtmf-code"
-                                            name="dtmf_code"
-                                            type="text"
-                                            value=""
-                                            placeholder="*70 or 1234#"
-                                            maxlength="14"
-                                            aria-label="DTMF Command"
-                                            style="
-                                                width:118px;
-                                                min-width:118px;
-                                                max-width:118px;
-                                                height:32px;
-                                                padding:0 10px;
-                                                border-radius:10px;
-                                                border:1px solid rgba(193, 107, 255, 0.70);
-                                                background:#05030a;
-                                                color:#ffffff;
-                                                font-size:0.88rem;
-                                                font-weight:700;
-                                                box-sizing:border-box;
-                                            "
+                                            type="checkbox"
+                                            id="disconnect_before_connect"
+                                            name="disconnect_before_connect"
+                                            value="1"
+                                            <?= $disconnectBeforeConnect ? 'checked' : '' ?>
                                         >
+                                        <span>Disconnect before Connect</span>
+                                    </label>
 
-                                        <button
-                                            type="button"
-                                            class="btn btn-primary"
-                                            id="send-dtmf-button"
-                                            disabled
-                                            style="
-                                                min-width:78px;
-                                                height:32px;
-                                                padding:0 14px;
-                                                border-radius:10px;
-                                                font-size:0.88rem;
-                                                font-weight:700;
-                                                opacity:0.38;
-                                                cursor:not-allowed;
-                                                filter:saturate(0.45) brightness(0.88);
-                                            "
+                                    <label class="checkbox-inline" for="audio_alerts">
+                                        <input
+                                            type="checkbox"
+                                            id="audio_alerts"
+                                            name="audio_alerts"
+                                            value="1"
+                                            checked
                                         >
-                                            Send
-                                        </button>
-                                    </div>
+                                        <span>Audio Alerts</span>
+                                    </label>
+                                </div>
+
+                                <div class="dtmf-control-group">
+                                    <label class="dtmf-control-label" for="dtmf-code">
+                                        DTMF
+                                    </label>
+
+                                    <input
+                                        id="dtmf-code"
+                                        name="dtmf_code"
+                                        class="dtmf-control-input"
+                                        type="text"
+                                        value=""
+                                        placeholder="*70 or 1234#"
+                                        maxlength="14"
+                                        aria-label="DTMF Command"
+                                    >
+
+                                    <button
+                                        type="button"
+                                        class="btn btn-primary dtmf-send-button"
+                                        id="send-dtmf-button"
+                                        disabled
+                                    >
+                                        Send
+                                    </button>
                                 </div>
                             </div>
-                        </div>
 
-                        <div class="control-mode-row">
-                            <label class="control-mode-label" for="autoload_dvswitch_mode">
-                                Link Mode
-                            </label>
-
-                            <select
-                                id="autoload_dvswitch_mode"
-                                name="autoload_dvswitch_mode"
-                                class="control control-compact"
-                                aria-label="Link Mode"
-                            >
-                                <option value="transceive" <?= $autoloadDvSwitchMode === 'transceive' ? 'selected' : '' ?>>
-                                    Transceive
-                                </option>
-                                <option value="local_monitor" <?= $autoloadDvSwitchMode === 'local_monitor' ? 'selected' : '' ?>>
-                                    Local Monitor
-                                </option>
-                            </select>
-
-                            <div class="inline-status-wrap" aria-live="polite">
+                            <div class="inline-status-wrap control-status-row" aria-live="polite">
                                 <span class="inline-status-label">Status</span>
                                 <span
                                     class="inline-status-value<?= str_starts_with(strtoupper($lastStatus), 'WAITING') ? ' waiting' : '' ?>"
@@ -449,6 +416,7 @@ $activityLines[] = [
                                 </span>
                             </div>
                         </div>
+
                     </form>
                 </div>
             </article>
@@ -604,6 +572,67 @@ $activityLines[] = [
         </article>
     </section>
 </div>
+
+    <div class="favorite-modal-backdrop" id="save-favorite-modal" hidden aria-hidden="true">
+        <div class="favorite-modal-card" role="dialog" aria-modal="true" aria-labelledby="save-favorite-title">
+            <button type="button" class="favorite-modal-close" id="save-favorite-close" aria-label="Close Save Favorite">
+                ×
+            </button>
+
+            <h2 id="save-favorite-title">Save Favorite</h2>
+            <p class="favorite-modal-help">
+                Saves directly from the Control Center without leaving the dashboard.
+            </p>
+
+            <div class="favorite-modal-summary">
+                <div>
+                    <span class="favorite-modal-summary-label">Target / TG / Node</span>
+                    <strong id="save-favorite-target-value">—</strong>
+                </div>
+                <div>
+                    <span class="favorite-modal-summary-label">Network / Mode</span>
+                    <strong id="save-favorite-mode-value">—</strong>
+                </div>
+            </div>
+
+            <form id="save-favorite-form" class="favorite-modal-form">
+                <label for="save-favorite-name">Station Name</label>
+                <input
+                    type="text"
+                    id="save-favorite-name"
+                    maxlength="96"
+                    autocomplete="off"
+                    placeholder="Local BM TG 91"
+                >
+
+                <label for="save-favorite-description">Description</label>
+                <input
+                    type="text"
+                    id="save-favorite-description"
+                    maxlength="180"
+                    autocomplete="off"
+                    placeholder="Quick access favorite"
+                >
+
+                <div class="favorite-modal-message" id="save-favorite-message" aria-live="polite"></div>
+
+                <div class="favorite-modal-actions">
+                    <a class="favorite-modal-full-link" href="/alltune2/public/favorites.php">
+                        Open Full Favorites Page
+                    </a>
+
+                    <button type="button" class="favorite-modal-cancel" id="save-favorite-cancel">
+                        Cancel
+                    </button>
+
+                    <button type="submit" class="favorite-modal-save" id="save-favorite-submit">
+                        Save Favorite
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 
 <script>
 (function () {

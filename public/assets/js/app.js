@@ -32,6 +32,7 @@
             status: '/alltune2/api/status.php',
             connect: '/alltune2/api/connect.php',
             direct: '/alltune2/api/direct_link.php',
+            favorites: '/alltune2/api/favorites.php',
         },
     };
 
@@ -62,6 +63,17 @@
         updateIndicator: document.getElementById('update-indicator'),
         dtmfCode: document.getElementById('dtmf-code'),
         sendDtmfButton: document.getElementById('send-dtmf-button'),
+        saveFavoriteButton: document.getElementById('save-favorite-button'),
+        saveFavoriteModal: document.getElementById('save-favorite-modal'),
+        saveFavoriteForm: document.getElementById('save-favorite-form'),
+        saveFavoriteClose: document.getElementById('save-favorite-close'),
+        saveFavoriteCancel: document.getElementById('save-favorite-cancel'),
+        saveFavoriteSubmit: document.getElementById('save-favorite-submit'),
+        saveFavoriteName: document.getElementById('save-favorite-name'),
+        saveFavoriteDescription: document.getElementById('save-favorite-description'),
+        saveFavoriteTargetValue: document.getElementById('save-favorite-target-value'),
+        saveFavoriteModeValue: document.getElementById('save-favorite-mode-value'),
+        saveFavoriteMessage: document.getElementById('save-favorite-message'),
     };
 
     function hasCoreElements() {
@@ -2609,6 +2621,250 @@
         });
     }
 
+
+    function setSaveFavoriteMessage(message, type = '') {
+        if (!els.saveFavoriteMessage) {
+            return;
+        }
+
+        els.saveFavoriteMessage.textContent = message || '';
+        els.saveFavoriteMessage.classList.remove('success', 'error');
+
+        if (type) {
+            els.saveFavoriteMessage.classList.add(type);
+        }
+    }
+
+    function currentModeDisplayLabel() {
+        if (!els.modeSelect) {
+            return favoriteModeLabel('BM');
+        }
+
+        const selectedOption = els.modeSelect.options[els.modeSelect.selectedIndex];
+
+        if (selectedOption && selectedOption.textContent.trim() !== '') {
+            return selectedOption.textContent.trim();
+        }
+
+        return favoriteModeLabel(els.modeSelect.value || 'BM');
+    }
+
+    function defaultFavoriteName(target, mode) {
+        const normalizedMode = normalizeMode(mode);
+
+        if (normalizedMode === 'BM') {
+            return `Local BM TG ${target}`;
+        }
+
+        if (normalizedMode === 'TGIF') {
+            return `TGIF TG ${target}`;
+        }
+
+        if (normalizedMode === 'YSF') {
+            return `YSF ${target}`;
+        }
+
+        if (normalizedMode === 'ASL') {
+            return `AllStar ${target}`;
+        }
+
+        if (normalizedMode === 'ECHO') {
+            return `EchoLink ${target}`;
+        }
+
+        if (['DSTAR', 'P25', 'NXDN'].includes(normalizedMode)) {
+            return `${favoriteModeLabel(normalizedMode)} ${target}`;
+        }
+
+        return target;
+    }
+
+    function findExistingFavorite(target, mode) {
+        const normalizedTarget = String(target || '').trim();
+        const normalizedMode = normalizeMode(mode || 'BM');
+
+        if (normalizedTarget === '' || !Array.isArray(state.favoritesRaw)) {
+            return null;
+        }
+
+        return state.favoritesRaw.find((favorite) => (
+            String(favorite?.target ?? favorite?.tg ?? '').trim() === normalizedTarget
+            && normalizeMode(favorite?.mode ?? 'BM') === normalizedMode
+        )) || null;
+    }
+
+    function openSaveFavoriteModal() {
+        if (
+            !els.saveFavoriteModal ||
+            !els.targetInput ||
+            !els.modeSelect ||
+            !els.saveFavoriteName ||
+            !els.saveFavoriteDescription ||
+            !els.saveFavoriteTargetValue ||
+            !els.saveFavoriteModeValue
+        ) {
+            return;
+        }
+
+        const target = String(els.targetInput.value || '').trim();
+        const mode = normalizeMode(els.modeSelect.value || 'BM');
+
+        if (target === '') {
+            setSystemStatus('ENTER A TG / NODE BEFORE SAVING FAVORITE');
+            els.targetInput.focus();
+            return;
+        }
+
+        const existingFavorite = findExistingFavorite(target, mode);
+
+        els.saveFavoriteTargetValue.textContent = target;
+        els.saveFavoriteModeValue.textContent = currentModeDisplayLabel();
+
+        if (existingFavorite) {
+            els.saveFavoriteName.value = String(existingFavorite.name ?? '');
+            els.saveFavoriteName.placeholder = defaultFavoriteName(target, mode);
+            els.saveFavoriteDescription.value = String(existingFavorite.description ?? existingFavorite.desc ?? '');
+            els.saveFavoriteDescription.placeholder = 'Quick access favorite';
+            setSaveFavoriteMessage('Existing favorite found. Saving will update it.', 'success');
+
+            if (els.saveFavoriteSubmit) {
+                els.saveFavoriteSubmit.textContent = 'Update Favorite';
+            }
+        } else {
+            els.saveFavoriteName.value = '';
+            els.saveFavoriteName.placeholder = defaultFavoriteName(target, mode);
+            els.saveFavoriteDescription.value = '';
+            els.saveFavoriteDescription.placeholder = 'Quick access favorite';
+            setSaveFavoriteMessage('');
+
+            if (els.saveFavoriteSubmit) {
+                els.saveFavoriteSubmit.textContent = 'Save Favorite';
+            }
+        }
+
+        els.saveFavoriteModal.hidden = false;
+        els.saveFavoriteModal.setAttribute('aria-hidden', 'false');
+
+        window.requestAnimationFrame(() => {
+            els.saveFavoriteName.focus();
+            els.saveFavoriteName.select();
+        });
+    }
+
+    function closeSaveFavoriteModal() {
+        if (!els.saveFavoriteModal) {
+            return;
+        }
+
+        els.saveFavoriteModal.hidden = true;
+        els.saveFavoriteModal.setAttribute('aria-hidden', 'true');
+        setSaveFavoriteMessage('');
+
+        if (els.saveFavoriteButton) {
+            els.saveFavoriteButton.focus();
+        }
+    }
+
+    async function submitSaveFavorite() {
+        if (
+            !els.targetInput ||
+            !els.modeSelect ||
+            !els.saveFavoriteName ||
+            !els.saveFavoriteDescription ||
+            !els.saveFavoriteSubmit
+        ) {
+            return;
+        }
+
+        const target = String(els.targetInput.value || '').trim();
+        const mode = normalizeMode(els.modeSelect.value || 'BM');
+        const name = String(els.saveFavoriteName.value || '').trim();
+        const description = String(els.saveFavoriteDescription.value || '').trim();
+
+        if (target === '') {
+            setSaveFavoriteMessage('Enter a TG / node / target before saving.', 'error');
+            return;
+        }
+
+        els.saveFavoriteSubmit.disabled = true;
+        setSaveFavoriteMessage('Saving favorite...');
+
+        try {
+            const body = new URLSearchParams();
+            body.set('action', 'save');
+            body.set('target', target);
+            body.set('mode', mode);
+            body.set('name', name);
+            body.set('description', description);
+
+            const payload = await requestJson(state.endpoints.favorites, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                },
+                body,
+            });
+
+            if (!payload || payload.ok !== true) {
+                throw new Error(payload?.message || 'Favorite save failed.');
+            }
+
+            if (Array.isArray(payload.favorites)) {
+                state.favoritesSignature = '';
+                renderFavorites(payload.favorites, { force: true });
+            } else {
+                await loadStatus();
+            }
+
+            setSaveFavoriteMessage(payload.message || (payload.updated ? 'Favorite updated.' : 'Favorite saved.'), 'success');
+            refreshStatusInBackground();
+
+            window.setTimeout(() => {
+                closeSaveFavoriteModal();
+            }, 650);
+        } catch (error) {
+            console.error(error);
+            setSaveFavoriteMessage(error.message || 'Unable to save favorite.', 'error');
+        } finally {
+            els.saveFavoriteSubmit.disabled = false;
+        }
+    }
+
+    function wireSaveFavoriteModal() {
+        if (!els.saveFavoriteButton || !els.saveFavoriteModal) {
+            return;
+        }
+
+        els.saveFavoriteButton.addEventListener('click', openSaveFavoriteModal);
+
+        if (els.saveFavoriteForm) {
+            els.saveFavoriteForm.addEventListener('submit', (event) => {
+                event.preventDefault();
+                submitSaveFavorite();
+            });
+        }
+
+        if (els.saveFavoriteClose) {
+            els.saveFavoriteClose.addEventListener('click', closeSaveFavoriteModal);
+        }
+
+        if (els.saveFavoriteCancel) {
+            els.saveFavoriteCancel.addEventListener('click', closeSaveFavoriteModal);
+        }
+
+        els.saveFavoriteModal.addEventListener('click', (event) => {
+            if (event.target === els.saveFavoriteModal) {
+                closeSaveFavoriteModal();
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !els.saveFavoriteModal.hidden) {
+                closeSaveFavoriteModal();
+            }
+        });
+    }
+
     function startPolling() {
         if (state.pollTimer) {
             window.clearTimeout(state.pollTimer);
@@ -2748,6 +3004,7 @@
         wireAllstarDisconnectButtons();
         wireFavoritesSort();
         wireFavoritesLoad();
+        wireSaveFavoriteModal();
         loadAudioAlertsPreference();
         if (els.autoloadCheckbox) {
             state.manualAutoloadPreference = !!els.autoloadCheckbox.checked;
