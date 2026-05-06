@@ -2859,3 +2859,108 @@ select.control {
     }
 }
 /* End Save Favorite modal */
+
+
+/* Top navigation polish */
+.topbar {
+    align-items: center;
+    gap: 14px;
+}
+
+.nav {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px;
+    border: 1px solid rgba(216, 108, 242, 0.20);
+    border-radius: 18px;
+    background:
+        linear-gradient(180deg, rgba(20, 12, 32, 0.76), rgba(8, 5, 14, 0.84));
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.035),
+        0 0 18px rgba(84, 37, 118, 0.16);
+}
+
+.nav-button {
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 15px;
+    border: 1px solid rgba(216, 108, 242, 0.22);
+    border-radius: 14px;
+    background:
+        linear-gradient(180deg, rgba(35, 21, 50, 0.86), rgba(14, 8, 23, 0.90));
+    color: #d9c2e6;
+    font-size: 0.82rem;
+    font-weight: 850;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    text-transform: uppercase;
+    white-space: nowrap;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.035),
+        0 4px 12px rgba(0, 0, 0, 0.14);
+    transition:
+        transform 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease,
+        background 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.nav-button:hover,
+.nav-button:focus-visible {
+    transform: translateY(-1px);
+    border-color: rgba(255, 125, 242, 0.54);
+    color: #ffffff;
+    background:
+        linear-gradient(180deg, rgba(70, 35, 95, 0.92), rgba(30, 14, 47, 0.94));
+    box-shadow:
+        0 0 0 3px rgba(216, 108, 242, 0.09),
+        0 0 16px rgba(216, 108, 242, 0.13),
+        inset 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+
+.nav-button.active {
+    border-color: rgba(255, 125, 242, 0.62);
+    color: #ffffff;
+    background:
+        radial-gradient(circle at 50% -45%, rgba(255, 125, 242, 0.18), transparent 55%),
+        linear-gradient(180deg, rgba(88, 42, 125, 0.95), rgba(48, 20, 78, 0.97));
+    box-shadow:
+        0 0 0 1px rgba(216, 108, 242, 0.16),
+        0 0 18px rgba(216, 108, 242, 0.17),
+        inset 0 1px 0 rgba(255, 255, 255, 0.055),
+        inset 0 -1px 0 rgba(255, 125, 242, 0.28);
+}
+
+@media (max-width: 1024px) {
+    .topbar {
+        align-items: stretch;
+    }
+
+    .nav {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .nav-button {
+        flex: 1 1 130px;
+    }
+}
+
+@media (max-width: 640px) {
+    .nav {
+        gap: 6px;
+        padding: 5px;
+    }
+
+    .nav-button {
+        min-height: 33px;
+        padding: 0 12px;
+        font-size: 0.76rem;
+    }
+}
+/* End Top navigation polish */
