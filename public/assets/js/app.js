@@ -16,6 +16,9 @@
         favoriteSortDirection: 'asc',
         favoriteSortType: 'mixed',
         favoritesRaw: [],
+        favoritesSignature: '',
+        allstarLinksSignature: '',
+        pendingDisconnectNodes: new Map(),
         audioAlertsEnabled: true,
         audioStateInitialized: false,
         previousConnectedNodes: [],
@@ -1588,12 +1591,34 @@
         }
     }
 
-    function renderFavorites(items) {
+    function favoritesSignature(items) {
+        if (!Array.isArray(items)) {
+            return '[]';
+        }
+
+        return JSON.stringify(items.map((item) => ({
+            target: String(item?.target ?? item?.tg ?? ''),
+            mode: normalizeMode(item?.mode ?? 'BM'),
+            name: String(item?.name ?? ''),
+            description: String(item?.description ?? item?.desc ?? '-'),
+        })));
+    }
+
+    function renderFavorites(items, options = {}) {
         if (!els.favoritesBody) {
             return;
         }
 
-        state.favoritesRaw = Array.isArray(items) ? items.slice() : [];
+        const normalizedItems = Array.isArray(items) ? items.slice() : [];
+        const signature = favoritesSignature(normalizedItems);
+        const force = !!options.force;
+
+        if (!force && signature === state.favoritesSignature) {
+            return;
+        }
+
+        state.favoritesSignature = signature;
+        state.favoritesRaw = normalizedItems;
 
         const renderItems = getSortedFavorites(state.favoritesRaw);
 
@@ -1642,11 +1667,56 @@
         });
     }
 
-    function renderAllstarLinks(allstarPayload) {
+    function notePendingDisconnect(node, ttlMs = 6000) {
+        const normalizedNode = String(node || '').trim();
+
+        if (normalizedNode === '') {
+            return;
+        }
+
+        state.pendingDisconnectNodes.set(normalizedNode, Date.now() + ttlMs);
+        state.allstarLinksSignature = '';
+    }
+
+    function pendingDisconnectActive(node) {
+        const normalizedNode = String(node || '').trim();
+
+        if (normalizedNode === '') {
+            return false;
+        }
+
+        const expiresAt = Number(state.pendingDisconnectNodes.get(normalizedNode) || 0);
+
+        if (!expiresAt) {
+            return false;
+        }
+
+        if (Date.now() > expiresAt) {
+            state.pendingDisconnectNodes.delete(normalizedNode);
+            state.allstarLinksSignature = '';
+            return false;
+        }
+
+        return true;
+    }
+
+    function prunePendingDisconnectNodes(activeNodes) {
+        const now = Date.now();
+
+        state.pendingDisconnectNodes.forEach((expiresAt, node) => {
+            if (now > Number(expiresAt || 0) || (activeNodes && !activeNodes.has(node))) {
+                state.pendingDisconnectNodes.delete(node);
+                state.allstarLinksSignature = '';
+            }
+        });
+    }
+
+    function renderAllstarLinks(allstarPayload, options = {}) {
         if (!els.statusAllstarLinks) {
             return;
         }
 
+        const force = !!options.force;
         const rawLinks = Array.isArray(allstarPayload?.connected_nodes)
             ? allstarPayload.connected_nodes
             : [];
@@ -1668,6 +1738,32 @@
                 sensitivity: 'base',
             });
         });
+
+        const activeNodeSet = new Set(links.map((link) => String(link?.node ?? link?.target ?? '').trim()).filter(Boolean));
+        prunePendingDisconnectNodes(activeNodeSet);
+
+        const linksSignature = JSON.stringify(links.map((link) => {
+            const rawNode = String(link?.node ?? link?.target ?? '').trim();
+            const modeLabel = String(link?.mode_label ?? link?.link_mode ?? link?.mode ?? 'Connected').trim();
+            const isDvSwitchNode = dvswitchNode !== '' && rawNode === dvswitchNode;
+            const isLocalMonitor = modeLabel.toLowerCase().includes('monitor');
+            const keyedHoldSeconds = isDvSwitchNode ? 5 : 1;
+            const active = (isDvSwitchNode || !isLocalMonitor) && linkLooksKeyed(link, keyedHoldSeconds);
+
+            return {
+                node: rawNode,
+                mode: modeLabel,
+                live: !!link?.is_live,
+                active,
+                pending: pendingDisconnectActive(rawNode),
+            };
+        }));
+
+        if (!force && linksSignature === state.allstarLinksSignature) {
+            return;
+        }
+
+        state.allstarLinksSignature = linksSignature;
 
         if (links.length === 0) {
             els.statusAllstarLinks.innerHTML = `
@@ -1765,25 +1861,27 @@
                 ? `<span class="connected-node-meta-item">Connected ${elapsed}</span>`
                 : '';
 
+            const pendingDisconnect = pendingDisconnectActive(rawNode);
+            const disableDisconnectButton = state.busy || pendingDisconnect;
             const actionHtml = isDvSwitchNode
                 ? `
                     <button
                         type="button"
-                        class="connected-node-button connected-node-button-dvswitch"
-                        data-disconnect-dvswitch="1"
-                        ${state.busy ? 'disabled' : ''}
+                        class="connected-node-button connected-node-button-dvswitch ${pendingDisconnect ? 'connected-node-button-pending' : ''}"
+                        data-disconnect-dvswitch="${node}"
+                        ${disableDisconnectButton ? 'disabled' : ''}
                     >
-                        Disconnect DVSwitch
+                        ${pendingDisconnect ? 'Disconnecting...' : 'Disconnect DVSwitch'}
                     </button>
                 `
                 : `
                     <button
                         type="button"
-                        class="connected-node-button allstar-disconnect-button"
+                        class="connected-node-button allstar-disconnect-button ${pendingDisconnect ? 'connected-node-button-pending' : ''}"
                         data-disconnect-node="${node}"
-                        ${state.busy ? 'disabled' : ''}
+                        ${disableDisconnectButton ? 'disabled' : ''}
                     >
-                        Disconnect ${node}
+                        ${pendingDisconnect ? 'Disconnecting...' : `Disconnect ${node}`}
                     </button>
                 `;
 
@@ -2407,6 +2505,16 @@
         els.statusAllstarLinks.addEventListener('click', (event) => {
             const dvswitchButton = event.target.closest('[data-disconnect-dvswitch]');
             if (dvswitchButton && !state.busy) {
+                const selectedDvSwitchNode = String(
+                    dvswitchButton.getAttribute('data-disconnect-dvswitch') ||
+                    configuredDvSwitchNodeFromDom() ||
+                    ''
+                ).trim();
+
+                if (selectedDvSwitchNode !== '') {
+                    notePendingDisconnect(selectedDvSwitchNode);
+                }
+
                 dvswitchButton.disabled = true;
                 dvswitchButton.classList.add('connected-node-button-pending');
                 dvswitchButton.textContent = 'Disconnecting...';
@@ -2427,6 +2535,8 @@
             if (!selectedNode) {
                 return;
             }
+
+            notePendingDisconnect(selectedNode);
 
             button.disabled = true;
             button.classList.add('connected-node-button-pending');
@@ -2472,7 +2582,7 @@
                 state.favoriteSortType = sortType === 'mixed' ? 'mixed' : 'text';
             }
 
-            renderFavorites(state.favoritesRaw);
+            renderFavorites(state.favoritesRaw, { force: true });
         });
     }
 

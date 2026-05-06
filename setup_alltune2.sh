@@ -464,7 +464,7 @@ validate_tgif_alias_json_files() {
 
     for file in "${alias_files[@]}"; do
         if [[ ! -e "$file" ]]; then
-            warn "TGIF/HBLink alias file is missing and will be downloaded/regenerated when HBLink needs it: $file"
+            echo "[INFO] TGIF/HBLink alias file is not present yet. This is normal on some installs; it will be downloaded/regenerated when HBLink needs it: $file"
             continue
         fi
 
@@ -895,7 +895,7 @@ check_external_config_hints() {
         warn "DVSwitch.ini does not contain BMPassword. BM receive mode may not work."
     fi
 
-    warn "Review TGIF/HBLink identity fields carefully. Systems often require both a base DMR ID and a hotspot/repeater-style suffixed radio ID in the HBLink/MMDVM config files."
+    echo "[INFO] TGIF/HBLink reminder: if TGIF does not connect, review the identity/auth fields in hblink.cfg and the related MMDVM/HBLink files."
 }
 
 create_or_update_logrotate_files() {
@@ -1051,6 +1051,8 @@ show_summary() {
 
     echo
     echo "========================================"
+    echo "[OK] $APP_NAME setup completed successfully."
+    echo
     echo "$APP_NAME setup summary"
     echo "========================================"
     echo "Version:              ${version}"
@@ -1087,19 +1089,17 @@ show_summary() {
     echo "- TGIF Python packages are only reinstalled when the venv is new, broken, missing packages, or requirements.txt changes."
     echo "- The installer does not overwrite /opt/MMDVM_Bridge/MMDVM_Bridge.ini, /opt/MMDVM_Bridge/DVSwitch.ini, or /opt/Analog_Bridge/Analog_Bridge.ini."
     echo "- TGIF/HBLink often needs both a base DMR ID and a hotspot/repeater-style suffixed radio ID in the HBLink/MMDVM config path."
-    echo "- Review hblink.cfg carefully. Wrong values there can make TGIF fail even when the helper and web files are correct."
+    echo "- TGIF/HBLink troubleshooting: if TGIF does not connect, review hblink.cfg and the related MMDVM/HBLink identity values."
     echo
 
     echo "Next steps:"
-    echo "1. Edit $CONFIG_FILE and set real values if needed."
-    echo "2. Edit $TGIF_HBLINK_CFG and verify TGIF/HBLink identity/auth values."
-    echo "3. Review $TGIF_MMDVM_HBLINK_INI for local port/address expectations."
-    echo "4. Confirm external system files are correct:"
+    echo "1. Open /alltune2/public/ in the browser."
+    echo "2. Test BM, TGIF, YSF, AllStarLink, EchoLink, Disconnect DVSwitch, and Disconnect All."
+    echo "3. For new installs only: edit $CONFIG_FILE and $TGIF_HBLINK_CFG if real values have not been set yet."
+    echo "4. For TGIF/HBLink troubleshooting only: review $TGIF_MMDVM_HBLINK_INI and these external DVSwitch files:"
     echo "   - $DVSWITCH_INI"
     echo "   - $MMDVM_BRIDGE_INI"
     echo "   - $ANALOG_BRIDGE_INI"
-    echo "5. Open /alltune2/public/ in the browser."
-    echo "6. Test BM, TGIF, YSF, AllStarLink, EchoLink, Disconnect DVSwitch, and Disconnect All."
     echo
 }
 
