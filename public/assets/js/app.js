@@ -519,7 +519,13 @@
             return;
         }
 
-        if (upperStatus.startsWith('CONNECTED: YSF TARGET')) {
+        if (
+            upperStatus.startsWith('CONNECTED: YSF TARGET') ||
+            upperStatus.startsWith('CONNECTED: D-STAR TARGET') ||
+            upperStatus.startsWith('CONNECTED: DSTAR TARGET') ||
+            upperStatus.startsWith('CONNECTED: P25 TARGET') ||
+            upperStatus.startsWith('CONNECTED: NXDN TARGET')
+        ) {
             const signature = `connect:${dvswitchNode}`;
             markImmediateAudioEvent(signature);
             announceNodeConnected(dvswitchNode);
@@ -533,7 +539,16 @@
             return;
         }
 
-        if (upperStatus === 'DISCONNECTED: YSF' || upperStatus === 'DISCONNECTED: BM' || upperStatus === 'DISCONNECTED: TGIF') {
+        if (
+            upperStatus === 'DISCONNECTED: YSF' ||
+            upperStatus === 'DISCONNECTED: BM' ||
+            upperStatus === 'DISCONNECTED: TGIF' ||
+            upperStatus === 'DISCONNECTED: D-STAR' ||
+            upperStatus === 'DISCONNECTED: DSTAR' ||
+            upperStatus === 'DISCONNECTED: P25' ||
+            upperStatus === 'DISCONNECTED: NXDN' ||
+            upperStatus.startsWith('DISCONNECTED: DVSWITCH LINK')
+        ) {
             const signature = `disconnect:${dvswitchNode}`;
             markImmediateAudioEvent(signature);
             announceNodeDisconnected(dvswitchNode);

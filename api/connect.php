@@ -234,6 +234,18 @@ function load_dvswitch_link(string $myNode, string $dvSwitchNode, string $autolo
     return asterisk_ilink_connect($myNode, $dvSwitchNode, $autoloadMode);
 }
 
+function enforce_dvswitch_link_mode(string $myNode, string $dvSwitchNode, string $autoloadMode): void
+{
+    if ($myNode === '' || $dvSwitchNode === '') {
+        return;
+    }
+
+    asterisk_ilink_disconnect($myNode, $dvSwitchNode);
+    pause_seconds(0.5);
+    load_dvswitch_link($myNode, $dvSwitchNode, $autoloadMode);
+    pause_seconds(0.5);
+}
+
 function dvswitch_tune(string $value): string
 {
     $command = '/opt/MMDVM_Bridge/dvswitch.sh tune ' . escapeshellarg($value);
@@ -1495,6 +1507,7 @@ if ($action === 'connect') {
             $_SESSION['dvswitch_active_mode'] = $autoloadDvSwitchMode;
             pause_seconds(0.5);
         } else {
+            enforce_dvswitch_link_mode($myNode, $dvSwitchNode, $autoloadDvSwitchMode);
             $_SESSION['dvswitch_active_mode'] = $autoloadDvSwitchMode;
         }
 
@@ -1539,6 +1552,9 @@ if ($action === 'connect') {
             && !$disconnectBeforeConnect;
 
         if ($sameManagedDigitalMode) {
+            enforce_dvswitch_link_mode($myNode, $dvSwitchNode, $autoloadDvSwitchMode);
+            $_SESSION['dvswitch_active_mode'] = $autoloadDvSwitchMode;
+
             dvswitch_mode($mode);
             pause_seconds(0.2);
             dvswitch_tune($connectTarget);
@@ -1603,6 +1619,7 @@ if ($action === 'connect') {
             $_SESSION['dvswitch_active_mode'] = $autoloadDvSwitchMode;
             pause_seconds(0.5);
         } else {
+            enforce_dvswitch_link_mode($myNode, $dvSwitchNode, $autoloadDvSwitchMode);
             $_SESSION['dvswitch_active_mode'] = $autoloadDvSwitchMode;
         }
 
@@ -1676,6 +1693,8 @@ if ($action === 'connect') {
             }
         }
 
+        enforce_dvswitch_link_mode($myNode, $dvSwitchNode, $autoloadDvSwitchMode);
+
         $_SESSION['last_mode'] = 'BM';
         $_SESSION['last_target'] = $connectTarget;
         $_SESSION['pending_target'] = $connectTarget;
@@ -1686,7 +1705,7 @@ if ($action === 'connect') {
         $_SESSION['dmr_active_network'] = 'BM';
         $_SESSION['dmr_active_target'] = $connectTarget;
         $_SESSION['dvswitch_autoloaded'] = true;
-        $_SESSION['dvswitch_active_mode'] = 'transceive';
+        $_SESSION['dvswitch_active_mode'] = $autoloadDvSwitchMode;
         $_SESSION['last_status'] = 'CONNECTED: TG ' . $connectTarget . ' (BM)';
 
         respond(session_payload($_SESSION['last_status'], ['bm_receive' => $bmResult]));
@@ -1758,6 +1777,8 @@ if ($action === 'connect') {
                 respond(session_payload($_SESSION['last_status'], ['tgif_hblink' => $tgifResult]), 500);
             }
         }
+
+        enforce_dvswitch_link_mode($myNode, $dvSwitchNode, $autoloadDvSwitchMode);
 
         $_SESSION['dvswitch_autoloaded'] = true;
         $_SESSION['dvswitch_active_mode'] = $autoloadDvSwitchMode;
