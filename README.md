@@ -2,7 +2,7 @@
 
 ## One Dashboard. All Your Networks.
 
-✅ Optimized for Debian 12 & 13 on 64-bit ARM (Raspberry Pi 4, 5)
+✅ Optimized for Debian 12 & 13 on 64-bit ARM, including Raspberry Pi 4 and Raspberry Pi 5.
 
 AllTune2 is a modern control panel for **AllStarLink 3 + DVSwitch**.
 
@@ -17,11 +17,14 @@ It gives you one place to work with:
 - AllStarLink
 - EchoLink
 - Local Monitor
-- Transceiver
+- Transceive
 - Favorites
 - Live status and activity
+- Audio alerts
 
 Simple. Clean. Powerful.
+
+---
 
 ## ✨ WHAT ALLTUNE2 CAN DO
 
@@ -31,55 +34,61 @@ With it, you can:
 
 - connect to BrandMeister talkgroups
 - connect to TGIF talkgroups
-- connect to YSF reflectors / rooms
-- connect to D-Star reflectors when D-Star is configured
-- connect to P25 reflectors / talkgroups when P25 is configured
-- connect to NXDN reflectors / talkgroups when NXDN is configured
+- connect to YSF rooms / reflectors
+- connect to D-Star, P25, and NXDN when those modes are enabled and already working on your system
 - connect to AllStarLink nodes
 - connect to EchoLink nodes
-- use Local Monitor
-- use Transceiver
-- save and use Favorites
+- use Local Monitor or Transceive
+- save and load Favorites
+- save a new Favorite directly from the dashboard
 - use manual entry
 - watch live status and activity
-- use audio alerts if enabled
+- use spoken audio alerts for connects and disconnects
 
-Some local functions can also be used alongside BM, TGIF, YSF, D-Star, P25, or NXDN operation depending on your setup and workflow.
+AllTune2 does not replace ASL3, DVSwitch, Analog_Bridge, or MMDVM_Bridge. It controls them from one cleaner dashboard.
 
-## Live keyed activity highlighting
+---
 
-AllTune2 now shows live keyed/activity highlighting for linked AllStarLink / EchoLink node rows and supported managed DVSwitch modes.
+## 🆕 RECENT UI AND CONTROL IMPROVEMENTS
 
-What it does:
-- highlights the active linked node row when live activity is detected
-- shows keyed/activity feedback for supported managed modes such as D-Star, P25, and NXDN when configured
-- uses a softer amber accent so the active row stands out without overpowering the dashboard
-- keeps the existing connection logic unchanged
+Recent versions added several important improvements:
 
-Notes:
-- this is a visual/status enhancement
-- it does not change TGIF, BrandMeister, YSF, D-Star, P25, NXDN, AllStarLink, or EchoLink connect/disconnect behavior
-- active row highlighting depends on live activity/status data being available from the node
+- redesigned Control Center layout
+- cleaner top navigation buttons
+- dashboard **Save Favorite** button
+- Save Favorite popup for manual entries
+- existing Favorite detection by target + mode
+- improved Saved Favorites stability
+- Live Status connected-node cards
+- Disconnect DVSwitch button in Live Status
+- better Local Monitor / Transceive handling for managed DVSwitch modes
+- spoken connect/disconnect alerts for managed modes, including D-Star
+- Apache security hardening from the installer
+
+The dashboard is designed so you can pick a network, enter or load a target, choose Local Monitor or Transceive, and press **Connect**.
+
+---
 
 ## ⚠️ BEFORE YOU INSTALL
 
-You MUST already have:
+You must already have a working ASL3 / DVSwitch system.
 
-- Working AllStarLink 3 (ASL3)
+You need:
+
+- Working AllStarLink 3
 - Working DVSwitch
-- Analog_Bridge running
-- MMDVM_Bridge running
+- Analog_Bridge installed and running
+- MMDVM_Bridge installed and running
 
-Optional modes such as D-Star, P25, and NXDN require those modes to already work in your ASL3 / DVSwitch / MMDVM_Bridge setup before enabling them in AllTune2.
+Optional modes such as D-Star, P25, and NXDN should already be working in your base DVSwitch setup before enabling them in AllTune2.
 
-If your node is not already working, fix that first.
+If your base node is broken, fix that first. AllTune2 is a control panel, not a repair tool for a broken ASL3 / DVSwitch install.
 
-AllTune2 sits on top of a working base system.  
-It is not meant to repair a broken base install.
+---
 
-## 📥 INSTALL (FIRST TIME)
+## 📥 INSTALL FIRST TIME
 
-Use these commands only for a brand-new install:
+Use this only for a brand-new install:
 
 ```bash
 cd /var/www/html
@@ -87,46 +96,40 @@ git clone https://github.com/TerryClaiborne/alltune2.git
 cd alltune2
 sudo ./setup_alltune2.sh
 ```
-**Note:** `setup_alltune2.sh` may pause for a short time during dependency checks and TGIF/HBLink environment setup, especially on slower systems such as a Pi3. This is normal. Wait for the final setup summary before assuming the installer is stuck or stopping it early.
 
-### What the setup script does
+The installer may take a little while during dependency checks or TGIF/HBLink setup, especially on slower hardware. Wait for the final setup summary before assuming it is stuck.
 
-The setup script helps by:
+### What setup does
 
-- setting permissions
-- building the TGIF / HBLink backend
-- installing requirements
-- creating config files if missing
-- preserving existing config files
-- refreshing helper files
+The setup script helps with:
 
-The setup script is mainly for install/setup/system-level refresh work.  
-It is not required for every code-only GitHub update.
+- permissions
+- sudoers rules
+- TGIF/HBLink Python environment
+- config examples
+- preserving existing local config files
+- helper permissions
+- log rotation
+- Apache security hardening
+
+The setup script preserves your local config files when they already exist.
+
+---
 
 ## 🔁 UPDATE / REINSTALL / REBOOT
 
-There are now **two** different update paths.
+### Normal code update
 
-### A) NORMAL CODE-ONLY UPDATE
-
-Use this when the GitHub update only changes app code, helper scripts, Python files, PHP files, CSS/JS, or README content.
+For most updates:
 
 ```bash
 cd /var/www/html/alltune2
 git pull origin main
 ```
 
-In many cases, that is enough.
+### Update that needs setup
 
-### B) UPDATE THAT NEEDS SETUP
-
-Use this when the update includes install/setup changes such as:
-
-- `setup_alltune2.sh` changes
-- new sudoers requirements
-- new permissions requirements
-- new service / system integration changes
-- new config template handling
+Run setup after pulling when the update includes installer, permissions, sudoers, Apache security, or other system-level changes:
 
 ```bash
 cd /var/www/html/alltune2
@@ -134,33 +137,23 @@ git pull origin main
 sudo ./setup_alltune2.sh
 ```
 
-### C) REBOOT WHEN NEEDED
+### Reboot when needed
 
-Some updates change a runtime process that may already be running in memory.
+A reboot is recommended after updates that affect long-running runtime pieces such as TGIF/HBLink.
 
-Examples:
+Do **not** assume every update needs setup. Many updates only need `git pull`.
 
-- HBLink `bridge.py` changes
-- logging behavior changes
-- long-running helper/runtime behavior
-
-For those updates, rebooting once after the update is recommended so the old running process is fully cleared and the new code starts clean.
-
-### Important
-
-Do **not** assume every update needs `setup_alltune2.sh`.
-
-For normal code-only updates, `git pull` may be enough.
-
-Run `setup_alltune2.sh` when the update includes install, permissions, sudoers, service, or other system-level setup changes.
-
-If the update changes a long-running TGIF / HBLink runtime process, a reboot once after updating is recommended.
+---
 
 ## ✏️ FILES YOU MUST EDIT
 
-### 1. Main Config
+### 1. Main config
 
-`/var/www/html/alltune2/config.ini`
+Edit:
+
+```text
+/var/www/html/alltune2/config.ini
+```
 
 Example:
 
@@ -174,154 +167,43 @@ P25_ENABLED=0
 NXDN_ENABLED=0
 ```
 
-#### What these mean
+### Main config values
 
 **MYNODE**  
-Your AllStar node number.
-
-Example:
-
-```text
-MYNODE=67040
-```
+Your main AllStar node number.
 
 **DVSWITCH_NODE**  
-Your DVSwitch node number.
-
-Most systems use `1999` or `1998`.
-
-Example:
-
-```text
-DVSWITCH_NODE=1999
-```
+Your private DVSwitch audio node. Many systems use `1999` or `1998`, but use whatever your system is actually configured to use.
 
 **BM_SelfcarePassword**  
 Your BrandMeister SelfCare password.
 
 **TGIF_HotspotSecurityKey**  
-Your TGIF Hotspot Security Key.
-
-This is **NOT** your TGIF website login password.
+Your TGIF Hotspot Security Key. This is **not** your TGIF website login password.
 
 **DSTAR_ENABLED**  
-Controls whether D-Star appears as a usable mode in AllTune2.
-
-Use:
-
-```ini
-DSTAR_ENABLED=0
-```
-
-to keep D-Star disabled.
-
-Use:
-
-```ini
-DSTAR_ENABLED=1
-```
-
-only after D-Star already works on your ASL3 / DVSwitch / MMDVM_Bridge system.
-
-When D-Star is disabled or not configured, the D-Star Live Status box remains idle, and D-Star is not available in the main dropdown or Favorites.
+Set to `1` only if D-Star already works on your ASL3 / DVSwitch system.
 
 **P25_ENABLED** and **NXDN_ENABLED**  
-Control whether P25 and NXDN appear as usable modes in AllTune2.
+Set these to `1` only if those modes already work on your ASL3 / DVSwitch system.
 
-Leave them disabled unless those modes already work on your ASL3 / DVSwitch / MMDVM_Bridge system:
-
-```ini
-P25_ENABLED=0
-NXDN_ENABLED=0
-```
-
-Enable them only after testing the underlying DVSwitch mode from the terminal:
-
-```ini
-P25_ENABLED=1
-NXDN_ENABLED=1
-```
-
-When P25 or NXDN is disabled or not configured, that mode is not available in the main dropdown or Favorites. The Live Status box can remain visible, but it will stay Idle.
-
-### 2. D-Star Setup
-
-D-Star is optional.
-
-Before enabling D-Star in AllTune2, D-Star should already work from the ASL3 / DVSwitch / MMDVM_Bridge side.
-
-A basic manual test looks like this:
-
-```bash
-/opt/MMDVM_Bridge/dvswitch.sh mode DSTAR
-/opt/MMDVM_Bridge/dvswitch.sh tune REF030EL
-```
-
-To disconnect D-Star manually:
-
-```bash
-/opt/MMDVM_Bridge/dvswitch.sh tune 4000#
-```
-
-AllTune2 does not create your D-Star account, registration, reflector setup, or system-level MMDVM_Bridge D-Star configuration.
-
-Enable D-Star in AllTune2 only after your system D-Star path is already working:
-
-```ini
-DSTAR_ENABLED=1
-```
-
-If D-Star is not configured, leave it disabled:
+Leave optional modes disabled if you do not use them:
 
 ```ini
 DSTAR_ENABLED=0
-```
-
-### 3. P25 and NXDN Setup
-
-P25 and NXDN are optional.
-
-Before enabling P25 or NXDN in AllTune2, each mode should already work from the ASL3 / DVSwitch / MMDVM_Bridge side.
-
-Basic manual tests look like this:
-
-```bash
-/opt/MMDVM_Bridge/dvswitch.sh mode P25
-/opt/MMDVM_Bridge/dvswitch.sh tune YOUR_P25_TARGET
-```
-
-```bash
-/opt/MMDVM_Bridge/dvswitch.sh mode NXDN
-/opt/MMDVM_Bridge/dvswitch.sh tune YOUR_NXDN_TARGET
-```
-
-For P25 and NXDN, the manual stop / return-to-idle sequence is:
-
-```bash
-/opt/MMDVM_Bridge/dvswitch.sh tune 0
-sleep 2
-/opt/MMDVM_Bridge/dvswitch.sh mode DMR
-```
-
-AllTune2 uses that same basic cleanup idea for P25 and NXDN disconnect handling.
-
-AllTune2 does not create or repair your P25 or NXDN system-level setup. Enable these modes only after they already work from the terminal:
-
-```ini
-P25_ENABLED=1
-NXDN_ENABLED=1
-```
-
-If P25 or NXDN is not configured, leave it disabled:
-
-```ini
 P25_ENABLED=0
 NXDN_ENABLED=0
 ```
 
-### 4. TGIF Config
+---
 
-`/var/www/html/alltune2/tgif-hblink/hblink.cfg`
+## 🟢 TGIF CONFIG
+
+Edit:
+
+```text
+/var/www/html/alltune2/tgif-hblink/hblink.cfg
+```
 
 Look in the `[REPEATER-1]` section.
 
@@ -334,116 +216,76 @@ RADIO_ID: 330000812
 OPTIONS: StartRef=19750;RelinkTime=60
 ```
 
-#### What these mean
+### TGIF values
 
 **PASSPHRASE**  
 Your TGIF Hotspot Security Key.
 
-This is **NOT** your TGIF login password.
-
 **CALLSIGN**  
 Your ham callsign.
 
-Example:
-
-```text
-CALLSIGN: KC3KMV
-```
-
 **RADIO_ID**  
-Your DMR / BrandMeister Hotspot ID + 1
+Usually your DMR / hotspot ID with a suffix. Many setups use the hotspot ID plus 1.
 
-This part is very important.
-
-Real example:
+Example:
 
 ```text
 Your hotspot ID: 330000811
 Use:             330000812
 ```
 
-Another example:
-
-```text
-Your hotspot ID: 3101234
-Use:             3101235
-```
-
-Do **NOT** use your original hotspot ID unchanged.
+Do not guess this value. Use what is correct for your DVSwitch / TGIF setup.
 
 **OPTIONS**  
-Optional startup TGIF talkgroup.
+Optional TGIF startup options, such as a startup talkgroup.
 
-Example:
+### Review this TGIF file too
 
 ```text
-StartRef=19750;RelinkTime=60
+/var/www/html/alltune2/tgif-hblink/MMDVM_Bridge.hblink.ini
 ```
 
-If you want TGIF to start on a certain talkgroup, that is where you set it.
+Make sure the callsign and ID match what your TGIF/HBLink setup needs.
 
-### 5. Review This File
+### Important TGIF note
 
-`/var/www/html/alltune2/tgif-hblink/MMDVM_Bridge.hblink.ini`
+TGIF and BrandMeister are separate networks. A talkgroup number existing on TGIF does not automatically mean you will hear users who are connected through BrandMeister.
 
-Example:
+Use BrandMeister in AllTune2 when you want the BrandMeister side. Use TGIF when you want the TGIF side.
+
+---
+
+## 🟠 OPTIONAL D-STAR / P25 / NXDN
+
+D-Star, P25, and NXDN are optional.
+
+Enable them in AllTune2 only if they already work in your base DVSwitch / MMDVM_Bridge setup.
 
 ```ini
-Callsign=YOURCALL
-Id=330000812
+DSTAR_ENABLED=1
+P25_ENABLED=1
+NXDN_ENABLED=1
 ```
 
-#### What these mean
+If a mode is disabled or not configured, it will not be available in the main dropdown or Favorites. Its Live Status box may still appear, but it will stay idle.
 
-**Callsign**  
-Your ham callsign.
+AllTune2 does not create your D-Star registration, P25 setup, NXDN setup, reflector setup, or base MMDVM_Bridge mode configuration. It controls those modes after your base system is already working.
 
-Example:
+---
 
-```text
-Callsign=KC3KMV
-```
+## 🚫 DO NOT EDIT THESE UNLESS YOU KNOW WHY
 
-**Id**  
-Your DMR / BrandMeister Hotspot ID + 1
-
-Real example:
-
-```text
-Your hotspot ID: 330000811
-Use:             330000812
-```
-
-Do **NOT** use your original hotspot ID unchanged.
-
-#### Optional values
-
-Most users can leave these as `0`:
-
-```ini
-RXFrequency=0
-TXFrequency=0
-```
-
-These only matter if you run a repeater.
-
-If you do not run a repeater, leaving them at `0` is fine and has no effect on normal operation.
-
-## 🚫 DO NOT EDIT THESE UNLESS YOU ALREADY KNOW WHY
-
-These files must already be working correctly on your system:
+These files belong to the underlying DVSwitch system:
 
 - `/opt/MMDVM_Bridge/DVSwitch.ini`
 - `/opt/MMDVM_Bridge/MMDVM_Bridge.ini`
 - `/opt/Analog_Bridge/Analog_Bridge.ini`
 
-If those files are broken, AllTune2 will not work correctly.
+If those files are wrong, AllTune2 may not work correctly.
 
-For D-Star, P25, and NXDN, the required account / registration / reflector / mode configuration must already be correct in the underlying DVSwitch / MMDVM_Bridge setup before enabling those modes in AllTune2.
+---
 
 ## 🌐 OPEN ALLTUNE2 IN YOUR BROWSER
-
-Once AllTune2 is installed and configured, open it in your web browser.
 
 Example:
 
@@ -457,382 +299,306 @@ The full path also works:
 http://192.168.1.120/alltune2/public/index.php
 ```
 
-Replace `192.168.1.120` with the IP address or hostname of your own node.
+Replace `192.168.1.120` with your node IP address or hostname.
 
-The shorter `/public/` address is usually easier and works fine.
+---
 
 ## 🖥️ HOW TO USE ALLTUNE2
 
-Once AllTune2 is installed and configured, open it in your browser and use the control center.
-
-Basic idea:
+Basic use:
 
 - choose the network or mode
+- choose Local Monitor or Transceive if needed
 - enter a target or choose a Favorite
-- press Connect
-- watch the status / activity area
-- press Disconnect when done
+- press **Connect**
+- watch Live Status and Activity
+- press **Disconnect**, **Disconnect DVSwitch**, or **Disconnect All** when needed
+
+### Control Center
+
+The Control Center is where you select the network, target, and Link Mode.
+
+The Link Mode dropdown controls how the private DVSwitch audio node is linked:
+
+- **Local Monitor** for monitoring/listening use
+- **Transceive** for normal radio-side transmit/receive use
+
+AllTune2 now re-applies the selected Link Mode when changing between supported managed modes, so you should not normally have to press Disconnect DVSwitch just to change Local Monitor / Transceive.
+
+---
 
 ## 🔵 BRANDMEISTER
 
-Use BrandMeister when you want to connect to a BM talkgroup.
+Use BrandMeister for BM talkgroups.
 
-### Typical BM workflow
+Typical workflow:
 
 - choose BrandMeister
-- enter the talkgroup number
+- enter a talkgroup or choose a BM Favorite
 - press Connect
-- wait for the status to show the connection
-- use Disconnect when you want to leave
+- wait for status to show the connection
 
-### BM talkgroup changes
+To change BM talkgroups:
+
+- enter a new talkgroup **or choose another BM Favorite**
+- press Connect again
 
 BrandMeister is usually one of the faster paths.
 
-If you want to change from one BM talkgroup to another:
-
-- enter the new talkgroup
-- press Connect again
+---
 
 ## 🟢 TGIF
 
-Use TGIF when you want to connect to a TGIF talkgroup.
+Use TGIF for TGIF talkgroups.
 
-### Typical TGIF workflow
+Typical workflow:
 
 - choose TGIF
-- enter the talkgroup number
+- enter a talkgroup or choose a TGIF Favorite
 - press Connect
 - wait for the TGIF path to come up
-- watch status / activity for confirmation
-- use Disconnect when finished
 
-### Important TGIF note
+To change TGIF talkgroups:
 
-TGIF may take a little longer to connect than BrandMeister.
+- enter a new talkgroup **or choose another TGIF Favorite**
+- press Connect again
 
-That is normal.
+TGIF can take longer than BrandMeister to connect or disconnect. That is normal because TGIF/HBLink has more runtime pieces involved.
 
-You can also stay connected to BM, TGIF, YSF, D-Star, P25, or NXDN and add AllStarLink nodes or EchoLink nodes using Transceive or Local Monitor, depending on your setup and workflow.
+---
 
 ## 🟡 YSF
 
-Use YSF when you want to connect to a YSF room or reflector.
+Use YSF for YSF rooms / reflectors.
 
-### Typical YSF workflow
+Typical workflow:
 
 - choose YSF
-- enter the YSF target you want
+- enter the YSF target or choose a YSF Favorite
 - press Connect
-- watch the status area
-- use Disconnect when done
+- watch Live Status
+
+---
 
 ## 🟠 D-STAR
 
-Use D-Star when you want to connect to a D-Star reflector.
+Use D-Star for D-Star reflectors when D-Star is enabled and working on your system.
 
-D-Star is optional and must already be working in your ASL3 / DVSwitch / MMDVM_Bridge system before AllTune2 can control it.
+Typical workflow:
 
-### Typical D-Star workflow
-
-- make sure `DSTAR_ENABLED=1` is set in `/var/www/html/alltune2/config.ini`
+- make sure `DSTAR_ENABLED=1` is set in `config.ini`
 - choose D-Star
-- enter the D-Star target, such as `REF030EL`
+- enter the D-Star target or choose a D-Star Favorite
 - press Connect
-- watch the status area
-- use Disconnect or Disconnect DVSwitch when done
+- watch Live Status
 
-### Important D-Star notes
-
-D-Star uses the managed DVSwitch path, similar to YSF.
-
-AllTune2 runs the DVSwitch D-Star mode and tune commands, then uses the configured private DVSwitch audio node.
-
-D-Star disconnect uses:
-
-```bash
-/opt/MMDVM_Bridge/dvswitch.sh tune 4000#
-```
-
-If D-Star is not enabled or not available, it will not appear in the main mode dropdown or Favorites. The D-Star Live Status box may still be visible, but it will remain Idle.
+---
 
 ## 🟤 P25
 
-Use P25 when you want to connect to a P25 target supported by your DVSwitch / MMDVM_Bridge setup.
+Use P25 when P25 is enabled and working on your system.
 
-P25 is optional and must already be working in your ASL3 / DVSwitch / MMDVM_Bridge system before AllTune2 can control it.
+Typical workflow:
 
-### Typical P25 workflow
-
-- make sure `P25_ENABLED=1` is set in `/var/www/html/alltune2/config.ini`
+- make sure `P25_ENABLED=1` is set in `config.ini`
 - choose P25
-- enter the P25 target
+- enter the P25 target or choose a P25 Favorite
 - press Connect
-- watch the status area
-- use Disconnect or Disconnect DVSwitch when done
+- watch Live Status
 
-### Important P25 notes
-
-P25 uses the managed DVSwitch path.
-
-AllTune2 runs the DVSwitch P25 mode and tune commands, then uses the configured private DVSwitch audio node.
-
-P25 disconnect uses a cleanup sequence that tunes to `0`, waits briefly, and returns the bridge to DMR mode:
-
-```bash
-/opt/MMDVM_Bridge/dvswitch.sh tune 0
-sleep 2
-/opt/MMDVM_Bridge/dvswitch.sh mode DMR
-```
-
-If P25 is not enabled or not available, it will not appear in the main mode dropdown or Favorites. The P25 Live Status box may still be visible, but it will remain Idle.
+---
 
 ## ⚫ NXDN
 
-Use NXDN when you want to connect to an NXDN target supported by your DVSwitch / MMDVM_Bridge setup.
+Use NXDN when NXDN is enabled and working on your system.
 
-NXDN is optional and must already be working in your ASL3 / DVSwitch / MMDVM_Bridge system before AllTune2 can control it.
+Typical workflow:
 
-### Typical NXDN workflow
-
-- make sure `NXDN_ENABLED=1` is set in `/var/www/html/alltune2/config.ini`
+- make sure `NXDN_ENABLED=1` is set in `config.ini`
 - choose NXDN
-- enter the NXDN target
+- enter the NXDN target or choose an NXDN Favorite
 - press Connect
-- watch the status area
-- use Disconnect or Disconnect DVSwitch when done
+- watch Live Status
 
-### Important NXDN notes
-
-NXDN uses the managed DVSwitch path.
-
-AllTune2 runs the DVSwitch NXDN mode and tune commands, then uses the configured private DVSwitch audio node.
-
-NXDN disconnect uses a cleanup sequence that tunes to `0`, waits briefly, and returns the bridge to DMR mode:
-
-```bash
-/opt/MMDVM_Bridge/dvswitch.sh tune 0
-sleep 2
-/opt/MMDVM_Bridge/dvswitch.sh mode DMR
-```
-
-If NXDN is not enabled or not available, it will not appear in the main mode dropdown or Favorites. The NXDN Live Status box may still be visible, but it will remain Idle.
-
+---
 
 ## 🔴 ALLSTARLINK
 
-Use AllStarLink when you want to work with AllStar nodes directly.
+Use AllStarLink for direct AllStar node connections.
 
-### Typical AllStarLink workflow
+Typical workflow:
 
 - choose AllStarLink
-- enter the node number you want
+- enter the node number or choose an AllStarLink Favorite
 - press Connect
-- watch the live status / activity
-- disconnect when finished
+- watch Live Status
+- disconnect when done
 
-AllStarLink mode is useful for:
-
-- direct node linking
-- node monitoring
-- local AllStar activity
+---
 
 ## 🟣 ECHOLINK
 
-Use EchoLink when you want to connect to an EchoLink node.
+Use EchoLink for EchoLink node connections.
 
-### Typical EchoLink workflow
+Typical workflow:
 
 - choose EchoLink
-- enter the EchoLink node number
+- enter the EchoLink node number or choose an EchoLink Favorite
 - press Connect
-- watch status for confirmation
+- watch Live Status
 - disconnect when done
 
-## 🎧 LOCAL MONITOR
-
-Local Monitor is there for local monitoring use.
-
-That means it can be used when you want to:
-
-- listen locally
-- monitor what is happening on the node
-- work in a more local / direct way
-
-## 🎙️ TRANSCEIVER
-
-Transceiver mode is there for direct radio-side operation.
-
-In simple terms:
-
-- Local Monitor is for local listening / monitoring
-- Transceiver is for direct local radio operation
-
-These are local functions, not just network destination fields.
+---
 
 ## ⭐ FAVORITES
 
-Favorites help save time.
+Favorites save time.
 
-Use Favorites when you have:
+Favorites can be used for:
 
-- a BM talkgroup you use often
-- a TGIF talkgroup you use often
-- a YSF room you use often
-- a D-Star reflector you use often, if D-Star is enabled
-- a P25 target you use often, if P25 is enabled
-- an NXDN target you use often, if NXDN is enabled
-- an AllStarLink node you use often
-- an EchoLink target you use often
+- BM talkgroups
+- TGIF talkgroups
+- YSF targets
+- D-Star targets
+- P25 targets
+- NXDN targets
+- AllStarLink nodes
+- EchoLink nodes
 
-### Typical Favorites workflow
+### Loading a Favorite
 
-- choose a Favorite
-- let it load the target / mode
+- click or choose the Favorite
+- AllTune2 fills in the target and mode
 - press Connect
+
+### Saving a Favorite from the dashboard
+
+The dashboard includes a **Save Favorite** button.
+
+Use it when you manually type a target and want to save it.
+
+If the same target and mode already exist, AllTune2 shows that it found an existing Favorite and lets you update it instead of creating a duplicate.
+
+---
 
 ## 📝 MANUAL ENTRY
 
-Manual entry is there when you want to type something directly instead of using a saved Favorite.
+Manual entry is useful when:
 
-That is useful when:
-
-- you are testing
-- you are trying a one-time target
+- you are testing a target
+- you are trying something once
 - you do not want to save it yet
 
-## 📊 STATUS AND ACTIVITY
+Enter the target, choose the mode, then press Connect.
 
-The status and activity areas help you see:
+---
 
-- what mode you are in
-- whether you are connected
-- which target is active
-- D-Star, P25, and NXDN status when those modes are configured
-- local / node activity
-- changes as they happen
+## 📊 LIVE STATUS AND ACTIVITY
+
+Live Status helps show:
+
+- current network / mode
+- active target
+- private DVSwitch link state
+- AllStarLink / EchoLink connected nodes
+- keyed or active rows when activity is detected
+- D-Star, P25, and NXDN status when configured
+
+The **Disconnect DVSwitch** button removes the private DVSwitch link without doing a full Asterisk restart.
+
+The **Disconnect All** button performs a full reset and restarts Asterisk.
+
+---
 
 ## 🔊 AUDIO ALERTS
 
-Audio alerts can help you notice:
+Audio alerts can announce connects and disconnects.
 
-- connects
-- disconnects
-- activity changes
+They can be helpful when monitoring node activity without staring at the screen.
 
-If you use them, they can make monitoring easier.
+Recent updates improved connect/disconnect alerts for managed digital modes, including D-Star.
+
+---
+
+## 🔐 SECURITY HARDENING
+
+The setup script installs Apache protection for sensitive AllTune2 files and folders.
+
+This helps block direct browser access to local config, git, helper, runtime, log, and data files while still allowing the public dashboard and API to work.
+
+This is handled by the installer when Apache is available.
+
+---
 
 ## 🔧 TROUBLESHOOTING BASICS
 
 ### If audio stops
 
-Try:
+Try restarting Analog_Bridge:
 
 ```bash
 sudo systemctl restart analog_bridge
 ```
 
-### If you updated from GitHub
+### If TGIF does not connect
 
-First decide what kind of update it was.
+Check:
 
-For a normal code-only update:
+- `/var/www/html/alltune2/config.ini`
+- `/var/www/html/alltune2/tgif-hblink/hblink.cfg`
+- `/var/www/html/alltune2/tgif-hblink/MMDVM_Bridge.hblink.ini`
 
-```bash
-cd /var/www/html/alltune2
-git pull origin main
-```
-
-For an update that includes install/setup/system-level changes:
-
-```bash
-cd /var/www/html/alltune2
-git pull origin main
-sudo ./setup_alltune2.sh
-```
-
-If the update changed a long-running TGIF / HBLink process, reboot once after updating so the new runtime fully takes effect.
+TGIF may take longer than other modes to start or stop. Wait for status to finish before clicking repeatedly.
 
 ### If D-Star, P25, or NXDN does not show up
 
-Check these first:
+Check:
 
-- `DSTAR_ENABLED=1`, `P25_ENABLED=1`, or `NXDN_ENABLED=1` is set in `/var/www/html/alltune2/config.ini`
+- the mode is enabled in `config.ini`
+- your real `MYNODE` and `DVSWITCH_NODE` are set
 - `/opt/MMDVM_Bridge/dvswitch.sh` exists
-- your real `MYNODE` and `DVSWITCH_NODE` values are set
-- the mode already works from the terminal
+- the mode already works in the underlying DVSwitch setup
 
-Manual D-Star test:
+### If an update behaves strangely
 
-```bash
-/opt/MMDVM_Bridge/dvswitch.sh mode DSTAR
-/opt/MMDVM_Bridge/dvswitch.sh tune REF030EL
-```
+For code-only updates, `git pull` is usually enough.
 
-Manual D-Star disconnect:
+If setup, permissions, sudoers, Apache security, or runtime helpers changed, run:
 
 ```bash
-/opt/MMDVM_Bridge/dvswitch.sh tune 4000#
+cd /var/www/html/alltune2
+sudo ./setup_alltune2.sh
 ```
 
-Manual P25 test:
+If TGIF/HBLink runtime code changed, rebooting once after the update is recommended.
 
-```bash
-/opt/MMDVM_Bridge/dvswitch.sh mode P25
-/opt/MMDVM_Bridge/dvswitch.sh tune YOUR_P25_TARGET
-```
-
-Manual NXDN test:
-
-```bash
-/opt/MMDVM_Bridge/dvswitch.sh mode NXDN
-/opt/MMDVM_Bridge/dvswitch.sh tune YOUR_NXDN_TARGET
-```
-
-Manual P25 / NXDN disconnect:
-
-```bash
-/opt/MMDVM_Bridge/dvswitch.sh tune 0
-sleep 2
-/opt/MMDVM_Bridge/dvswitch.sh mode DMR
-```
-
-If these manual commands do not work, fix the base D-Star / P25 / NXDN / DVSwitch / MMDVM_Bridge setup first.
-
-### If something still looks wrong
-
-Check these first:
-
-- `/var/www/html/alltune2/config.ini`
-- `/var/www/html/alltune2/tgif-hblink/hblink.cfg`
-- `/var/www/html/alltune2/tgif-hblink/MMDVM_Bridge.hblink.ini`
-
-Do not guess values.
+---
 
 ## 🧠 SIMPLE RULES
 
-### Edit these:
+Edit these:
 
 - `/var/www/html/alltune2/config.ini`
 - `/var/www/html/alltune2/tgif-hblink/hblink.cfg`
 
-Set `DSTAR_ENABLED=1`, `P25_ENABLED=1`, or `NXDN_ENABLED=1` only on systems where those modes are already working. Leave them set to `0` on systems that do not use those modes.
-
-### Review this:
+Review this if TGIF needs troubleshooting:
 
 - `/var/www/html/alltune2/tgif-hblink/MMDVM_Bridge.hblink.ini`
 
-### Leave these alone unless you already know why:
+Leave these alone unless you know why:
 
 - `/opt/MMDVM_Bridge/DVSwitch.ini`
 - `/opt/MMDVM_Bridge/MMDVM_Bridge.ini`
 - `/opt/Analog_Bridge/Analog_Bridge.ini`
 
-### And remember:
+Remember:
 
 - do not guess values
-- do not assume every update needs `setup_alltune2.sh`
-- reboot once after updates that change long-running TGIF / HBLink runtime behavior
+- do not paste passwords publicly
+- do not assume every update needs setup
+- enable D-Star, P25, or NXDN only when those modes already work on your base system
+
+---
 
 ## ✅ DONE
 
@@ -840,39 +606,36 @@ Install → Configure → Open in browser → Connect → Enjoy
 
 ---
 
-### Contact:
+### Contact
 
 Questions? Email: [kc3kmv@yahoo.com](mailto:kc3kmv@yahoo.com)
 
 ---
 
-## ⚠️ IMPORTANT UPDATE
+## ⚠️ IMPORTANT UPDATE NOTES
 
-Current release notes may include both code-only updates and setup-level updates.
+Recent release series highlights:
 
-For this release series, important recent changes include:
+- redesigned Control Center
+- dashboard Save Favorite workflow
+- top navigation polish
+- Apache security hardening
+- STFU/BM log rotation support
+- D-Star, P25, and NXDN support when enabled
+- Live Status improvements
+- managed Local Monitor / Transceive link-mode fixes
+- D-Star/P25/NXDN audio-alert improvements
+- TGIF/HBLink stability and retune improvements
 
-- Managed D-Star support when enabled in local config
-- Managed P25 and NXDN support when enabled in local config
-- D-Star, P25, and NXDN Live Status / keyed activity support
-- D-Star, P25, and NXDN Favorites support when enabled
-- TGIF / HBLink connect speed improvement
-- HBLink runtime retune improvement
-- HBLink log file growth disabled
-
-For these HBLink runtime/logging updates:
+For most updates:
 
 ```bash
 cd /var/www/html/alltune2
 git pull origin main
 ```
 
-Then reboot once so the old running HBLink bridge process is cleared and the new runtime starts clean.
-
-Only run:
+Run setup only when the release includes install/setup/system-level changes:
 
 ```bash
 sudo ./setup_alltune2.sh
 ```
-
-when the release specifically says setup/system-level changes are included.
