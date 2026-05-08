@@ -240,9 +240,25 @@ function enforce_dvswitch_link_mode(string $myNode, string $dvSwitchNode, string
         return;
     }
 
+    $requestedMode = normalize_autoload_dvswitch_mode($autoloadMode);
+    $previousMode = normalize_autoload_dvswitch_mode((string) ($_SESSION['dvswitch_active_mode'] ?? ''));
+
+    /*
+     * TGIF/HBLink is sensitive to unnecessary private-node reloads.
+     * If Transceive is requested and we were not previously in Local Monitor,
+     * leave the helper-created T1957 link alone.
+     *
+     * Still reload when:
+     * - Local Monitor is requested
+     * - switching back from Local Monitor to Transceive
+     */
+    if ($requestedMode === 'transceive' && $previousMode !== 'local_monitor') {
+        return;
+    }
+
     asterisk_ilink_disconnect($myNode, $dvSwitchNode);
     pause_seconds(0.5);
-    load_dvswitch_link($myNode, $dvSwitchNode, $autoloadMode);
+    load_dvswitch_link($myNode, $dvSwitchNode, $requestedMode);
     pause_seconds(0.5);
 }
 
