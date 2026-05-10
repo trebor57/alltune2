@@ -652,6 +652,14 @@ $activityLines[] = [
 
 
 <script>
+window.ALLTUNE2_AUTH = {
+    enabled: <?= $authEnabled ? 'true' : 'false' ?>,
+    loggedIn: <?= $authLoggedIn ? 'true' : 'false' ?>,
+    canWrite: <?= (!$authEnabled || $authLoggedIn) ? 'true' : 'false' ?>
+};
+</script>
+
+<script>
 (function () {
     const dtmfInput = document.getElementById('dtmf-code');
     const sendButton = document.getElementById('send-dtmf-button');
@@ -661,7 +669,8 @@ $activityLines[] = [
     }
 
     const syncDtmfUi = () => {
-        const hasValue = String(dtmfInput.value || '').trim() !== '';
+        const canWrite = !window.ALLTUNE2_AUTH || window.ALLTUNE2_AUTH.canWrite !== false;
+        const hasValue = canWrite && String(dtmfInput.value || '').trim() !== '';
         sendButton.disabled = !hasValue;
         sendButton.style.opacity = hasValue ? '1' : '0.45';
         sendButton.style.cursor = hasValue ? 'pointer' : 'not-allowed';
@@ -683,7 +692,8 @@ $activityLines[] = [
     }
 
     function syncDtmfUi() {
-        const hasValue = String(dtmfInput.value || '').trim() !== '';
+        const canWrite = !window.ALLTUNE2_AUTH || window.ALLTUNE2_AUTH.canWrite !== false;
+        const hasValue = canWrite && String(dtmfInput.value || '').trim() !== '';
 
         sendButton.disabled = !hasValue;
         sendButton.style.opacity = hasValue ? '1' : '0.38';

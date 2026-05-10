@@ -34,6 +34,11 @@
             direct: '/alltune2/api/direct_link.php',
             favorites: '/alltune2/api/favorites.php',
         },
+        auth: {
+            enabled: !!window.ALLTUNE2_AUTH?.enabled,
+            loggedIn: !!window.ALLTUNE2_AUTH?.loggedIn,
+            canWrite: window.ALLTUNE2_AUTH?.canWrite !== false,
+        },
     };
 
     const els = {
@@ -1046,6 +1051,14 @@
             : 'IDLE - NO CONNECTIONS';
     }
 
+    function authAllowsActions() {
+        return !state.auth.enabled || state.auth.loggedIn || state.auth.canWrite;
+    }
+
+    function loginRequiredMessage() {
+        return 'LOGIN REQUIRED - SIGN IN TO CONTROL ALLTUNE2';
+    }
+
     function sanitizeDtmf(value) {
         return String(value || '')
             .replace(/[^0-9*#]/g, '')
@@ -1061,7 +1074,7 @@
             return;
         }
 
-        const enabled = !state.busy && currentDtmfValue() !== '';
+        const enabled = authAllowsActions() && !state.busy && currentDtmfValue() !== '';
         els.sendDtmfButton.disabled = !enabled;
         els.sendDtmfButton.style.opacity = enabled ? '1' : '0.55';
         els.sendDtmfButton.style.cursor = enabled ? 'pointer' : 'not-allowed';
@@ -1419,6 +1432,16 @@
 
     function updateButtonsFromStatus(statusText) {
         if (state.busy) {
+            return;
+        }
+
+        if (!authAllowsActions()) {
+            setButtonVisualState(els.connectButton, false);
+            setButtonVisualState(els.disconnectButton, false);
+            setButtonVisualState(els.disconnectAllButton, false);
+            setButtonVisualState(els.disconnectDvSwitchButton, false);
+            setButtonVisualState(els.saveFavoriteButton, false);
+            updateDtmfButtonState();
             return;
         }
 
@@ -2309,11 +2332,26 @@
             ...options,
         });
 
-        if (!response.ok) {
-            throw new Error(`Request failed with status ${response.status}`);
+        const text = await response.text();
+        let payload = {};
+
+        if (text !== '') {
+            try {
+                payload = JSON.parse(text);
+            } catch (error) {
+                payload = { ok: false, message: text };
+            }
         }
 
-        return response.json();
+        if (!response.ok) {
+            const message = payload?.message || `Request failed with status ${response.status}`;
+            const error = new Error(message);
+            error.status = response.status;
+            error.payload = payload;
+            throw error;
+        }
+
+        return payload;
     }
 
     async function loadStatus() {
@@ -2372,6 +2410,13 @@
             !els.autoloadModeSelect ||
             !els.disconnectBeforeConnectCheckbox
         ) {
+            return;
+        }
+
+        if (!authAllowsActions()) {
+            setSystemStatus(loginRequiredMessage());
+            updateActivityValue('Current Status', loginRequiredMessage());
+            updateButtonsFromStatus(currentStatusText());
             return;
         }
 
@@ -2461,8 +2506,9 @@
             }
         } catch (error) {
             console.error(error);
-            setSystemStatus('ERROR: REQUEST FAILED');
-            updateActivityValue('Current Status', 'ERROR: REQUEST FAILED');
+            const message = error?.payload?.auth_required ? loginRequiredMessage() : 'ERROR: REQUEST FAILED';
+            setSystemStatus(message);
+            updateActivityValue('Current Status', message);
         } finally {
             if (!busyReleasedEarly) {
                 setBusy(false);
@@ -2721,6 +2767,17 @@
             return;
         }
 
+        if (!authAllowsActions()) {
+            setSystemStatus(loginRequiredMessage());
+            updateActivityValue('Current Status', loginRequiredMessage());
+            return;
+        }
+
+        if (!authAllowsActions()) {
+            setSaveFavoriteMessage(loginRequiredMessage(), 'error');
+            return;
+        }
+
         const target = String(els.targetInput.value || '').trim();
         const mode = normalizeMode(els.modeSelect.value || 'BM');
 
@@ -2839,7 +2896,8 @@
             }, 650);
         } catch (error) {
             console.error(error);
-            setSaveFavoriteMessage(error.message || 'Unable to save favorite.', 'error');
+            const message = error?.payload?.auth_required ? loginRequiredMessage() : (error.message || 'Unable to save favorite.');
+            setSaveFavoriteMessage(message, 'error');
         } finally {
             els.saveFavoriteSubmit.disabled = false;
         }

@@ -4,10 +4,16 @@ declare(strict_types=1);
 session_start();
 
 require_once dirname(__DIR__) . '/app/Support/Config.php';
+require_once dirname(__DIR__) . '/app/Support/AppAuth.php';
 
+use App\Support\AppAuth;
 use App\Support\Config;
 
 $config = new Config(dirname(__DIR__) . '/config.ini');
+$auth = new AppAuth($config);
+$authEnabled = $auth->isEnabled();
+$authLoggedIn = $auth->isLoggedIn();
+$authCanWrite = !$authEnabled || $authLoggedIn;
 $myNode = trim((string) $config->get('MYNODE', ''));
 $nodeStatsUrl = $myNode !== ''
     ? 'https://stats.allstarlink.org/stats/' . rawurlencode($myNode)
@@ -238,7 +244,10 @@ $favorites = load_favorites($favoritesPath);
 $message = '';
 $messageType = 'info';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$authCanWrite) {
+    $message = 'Login required to change favorites.';
+    $messageType = 'error';
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = trim((string) ($_POST['action'] ?? ''));
 
     if ($action === 'save') {
@@ -338,6 +347,14 @@ if (isset($_GET['removed'])) {
 $editFavorite = null;
 $editId = trim((string) ($_GET['edit'] ?? ''));
 
+if ($editId !== '' && !$authCanWrite) {
+    $editId = '';
+    if ($message === '') {
+        $message = 'Login required to edit favorites.';
+        $messageType = 'error';
+    }
+}
+
 if ($editId !== '') {
     foreach ($favorites as $favorite) {
         if ((string) $favorite['id'] === $editId) {
@@ -351,6 +368,8 @@ $formTarget = $editFavorite['target'] ?? '';
 $formName = $editFavorite['name'] ?? '';
 $formDescription = $editFavorite['description'] ?? '';
 $formMode = $editFavorite['mode'] ?? 'BM';
+$formDisabled = $authCanWrite ? '' : ' disabled';
+$viewOnlyNote = $authCanWrite ? '' : 'Favorites are view-only until you log in.';
 
 $modeOptions = [
     'BM' => 'BrandMeister',
@@ -771,6 +790,18 @@ $navItems = [
                 </a>
             <?php endforeach; ?>
         </nav>
+
+        <div class="auth-status" aria-label="Authentication status">
+            <?php if (!$authEnabled): ?>
+                <span class="auth-pill auth-pill-normal">Normal Mode</span>
+            <?php elseif ($authLoggedIn): ?>
+                <span class="auth-pill auth-pill-signed-in">Signed In</span>
+                <a class="auth-link" href="/alltune2/public/logout.php">Logout</a>
+            <?php else: ?>
+                <span class="auth-pill auth-pill-view-only">View Only</span>
+                <a class="auth-link" href="/alltune2/public/login.php">Login</a>
+            <?php endif; ?>
+        </div>
     </header>
 
     <main class="favorites-page-stack">
@@ -786,6 +817,10 @@ $navItems = [
                 <span class="meta-line">Shared favorites.txt</span>
             </div>
             <div class="card-body">
+                <?php if ($viewOnlyNote !== ''): ?>
+                    <div class="favorites-note"><?= e($viewOnlyNote) ?></div>
+                <?php endif; ?>
+
                 <form method="post">
                     <input type="hidden" name="action" value="save">
                     <input type="hidden" name="edit_id" value="<?= e($editFavorite['id'] ?? '') ?>">
@@ -797,7 +832,7 @@ $navItems = [
                             name="target"
                             placeholder="TG / Node / YSF / Digital target"
                             value="<?= e($formTarget) ?>"
-                            required
+                            required<?= $formDisabled ?>
                         >
 
                         <input
@@ -805,7 +840,7 @@ $navItems = [
                             type="text"
                             name="name"
                             placeholder="Station Name"
-                            value="<?= e($formName) ?>"
+                            value="<?= e($formName) ?>"<?= $formDisabled ?>
                         >
 
                         <input
@@ -813,10 +848,10 @@ $navItems = [
                             type="text"
                             name="description"
                             placeholder="Description"
-                            value="<?= e($formDescription) ?>"
+                            value="<?= e($formDescription) ?>"<?= $formDisabled ?>
                         >
 
-                        <select class="control" name="mode">
+                        <select class="control" name="mode"<?= $formDisabled ?>>
                             <?php foreach ($modeOptions as $value => $label): ?>
                                 <option value="<?= e($value) ?>" <?= $formMode === $value ? 'selected' : '' ?>>
                                     <?= e($label) ?>
@@ -824,7 +859,7 @@ $navItems = [
                             <?php endforeach; ?>
                         </select>
 
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-primary"<?= $formDisabled ?>>
                             <?= $editFavorite ? 'Save Changes' : 'Save Favorite' ?>
                         </button>
                     </div>
@@ -843,7 +878,7 @@ $navItems = [
                     <input type="hidden" name="action" value="remove_selected">
 
                     <div class="toolbar-row">
-                        <button type="submit" class="btn btn-danger">Remove Selected</button>
+                        <button type="submit" class="btn btn-danger"<?= $formDisabled ?>>Remove Selected</button>
                     </div>
 
                     <div class="favorites-manage-table-wrap">
@@ -867,7 +902,7 @@ $navItems = [
                                 <?php foreach ($favorites as $favorite): ?>
                                     <tr data-mode="<?= e((string) $favorite['mode']) ?>">
                                         <td>
-                                            <input type="checkbox" name="remove_ids[]" value="<?= e($favorite['id']) ?>">
+                                            <input type="checkbox" name="remove_ids[]" value="<?= e($favorite['id']) ?>"<?= $formDisabled ?>>
                                         </td>
                                         <td class="favorite-target"><?= e($favorite['target']) ?></td>
                                         <td class="favorite-name"><?= e($favorite['name']) ?></td>
@@ -876,9 +911,13 @@ $navItems = [
                                             <span class="favorite-mode-badge"><?= e(mode_display_label((string) $favorite['mode'])) ?></span>
                                         </td>
                                         <td>
-                                            <a class="edit-link" href="/alltune2/public/favorites.php?edit=<?= e($favorite['id']) ?>">
-                                                Edit
-                                            </a>
+                                            <?php if ($authCanWrite): ?>
+                                                <a class="edit-link" href="/alltune2/public/favorites.php?edit=<?= e($favorite['id']) ?>">
+                                                    Edit
+                                                </a>
+                                            <?php else: ?>
+                                                <span class="edit-link disabled">View</span>
+                                            <?php endif; ?>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
