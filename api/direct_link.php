@@ -4,12 +4,16 @@ declare(strict_types=1);
 session_start();
 
 require_once dirname(__DIR__) . '/app/Support/Config.php';
+require_once dirname(__DIR__) . '/app/Support/AppAuth.php';
+require_once dirname(__DIR__) . '/app/Support/ApiAuthGuard.php';
 
+use App\Support\ApiAuthGuard;
 use App\Support\Config;
 
 header('Content-Type: application/json; charset=UTF-8');
 
 $config = new Config(dirname(__DIR__) . '/config.ini');
+ApiAuthGuard::requireLoginIfEnabled($config);
 
 function respond(array $payload, int $statusCode = 200): never
 {

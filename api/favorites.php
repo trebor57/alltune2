@@ -3,8 +3,14 @@ declare(strict_types=1);
 
 session_start();
 
+require_once dirname(__DIR__) . '/app/Support/Config.php';
+require_once dirname(__DIR__) . '/app/Support/AppAuth.php';
+require_once dirname(__DIR__) . '/app/Support/ApiAuthGuard.php';
+
 header('Content-Type: application/json; charset=UTF-8');
 header('Cache-Control: no-store');
+
+$config = new \App\Support\Config(dirname(__DIR__) . '/config.ini');
 
 $dataDir = dirname(__DIR__) . '/data';
 $favoritesPath = $dataDir . '/favorites.txt';
@@ -130,6 +136,10 @@ if (!is_file($favoritesPath) && file_put_contents($favoritesPath, '', LOCK_EX) =
         'ok' => false,
         'message' => 'Unable to create favorites.txt.',
     ], 500);
+}
+
+if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+    \App\Support\ApiAuthGuard::requireLoginIfEnabled($config);
 }
 
 $favorites = load_favorites_file($favoritesPath);

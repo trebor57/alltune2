@@ -4,12 +4,16 @@ declare(strict_types=1);
 session_start();
 
 require_once dirname(__DIR__) . '/app/Support/Config.php';
+require_once dirname(__DIR__) . '/app/Support/AppAuth.php';
+require_once dirname(__DIR__) . '/app/Support/ApiAuthGuard.php';
 
+use App\Support\ApiAuthGuard;
 use App\Support\Config;
 
 header('Content-Type: application/json');
 
 $config = new Config(dirname(__DIR__) . '/config.ini');
+ApiAuthGuard::requireLoginIfEnabled($config);
 
 $GLOBALS['bm_receive_status_cache'] = null;
 $GLOBALS['hblink_tgif_status_cache'] = null;
