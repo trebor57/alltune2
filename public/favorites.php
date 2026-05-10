@@ -6,6 +6,7 @@ require_once dirname(__DIR__) . '/app/Support/AppSession.php';
 
 require_once dirname(__DIR__) . '/app/Support/Config.php';
 require_once dirname(__DIR__) . '/app/Support/AppAuth.php';
+require_once dirname(__DIR__) . '/app/Support/AppCsrf.php';
 
 use App\Support\AppAuth;
 use App\Support\Config;
@@ -247,6 +248,9 @@ $messageType = 'info';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$authCanWrite) {
     $message = 'Login required to change favorites.';
+    $messageType = 'error';
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && $authEnabled && !\App\Support\AppCsrf::validateRequest()) {
+    $message = 'Security check failed. Refresh the page and try again.';
     $messageType = 'error';
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = trim((string) ($_POST['action'] ?? ''));
@@ -823,6 +827,7 @@ $navItems = [
                 <?php endif; ?>
 
                 <form method="post">
+                    <?= \App\Support\AppCsrf::inputHtml() ?>
                     <input type="hidden" name="action" value="save">
                     <input type="hidden" name="edit_id" value="<?= e($editFavorite['id'] ?? '') ?>">
 
@@ -876,6 +881,7 @@ $navItems = [
             </div>
             <div class="card-body">
                 <form method="post">
+                    <?= \App\Support\AppCsrf::inputHtml() ?>
                     <input type="hidden" name="action" value="remove_selected">
 
                     <div class="toolbar-row">

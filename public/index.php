@@ -6,6 +6,7 @@ require_once dirname(__DIR__) . '/app/Support/AppSession.php';
 
 require_once dirname(__DIR__) . '/app/Support/Config.php';
 require_once dirname(__DIR__) . '/app/Support/AppAuth.php';
+require_once dirname(__DIR__) . '/app/Support/AppCsrf.php';
 
 use App\Support\AppAuth;
 use App\Support\Config;
@@ -656,7 +657,8 @@ $activityLines[] = [
 window.ALLTUNE2_AUTH = {
     enabled: <?= $authEnabled ? 'true' : 'false' ?>,
     loggedIn: <?= $authLoggedIn ? 'true' : 'false' ?>,
-    canWrite: <?= (!$authEnabled || $authLoggedIn) ? 'true' : 'false' ?>
+    canWrite: <?= (!$authEnabled || $authLoggedIn) ? 'true' : 'false' ?>,
+    csrfToken: <?= json_encode(\App\Support\AppCsrf::token()) ?>
 };
 </script>
 

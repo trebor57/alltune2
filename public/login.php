@@ -6,6 +6,7 @@ require_once dirname(__DIR__) . '/app/Support/AppSession.php';
 
 require_once dirname(__DIR__) . '/app/Support/Config.php';
 require_once dirname(__DIR__) . '/app/Support/AppAuth.php';
+require_once dirname(__DIR__) . '/app/Support/AppCsrf.php';
 
 use App\Support\AppAuth;
 use App\Support\Config;
@@ -28,7 +29,9 @@ if (!$auth->isEnabled()) {
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = (string) ($_POST['password'] ?? '');
 
-    if ($auth->login($password)) {
+    if (!\App\Support\AppCsrf::validateRequest()) {
+        $error = 'Security check failed. Refresh the page and try again.';
+    } elseif ($auth->login($password)) {
         header('Location: /alltune2/public/');
         exit;
     }
@@ -125,6 +128,7 @@ if (!$auth->isEnabled()) {
 
         <?php if ($auth->isEnabled() && !$auth->isLoggedIn()): ?>
             <form method="post" action="/alltune2/public/login.php">
+                <?= \App\Support\AppCsrf::inputHtml() ?>
                 <label for="password">Admin password</label>
                 <input id="password" name="password" type="password" autocomplete="current-password" required>
                 <button type="submit">Sign In</button>

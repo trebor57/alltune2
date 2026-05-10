@@ -38,6 +38,7 @@
             enabled: !!window.ALLTUNE2_AUTH?.enabled,
             loggedIn: !!window.ALLTUNE2_AUTH?.loggedIn,
             canWrite: window.ALLTUNE2_AUTH?.canWrite !== false,
+            csrfToken: String(window.ALLTUNE2_AUTH?.csrfToken || ''),
         },
     };
 
@@ -2323,13 +2324,20 @@
     }
 
     async function requestJson(url, options = {}) {
+        const method = String(options.method || 'GET').toUpperCase();
+        const headers = {
+            Accept: 'application/json',
+            ...(options.headers || {}),
+        };
+
+        if (method !== 'GET' && state.auth.csrfToken !== '') {
+            headers['X-CSRF-Token'] = state.auth.csrfToken;
+        }
+
         const response = await fetch(url, {
             credentials: 'same-origin',
-            headers: {
-                Accept: 'application/json',
-                ...(options.headers || {}),
-            },
             ...options,
+            headers,
         });
 
         const text = await response.text();
@@ -2506,7 +2514,9 @@
             }
         } catch (error) {
             console.error(error);
-            const message = error?.payload?.auth_required ? loginRequiredMessage() : 'ERROR: REQUEST FAILED';
+            const message = error?.payload?.auth_required
+                ? loginRequiredMessage()
+                : (error?.payload?.csrf_failed ? 'SECURITY CHECK FAILED - REFRESH AND TRY AGAIN' : 'ERROR: REQUEST FAILED');
             setSystemStatus(message);
             updateActivityValue('Current Status', message);
         } finally {
