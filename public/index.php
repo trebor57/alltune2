@@ -4,10 +4,15 @@ declare(strict_types=1);
 session_start();
 
 require_once dirname(__DIR__) . '/app/Support/Config.php';
+require_once dirname(__DIR__) . '/app/Support/AppAuth.php';
 
+use App\Support\AppAuth;
 use App\Support\Config;
 
 $config = new Config(dirname(__DIR__) . '/config.ini');
+$auth = new AppAuth($config);
+$authEnabled = $auth->isEnabled();
+$authLoggedIn = $auth->isLoggedIn();
 
 function e(mixed $value): string
 {
@@ -231,6 +236,18 @@ $activityLines[] = [
                 </a>
             <?php endforeach; ?>
         </nav>
+
+        <div class="auth-status" aria-label="Authentication status">
+            <?php if (!$authEnabled): ?>
+                <span class="auth-pill auth-pill-normal">Normal Mode</span>
+            <?php elseif ($authLoggedIn): ?>
+                <span class="auth-pill auth-pill-signed-in">Signed In</span>
+                <a class="auth-link" href="/alltune2/public/logout.php">Logout</a>
+            <?php else: ?>
+                <span class="auth-pill auth-pill-view-only">View Only</span>
+                <a class="auth-link" href="/alltune2/public/login.php">Login</a>
+            <?php endif; ?>
+        </div>
     </header>
 
     <?php require __DIR__ . '/alltune2_ribbon_bar.php'; ?>
