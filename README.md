@@ -807,14 +807,56 @@ sudo /var/www/html/alltune2/setup_alltune2.sh --disable-auth
 
 Make sure you are browsing to the same hostname used by the certificate.
 
-Check the certificate:
+For example, if your AllTune2 address is:
+
+```text
+https://kc3kmv.mywire.org/alltune2/public/
+```
+
+then the hostname is:
+
+```text
+kc3kmv.mywire.org
+```
+
+Check the certificate with `openssl`.
+
+For the example above, you would run:
 
 ```bash
-openssl s_client -connect your-hostname:443 -servername your-hostname </dev/null 2>/dev/null \
+openssl s_client -connect kc3kmv.mywire.org:443 -servername kc3kmv.mywire.org </dev/null 2>/dev/null \
   | openssl x509 -noout -subject -issuer -dates -ext subjectAltName
 ```
 
-If the certificate says `node.local`, `node67040.local`, or `snakeoil`, Apache is still serving a self-signed certificate.
+For your own system, replace `kc3kmv.mywire.org` with the real DDNS/domain name you use in the browser.
+
+Example:
+
+If your browser address is:
+
+```text
+https://my-node.ddns.net/alltune2/public/
+```
+
+then run:
+
+```bash
+openssl s_client -connect my-node.ddns.net:443 -servername my-node.ddns.net </dev/null 2>/dev/null \
+  | openssl x509 -noout -subject -issuer -dates -ext subjectAltName
+```
+
+What you want to see is something like:
+
+```text
+subject=CN=my-node.ddns.net
+issuer=Let's Encrypt
+X509v3 Subject Alternative Name:
+    DNS:my-node.ddns.net
+```
+
+If the certificate says `node.local`, `node67040.local`, or `snakeoil`, Apache is still serving a self-signed certificate and the browser will show a warning.
+
+If the certificate says your router brand name, such as `linksyssmartwifi.com`, your router is probably answering ports 80/443 instead of forwarding them to the node.
 
 Use a DDNS/domain hostname with a trusted certificate, or use Tailscale/VPN.
 
