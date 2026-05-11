@@ -2,9 +2,11 @@
 
 ## One Dashboard. All Your Networks.
 
-AllTune2 is a modern web dashboard for controlling and monitoring an ASL3 / DVSwitch node.
+✅ Optimized for Debian 12 & 13 on 64-bit ARM, including Raspberry Pi 4 and Raspberry Pi 5.
 
-It brings common radio network controls into one clean interface:
+AllTune2 is a modern control panel for **AllStarLink 3 + DVSwitch**.
+
+It gives you one place to work with:
 
 - BrandMeister
 - TGIF
@@ -14,241 +16,256 @@ It brings common radio network controls into one clean interface:
 - NXDN
 - AllStarLink
 - EchoLink
+- Local Monitor
+- Transceive
+- Favorites
+- Live status and activity
+- Audio alerts
 
-AllTune2 is designed to keep the radio side reliable while giving the operator a simple browser-based control panel for changing talkgroups, connecting nodes, managing favorites, viewing live activity, and safely controlling DVSwitch/ASL-related actions.
-
----
-
-## ✨ What AllTune2 Can Do
-
-AllTune2 provides:
-
-- One dashboard for multiple digital and analog network paths
-- BrandMeister control through the AllTune2 local BM/STFU-style helper
-- TGIF control through the AllTune2 local HBLink helper
-- YSF, D-Star, P25, and NXDN DVSwitch control
-- Direct AllStarLink and EchoLink connection handling
-- Saved favorites
-- Manual TG / node / target entry
-- Local Monitor and Transceive link mode support
-- Live Status display
-- Gateway and local activity display
-- DTMF send controls
-- Optional web login with read-only logged-out dashboard behavior
-- Apache hardening for config/runtime/private files
-- Installer support for setup, update, web login password changes, and disabling auth
+Simple. Clean. Powerful.
 
 ---
 
-## 🆕 Version 1.21.0 — Optional Web Login and Read-Only Dashboard Security
+## ✨ WHAT ALLTUNE2 CAN DO
 
-Version 1.21.0 adds optional web login and read-only dashboard protection.
+AllTune2 is meant to be a one-screen radio control center.
 
-When web login is enabled:
+With it, you can:
 
-- Logged-out users can view the dashboard, live status, and saved favorites.
-- Logged-out users cannot connect, disconnect, send DTMF, save favorites, edit favorites, remove favorites, or change Control Center settings.
-- The Control Center is disabled while logged out.
-- Live Status disconnect buttons are disabled while logged out.
-- Dashboard favorites are visible but view-only while logged out.
-- The Favorites management page can be viewed while logged out, but add/edit/remove actions require login.
-- API write actions are protected.
-- CSRF protection is used for authenticated write actions.
-- Session cookies use hardened settings.
-- HTTPS-aware session handling is included.
+- connect to BrandMeister talkgroups
+- connect to TGIF talkgroups
+- connect to YSF rooms / reflectors
+- connect to D-Star, P25, and NXDN when those modes are enabled and already working on your system
+- connect to AllStarLink nodes
+- connect to EchoLink nodes
+- use Local Monitor or Transceive
+- save and load Favorites
+- save a new Favorite directly from the dashboard
+- use manual entry
+- watch live status and activity
+- use spoken audio alerts for connects and disconnects
 
-When web login is disabled, AllTune2 works like the normal dashboard.
+AllTune2 does not replace ASL3, DVSwitch, Analog_Bridge, or MMDVM_Bridge. It controls them from one cleaner dashboard.
 
 ---
 
-## ⚠️ Before You Install
+## 🆕 RECENT UI AND CONTROL IMPROVEMENTS
 
-AllTune2 is intended for systems already running ASL3 / DVSwitch.
+Recent versions added several important improvements:
 
-You should already have your node and DVSwitch stack basically working before installing AllTune2.
+- redesigned Control Center layout
+- cleaner top navigation buttons
+- dashboard **Save Favorite** button
+- Save Favorite popup for manual entries
+- existing Favorite detection by target + mode
+- improved Saved Favorites stability
+- Live Status connected-node cards
+- Disconnect DVSwitch button in Live Status
+- better Local Monitor / Transceive handling for managed DVSwitch modes
+- spoken connect/disconnect alerts for managed modes, including D-Star
+- optional web login with View Only / Signed In behavior
+- disabled Control Center controls while logged out
+- read-only Favorites and Live Status controls while logged out
+- setup commands to set/change or disable the web login password
+- Apache security hardening from the installer
+
+The dashboard is designed so you can pick a network, enter or load a target, choose Local Monitor or Transceive, and press **Connect**.
+
+---
+
+## ⚠️ BEFORE YOU INSTALL
+
+You must already have a working ASL3 / DVSwitch system.
 
 You need:
 
-- ASL3 / Asterisk
-- DVSwitch
-- Apache with PHP
-- sudo access
-- access to `/var/www/html`
-- a working node number
-- a private DVSwitch node number
-- valid BrandMeister and/or TGIF values if you use those modes
+- Working AllStarLink 3
+- Working DVSwitch
+- Analog_Bridge installed and running
+- MMDVM_Bridge installed and running
 
-AllTune2 does not replace ASL3, DVSwitch, MMDVM_Bridge, Analog_Bridge, P25Gateway, NXDNGateway, or D-Star Gateway. It controls and monitors the installed system.
+Optional modes such as D-Star, P25, and NXDN should already be working in your base DVSwitch setup before enabling them in AllTune2.
+
+If your base node is broken, fix that first. AllTune2 is a control panel, not a repair tool for a broken ASL3 / DVSwitch install.
 
 ---
 
-## 📥 Install First Time
+## 📥 INSTALL FIRST TIME
 
-Clone the repository:
+Use this only for a brand-new install:
 
 ```bash
 cd /var/www/html
-sudo git clone https://github.com/TerryClaiborne/alltune2.git
+git clone https://github.com/TerryClaiborne/alltune2.git
+cd alltune2
+sudo ./setup_alltune2.sh
 ```
 
-Run setup:
+The installer may take a little while during dependency checks or TGIF/HBLink setup, especially on slower hardware. Wait for the final setup summary before assuming it is stuck.
 
-```bash
-sudo /var/www/html/alltune2/setup_alltune2.sh
-```
+### What setup does
 
-Then edit the required config files before using the dashboard.
+The setup script helps with:
+
+- permissions
+- sudoers rules
+- TGIF/HBLink Python environment
+- config examples
+- preserving existing local config files
+- helper permissions
+- log rotation
+- Apache security hardening
+
+The setup script preserves your local config files when they already exist.
 
 ---
 
-### What Setup Does
+## 🔁 UPDATE / REINSTALL / REBOOT
 
-The setup script:
+### Normal code update
 
-- creates needed directories
-- creates `config.ini` if missing
-- creates `config.ini.example` if missing
-- creates `data/favorites.txt` if missing
-- preserves existing `config.ini`
-- preserves existing `favorites.txt`
-- preserves existing TGIF/HBLink config files
-- applies correct permissions
-- installs/validates sudoers rules
-- installs Apache hardening rules
-- checks PHP, shell, and Python syntax
-- checks required files
-- checks TGIF/HBLink helper files
-- builds/checks the TGIF/HBLink Python venv when needed
-- does not overwrite external DVSwitch config files
-
-Normal setup/update does **not** ask for a web login password and does **not** change existing web login settings.
-
----
-
-## 🔁 Update / Reinstall / Reboot
-
-### Normal Code Update
-
-Use this when updating an existing Git checkout:
+For most updates:
 
 ```bash
 cd /var/www/html/alltune2
-sudo git pull origin main
-sudo /var/www/html/alltune2/setup_alltune2.sh
+git pull origin main
 ```
 
-Normal setup/update preserves:
+### Update that needs setup
 
-- `config.ini`
-- `data/favorites.txt`
-- `tgif-hblink/hblink.cfg`
-- TGIF/HBLink runtime identity files
-- existing web login settings
-- existing web login password hash
-
----
-
-### Reboot When Needed
-
-If services act stale after a major update:
+Run setup after pulling when the update includes installer, permissions, sudoers, Apache security, or other system-level changes:
 
 ```bash
-sudo reboot
+cd /var/www/html/alltune2
+git pull origin main
+sudo ./setup_alltune2.sh
 ```
 
-After reboot, open the dashboard again and test the modes you use.
+### Reboot when needed
+
+A reboot is recommended after updates that affect long-running runtime pieces such as TGIF/HBLink.
+
+Do **not** assume every update needs setup. Many updates only need `git pull`.
 
 ---
 
-## ✏️ Files You Must Edit
+## ✏️ FILES YOU MUST EDIT
 
-### Main Config
+### 1. Main config
 
 Edit:
 
-```bash
-sudo nano /var/www/html/alltune2/config.ini
+```text
+/var/www/html/alltune2/config.ini
 ```
 
-Main values:
+Example:
 
 ```ini
 MYNODE="YOUR NODE"
 DVSWITCH_NODE="YOUR DVSWITCH NODE"
 BM_SelfcarePassword="CHANGE_ME"
 TGIF_HotspotSecurityKey="CHANGE_ME"
-```
-
-Optional web login values:
-
-```ini
+DSTAR_ENABLED=0
+P25_ENABLED=0
+NXDN_ENABLED=0
 ALLTUNE2_AUTH_ENABLED=0
 ALLTUNE2_ADMIN_USER="admin"
 ALLTUNE2_ADMIN_PASSWORD_HASH=""
 ```
 
-Do not commit your real `config.ini` to GitHub.
+### Main config values
 
----
+**MYNODE**  
+Your main AllStar node number.
 
-### Main Config Values
+**DVSWITCH_NODE**  
+Your private DVSwitch audio node. Many systems use `1999` or `1998`, but use whatever your system is actually configured to use.
 
-**MYNODE**
-
-Your main ASL node number.
-
-Example:
-
-```ini
-MYNODE="67040"
-```
-
-**DVSWITCH_NODE**
-
-Your private local DVSwitch node used for the AllTune2 audio/control path.
-
-Example:
-
-```ini
-DVSWITCH_NODE="1957"
-```
-
-**BM_SelfcarePassword**
-
+**BM_SelfcarePassword**  
 Your BrandMeister SelfCare password.
 
-**TGIF_HotspotSecurityKey**
+**TGIF_HotspotSecurityKey**  
+Your TGIF Hotspot Security Key. This is **not** your TGIF website login password.
 
-Your TGIF hotspot security key.
+**DSTAR_ENABLED**  
+Set to `1` only if D-Star already works on your ASL3 / DVSwitch system.
 
-This is **not** your TGIF website login password.
+**P25_ENABLED** and **NXDN_ENABLED**  
+Set these to `1` only if those modes already work on your ASL3 / DVSwitch system.
+
+Leave optional modes disabled if you do not use them:
+
+```ini
+DSTAR_ENABLED=0
+P25_ENABLED=0
+NXDN_ENABLED=0
+```
+
+**ALLTUNE2_AUTH_ENABLED**  
+Optional web login switch.
+
+Use `0` for normal/no-login behavior.
+
+Use `1` to require login before control actions are allowed.
+
+**ALLTUNE2_ADMIN_USER**  
+The single built-in admin username. Leave this as `admin`.
+
+**ALLTUNE2_ADMIN_PASSWORD_HASH**  
+The saved web-login password hash. Do not type a plain password here.
+
+Use the setup command below to create or change this hash safely.
 
 ---
 
-## 🔐 Optional Web Login
+## 🔐 OPTIONAL WEB LOGIN
 
-AllTune2 can run in two ways:
+AllTune2 can run in normal mode or optional web-login mode.
 
-1. **No Login / Normal mode**
-2. **Web Login enabled**
+### No Login / Normal mode
 
-Web login is optional.
-
-By default, new installs should start with login disabled:
+When this is set:
 
 ```ini
 ALLTUNE2_AUTH_ENABLED=0
 ```
 
-When login is disabled, AllTune2 works like the normal dashboard.
+AllTune2 behaves like the normal dashboard. Controls are available without signing in.
 
-When login is enabled, the dashboard becomes read-only until you sign in.
+### View Only mode
 
----
+When this is set:
 
-## 🔑 Web Login Setup Commands
+```ini
+ALLTUNE2_AUTH_ENABLED=1
+```
 
-### Set or Change the Web Login Password
+and you are not signed in, AllTune2 shows **View Only** mode.
+
+In View Only mode:
+
+- dashboard status still loads
+- saved Favorites are still visible
+- Control Center controls are disabled
+- Live Status disconnect buttons are disabled
+- dashboard Favorites are view-only
+- Favorites page add/edit/remove actions are blocked
+- connect, disconnect, DTMF, save, edit, and remove actions require login
+
+### Login / Sign In
+
+Click **Login** on the dashboard.
+
+Enter the single admin password.
+
+After login, AllTune2 shows the signed-in/admin state and the controls are available.
+
+### Logout
+
+Click **Logout** to return the dashboard to View Only mode.
+
+### Set or change the web login password
 
 Run:
 
@@ -256,36 +273,15 @@ Run:
 sudo /var/www/html/alltune2/setup_alltune2.sh --set-admin-password
 ```
 
-This asks for:
+The setup script asks for the new password and confirmation.
 
-```text
-New admin password:
-Confirm admin password:
-```
+It creates the password hash automatically.
 
-The setup script creates the password hash automatically.
+The plain password is not stored.
 
-You do **not** manually create the hash.
+Users do **not** need to manually generate password hashes.
 
-The plain password is **not** stored.
-
-The saved hash is written to:
-
-```ini
-ALLTUNE2_ADMIN_PASSWORD_HASH="..."
-```
-
-Web login is enabled automatically:
-
-```ini
-ALLTUNE2_AUTH_ENABLED=1
-```
-
-If you press Enter with no password, no changes are made. To turn login off, use `--disable-auth` instead.
-
----
-
-### Disable Web Login
+### Disable web login
 
 Run:
 
@@ -299,304 +295,83 @@ This sets:
 ALLTUNE2_AUTH_ENABLED=0
 ```
 
-The existing saved password hash is kept.
+The saved password hash is kept. If you later set `ALLTUNE2_AUTH_ENABLED=1`, the old saved password can still work.
 
-That means you can later set:
+### Normal setup does not change the web password
 
-```ini
-ALLTUNE2_AUTH_ENABLED=1
-```
-
-and the old saved password will work again.
-
-You can also run `--set-admin-password` later to set a new password.
-
----
-
-### Normal Setup/Update Does Not Change the Password
-
-This command:
+This normal setup command:
 
 ```bash
 sudo /var/www/html/alltune2/setup_alltune2.sh
 ```
 
-does **not** ask for a web login password.
-
-It does **not** reset the password.
-
-It does **not** enable or disable login.
-
-It preserves the current web login settings.
+will not ask for a web password and will not reset the saved web-login password.
 
 ---
 
-## 👤 Web Login User States
+## 🟢 TGIF CONFIG
 
-### No Login / Normal
-
-Shown when:
-
-```ini
-ALLTUNE2_AUTH_ENABLED=0
-```
-
-Behavior:
-
-- dashboard works normally
-- controls are available
-- no login is required
-- same behavior as traditional AllTune2 operation
-
----
-
-### View Only
-
-Shown when web login is enabled and you are not signed in.
-
-Behavior:
-
-- dashboard loads
-- live status loads
-- saved favorites are visible
-- Favorites page can be viewed
-- Control Center is disabled
-- favorites are view-only
-- Live Status disconnect buttons are disabled
-- connect/disconnect actions are blocked
-- DTMF send is blocked
-- save/edit/delete favorites are blocked
-
-This lets someone view status without being able to control the node.
-
----
-
-### Login / Sign In
-
-Click **Login** from the dashboard.
-
-The password box should be active automatically.
-
-Enter the single admin password.
-
-AllTune2 uses one administrator login.
-
-It is not a multi-user account system.
-
----
-
-### Signed In / Admin
-
-Shown after successful login.
-
-Behavior:
-
-- Control Center works
-- connect/disconnect works
-- Live Status disconnect buttons work
-- DTMF send works
-- save favorites works
-- Favorites page add/edit/remove works
-
----
-
-### Logout
-
-Click **Logout** to end the control session.
-
-After logout, AllTune2 returns to View Only mode if web login is enabled.
-
----
-
-## 🔒 Password Hash Explanation
-
-AllTune2 does not store the plain password.
-
-When you run:
-
-```bash
-sudo /var/www/html/alltune2/setup_alltune2.sh --set-admin-password
-```
-
-the setup script creates a secure password hash and stores that hash in `config.ini`.
-
-Users do not need to run PHP commands to generate hashes manually.
-
-Do not put a plain password in `config.ini`.
-
-Do not share your password hash publicly.
-
-Do not commit `config.ini` to GitHub.
-
----
-
-## 🌐 HTTPS, DDNS, Tailscale, VPN, and Public Access
-
-### Recommended Safest Outside Access
-
-The safest way to access AllTune2 from outside your home network is:
-
-- Tailscale
-- VPN
-- another private tunnel you control
-
-This keeps the dashboard off the open public internet.
-
----
-
-### Public Browser Access
-
-If you want public browser access, use:
-
-- a real domain or DDNS hostname
-- router port forwarding for TCP 80 and TCP 443
-- Apache HTTPS
-- a trusted certificate such as Let’s Encrypt
-- AllTune2 web login enabled
-
-Example public URL:
+Edit:
 
 ```text
-https://yourname.example.org/alltune2/public/
+/var/www/html/alltune2/tgif-hblink/hblink.cfg
 ```
 
-Do not expose AllTune2 publicly without understanding the risk.
+Look in the `[REPEATER-1]` section.
 
-If you expose AllTune2 publicly, keep web login enabled.
+Example:
 
----
+```ini
+PASSPHRASE: your_tgif_key
+CALLSIGN: YOURCALL
+RADIO_ID: 330000812
+OPTIONS: StartRef=19750;RelinkTime=60
+```
 
-### DDNS and Let’s Encrypt
+### TGIF values
 
-DDNS gives your changing public IP address a hostname.
+**PASSPHRASE**  
+Your TGIF Hotspot Security Key.
+
+**CALLSIGN**  
+Your ham callsign.
+
+**RADIO_ID**  
+Usually your DMR / hotspot ID with a suffix. Many setups use the hotspot ID plus 1.
 
 Example:
 
 ```text
-yourname.ddns.example
+Your hotspot ID: 330000811
+Use:             330000812
 ```
 
-DDNS alone does **not** give trusted HTTPS.
+Do not guess this value. Use what is correct for your DVSwitch / TGIF setup.
 
-For trusted HTTPS, Apache must serve a certificate for the hostname you actually browse to.
+**OPTIONS**  
+Optional TGIF startup options, such as a startup talkgroup.
 
-A normal path is:
-
-```bash
-sudo apt-get install certbot python3-certbot-apache
-sudo certbot --apache -d yourname.example.org
-```
-
-Then test renewal:
-
-```bash
-sudo certbot renew --dry-run
-```
-
-Certbot normally installs a systemd timer to renew certificates automatically.
-
-Your router must keep ports 80 and 443 forwarded to the node for normal HTTP-01 renewal unless you use another certificate validation method.
-
----
-
-### Self-Signed / Snakeoil Certificate Warning
-
-Many ASL3/DVSwitch systems start with a self-signed Apache certificate.
-
-Browsers will warn about certificates such as:
+### Review this TGIF file too
 
 ```text
-node.local
-node67040.local
-ssl-cert-snakeoil
-```
-
-That warning is not fixed by AllTune2 code.
-
-It is fixed by using a trusted certificate for the hostname you actually browse to.
-
----
-
-### Public IP Warning
-
-Browsing directly to a raw public IP address, such as:
-
-```text
-https://73.x.x.x/alltune2/public/
-```
-
-will usually show certificate warnings unless you have a trusted certificate for that exact IP address.
-
-For most users, use a DDNS/domain hostname or Tailscale/VPN instead.
-
----
-
-### Reverse Proxy Note
-
-If HTTPS is terminated by a reverse proxy, the proxy should send:
-
-```text
-X-Forwarded-Proto: https
-```
-
-AllTune2 checks HTTPS/proxy headers so the session cookie can be marked secure when HTTPS is being used correctly.
-
----
-
-## 🟢 TGIF Config
-
-TGIF uses the AllTune2-local HBLink helper.
-
-Main TGIF directory:
-
-```bash
-/var/www/html/alltune2/tgif-hblink
-```
-
-Main TGIF config:
-
-```bash
-/var/www/html/alltune2/tgif-hblink/hblink.cfg
-```
-
-Example file:
-
-```bash
-/var/www/html/alltune2/tgif-hblink/hblink.cfg.example
-```
-
-If missing, setup creates needed example/runtime files where appropriate.
-
----
-
-### TGIF Values
-
-Review and set your TGIF/HBLink identity values carefully.
-
-TGIF/HBLink often needs both:
-
-- base DMR ID
-- hotspot/repeater-style suffixed radio ID
-
-If TGIF does not connect, review:
-
-```bash
-/var/www/html/alltune2/tgif-hblink/hblink.cfg
 /var/www/html/alltune2/tgif-hblink/MMDVM_Bridge.hblink.ini
-/opt/MMDVM_Bridge/DVSwitch.ini
-/opt/MMDVM_Bridge/MMDVM_Bridge.ini
-/opt/Analog_Bridge/Analog_Bridge.ini
 ```
+
+Make sure the callsign and ID match what your TGIF/HBLink setup needs.
+
+### Important TGIF note
+
+TGIF and BrandMeister are separate networks. A talkgroup number existing on TGIF does not automatically mean you will hear users who are connected through BrandMeister.
+
+Use BrandMeister in AllTune2 when you want the BrandMeister side. Use TGIF when you want the TGIF side.
 
 ---
 
-## 🟠 Optional D-Star / P25 / NXDN
+## 🟠 OPTIONAL D-STAR / P25 / NXDN
 
 D-Star, P25, and NXDN are optional.
 
-They must be enabled in `config.ini` if you use them.
-
-Example:
+Enable them in AllTune2 only if they already work in your base DVSwitch / MMDVM_Bridge setup.
 
 ```ini
 DSTAR_ENABLED=1
@@ -604,364 +379,343 @@ P25_ENABLED=1
 NXDN_ENABLED=1
 ```
 
-If they are not enabled/configured, AllTune2 will show them as unavailable or keep their controls disabled.
+If a mode is disabled or not configured, it will not be available in the main dropdown or Favorites. Its Live Status box may still appear, but it will stay idle.
+
+AllTune2 does not create your D-Star registration, P25 setup, NXDN setup, reflector setup, or base MMDVM_Bridge mode configuration. It controls those modes after your base system is already working.
 
 ---
 
-## 🚫 Do Not Edit These Unless You Know Why
+## 🚫 DO NOT EDIT THESE UNLESS YOU KNOW WHY
 
-Do not casually edit:
+These files belong to the underlying DVSwitch system:
 
-```bash
-/opt/MMDVM_Bridge/MMDVM_Bridge.ini
-/opt/MMDVM_Bridge/DVSwitch.ini
-/opt/Analog_Bridge/Analog_Bridge.ini
-```
+- `/opt/MMDVM_Bridge/DVSwitch.ini`
+- `/opt/MMDVM_Bridge/MMDVM_Bridge.ini`
+- `/opt/Analog_Bridge/Analog_Bridge.ini`
 
-AllTune2 setup does not overwrite these files.
-
-Only change them when you understand the DVSwitch side.
+If those files are wrong, AllTune2 may not work correctly.
 
 ---
 
-## 🌐 Open AllTune2 in Your Browser
+## 🌐 OPEN ALLTUNE2 IN YOUR BROWSER
 
-Local/LAN example:
+Example:
 
 ```text
-http://node-ip/alltune2/public/
+http://192.168.1.120/alltune2/public/
 ```
 
-HTTPS/DDNS example:
+The full path also works:
+
+```text
+http://192.168.1.120/alltune2/public/index.php
+```
+
+Replace `192.168.1.120` with your node IP address or hostname.
+
+### HTTPS and outside access
+
+For local LAN use, normal HTTP may be enough.
+
+For outside access, the safest recommendation is still **Tailscale** or another VPN/private tunnel.
+
+If you want public browser access, use:
+
+- a real hostname or DDNS name
+- router forwarding for TCP 80 and 443
+- Apache HTTPS
+- a trusted certificate such as Let's Encrypt
+- AllTune2 web login enabled
+
+Example:
 
 ```text
 https://your-ddns-name/alltune2/public/
 ```
 
-If web login is enabled and you are logged out, you will see View Only mode.
+DDNS gives you a hostname. It does **not** automatically give you trusted HTTPS.
 
-Click **Login** to sign in.
+A self-signed or snakeoil certificate will still show browser warnings. That is fixed by installing a trusted certificate for the hostname you actually use.
+
+Raw public-IP HTTPS is not recommended for normal users because browsers will usually show certificate warnings unless the certificate is valid for that exact IP address.
 
 ---
 
-## 🖥️ How to Use AllTune2
+## 🖥️ HOW TO USE ALLTUNE2
+
+Basic use:
+
+- choose the network or mode
+- choose Local Monitor or Transceive if needed
+- enter a target or choose a Favorite
+- press **Connect**
+- watch Live Status and Activity
+- press **Disconnect**, **Disconnect DVSwitch**, or **Disconnect All** when needed
 
 ### Control Center
 
-Use the Control Center to:
+The Control Center is where you select the network, target, and Link Mode.
 
-- enter a TG / node / target
-- choose a mode
-- choose Link Mode
-- connect
-- disconnect
-- disconnect DVSwitch
-- disconnect all
-- send DTMF
-- save a manual entry as a favorite
+The Link Mode dropdown controls how the private DVSwitch audio node is linked:
 
-If web login is enabled and you are logged out, the Control Center is disabled.
+- **Local Monitor** for monitoring/listening use
+- **Transceive** for normal radio-side transmit/receive use
+
+AllTune2 now re-applies the selected Link Mode when changing between supported managed modes, so you should not normally have to press Disconnect DVSwitch just to change Local Monitor / Transceive.
+
+If optional web login is enabled and you are logged out, the Control Center is disabled until you sign in.
 
 ---
 
-## 🔵 BrandMeister
+## 🔵 BRANDMEISTER
 
-BrandMeister uses the AllTune2-local BM receive/STFU-style helper.
+Use BrandMeister for BM talkgroups.
 
-To connect:
+Typical workflow:
 
-1. Choose BrandMeister.
-2. Enter the talkgroup.
-3. Press Connect.
+- choose BrandMeister
+- enter a talkgroup or choose a BM Favorite
+- press Connect
+- wait for status to show the connection
 
-BrandMeister supports fast talkgroup switching by entering another TG and pressing Connect again.
+To change BM talkgroups:
 
-Private calls are supported with a trailing `#` where applicable.
+- enter a new talkgroup **or choose another BM Favorite**
+- press Connect again
+
+BrandMeister is usually one of the faster paths.
 
 ---
 
 ## 🟢 TGIF
 
-TGIF uses the AllTune2-local HBLink helper.
+Use TGIF for TGIF talkgroups.
 
-To connect:
+Typical workflow:
 
-1. Choose TGIF.
-2. Enter the talkgroup.
-3. Press Connect.
+- choose TGIF
+- enter a talkgroup or choose a TGIF Favorite
+- press Connect
+- wait for the TGIF path to come up
 
-TGIF startup can take longer than BrandMeister, especially on slower hardware.
+To change TGIF talkgroups:
 
-If TGIF fails, review the HBLink config values and identity values.
+- enter a new talkgroup **or choose another TGIF Favorite**
+- press Connect again
+
+TGIF can take longer than BrandMeister to connect or disconnect. That is normal because TGIF/HBLink has more runtime pieces involved.
 
 ---
 
 ## 🟡 YSF
 
-To use YSF:
+Use YSF for YSF rooms / reflectors.
 
-1. Choose YSF.
-2. Enter the YSF reflector/target number.
-3. Press Connect.
+Typical workflow:
 
-YSF uses the configured DVSwitch path.
+- choose YSF
+- enter the YSF target or choose a YSF Favorite
+- press Connect
+- watch Live Status
 
 ---
 
-## 🟠 D-Star
+## 🟠 D-STAR
 
-To use D-Star:
+Use D-Star for D-Star reflectors when D-Star is enabled and working on your system.
 
-1. Enable D-Star in `config.ini`.
-2. Choose D-Star.
-3. Enter the target.
-4. Press Connect.
+Typical workflow:
 
-If D-Star is not enabled or configured, AllTune2 will disable the connect path for that mode.
+- make sure `DSTAR_ENABLED=1` is set in `config.ini`
+- choose D-Star
+- enter the D-Star target or choose a D-Star Favorite
+- press Connect
+- watch Live Status
 
 ---
 
 ## 🟤 P25
 
-To use P25:
+Use P25 when P25 is enabled and working on your system.
 
-1. Enable P25 in `config.ini`.
-2. Choose P25.
-3. Enter the target.
-4. Press Connect.
+Typical workflow:
 
-If P25 is not enabled or configured, AllTune2 will disable the connect path for that mode.
+- make sure `P25_ENABLED=1` is set in `config.ini`
+- choose P25
+- enter the P25 target or choose a P25 Favorite
+- press Connect
+- watch Live Status
 
 ---
 
 ## ⚫ NXDN
 
-To use NXDN:
+Use NXDN when NXDN is enabled and working on your system.
 
-1. Enable NXDN in `config.ini`.
-2. Choose NXDN.
-3. Enter the target.
-4. Press Connect.
+Typical workflow:
 
-If NXDN is not enabled or configured, AllTune2 will disable the connect path for that mode.
-
----
-
-## 🔴 AllStarLink
-
-AllStarLink direct connections use the direct fast lane.
-
-To connect:
-
-1. Choose AllStarLink.
-2. Enter the node number.
-3. Press Connect.
-
-AllStarLink favorites are labeled as ASL.
+- make sure `NXDN_ENABLED=1` is set in `config.ini`
+- choose NXDN
+- enter the NXDN target or choose an NXDN Favorite
+- press Connect
+- watch Live Status
 
 ---
 
-## 🟣 EchoLink
+## 🔴 ALLSTARLINK
 
-EchoLink direct connections use the direct fast lane.
+Use AllStarLink for direct AllStar node connections.
 
-To connect:
+Typical workflow:
 
-1. Choose EchoLink.
-2. Enter the EchoLink target.
-3. Press Connect.
-
-EchoLink favorites are labeled as E/L.
-
-EchoLink requires a working EchoLink setup on the ASL3 system.
+- choose AllStarLink
+- enter the node number or choose an AllStarLink Favorite
+- press Connect
+- watch Live Status
+- disconnect when done
 
 ---
 
-## ⭐ Favorites
+## 🟣 ECHOLINK
 
-AllTune2 supports saved favorites for common talkgroups, nodes, and targets.
+Use EchoLink for EchoLink node connections.
 
-Favorites are stored in:
+Typical workflow:
 
-```bash
-/var/www/html/alltune2/data/favorites.txt
-```
-
-Do not commit your personal `favorites.txt` to GitHub.
+- choose EchoLink
+- enter the EchoLink node number or choose an EchoLink Favorite
+- press Connect
+- watch Live Status
+- disconnect when done
 
 ---
+
+## ⭐ FAVORITES
+
+Favorites save time.
+
+Favorites can be used for:
+
+- BM talkgroups
+- TGIF talkgroups
+- YSF targets
+- D-Star targets
+- P25 targets
+- NXDN targets
+- AllStarLink nodes
+- EchoLink nodes
 
 ### Loading a Favorite
 
-When signed in:
+- click or choose the Favorite
+- AllTune2 fills in the target and mode
+- press Connect
 
-1. Click a favorite.
-2. The target and mode load into the Control Center.
-3. Press Connect.
+### Saving a Favorite from the dashboard
 
-When logged out in View Only mode:
+The dashboard includes a **Save Favorite** button.
 
-- favorites are visible
-- favorites do not load into the Control Center
-- controls remain disabled
+Use it when you manually type a target and want to save it.
 
----
+If the same target and mode already exist, AllTune2 shows that it found an existing Favorite and lets you update it instead of creating a duplicate.
 
-### Saving a Favorite from the Dashboard
-
-When signed in:
-
-1. Enter a TG / node / target in the Control Center.
-2. Choose the network mode.
-3. Click Save Favorite.
-4. Enter a name/description.
-5. Save.
-
-When logged out, Save Favorite is disabled.
+If optional web login is enabled and you are logged out, Favorites are visible but view-only. Clicking a Favorite will not load it into the Control Center until you sign in.
 
 ---
 
-### Favorites Page
+## 📝 MANUAL ENTRY
 
-The Favorites page allows viewing and managing saved favorites.
+Manual entry is useful when:
 
-When logged out:
+- you are testing a target
+- you are trying something once
+- you do not want to save it yet
 
-- favorites can be viewed
-- add/edit/remove actions are disabled
-
-When signed in:
-
-- add/edit/remove actions are available
+Enter the target, choose the mode, then press Connect.
 
 ---
 
-## 📝 Manual Entry
+## 📊 LIVE STATUS AND ACTIVITY
 
-Manual entry is used when you do not want to save a favorite.
+Live Status helps show:
 
-Enter the TG / node / target directly into the Control Center, choose the mode, and press Connect.
+- current network / mode
+- active target
+- private DVSwitch link state
+- AllStarLink / EchoLink connected nodes
+- keyed or active rows when activity is detected
+- D-Star, P25, and NXDN status when configured
 
-When web login is enabled and you are logged out, manual entry is disabled.
+The **Disconnect DVSwitch** button removes the private DVSwitch link without doing a full Asterisk restart.
 
----
+The **Disconnect All** button performs a full reset and restarts Asterisk.
 
-## 📊 Live Status and Activity
-
-Live Status shows current connection and activity state.
-
-It can show:
-
-- DVSwitch private link state
-- direct AllStarLink connections
-- direct EchoLink connections
-- managed digital network state
-- local/gateway activity
-- connected node cards
-- disconnect buttons for active rows
-
-When logged out in View Only mode, Live Status disconnect buttons are disabled.
+If optional web login is enabled and you are logged out, Live Status disconnect buttons are disabled.
 
 ---
 
-## 🔊 Audio Alerts
+## 🔊 AUDIO ALERTS
 
-Audio alerts can announce connect/disconnect events in the browser.
+Audio alerts can announce connects and disconnects.
 
-If Audio Alerts are disabled, AllTune2 will not speak browser alerts.
+They can be helpful when monitoring node activity without staring at the screen.
 
-Audio Alerts are part of the Control Center preferences and are disabled while logged out if web login is enabled.
-
----
-
-## 🔐 Security Hardening
-
-AllTune2 setup installs Apache hardening rules to block direct browser access to private files and directories.
-
-This includes protection for:
-
-- `.git`
-- `app`
-- `data`
-- `docs`
-- `logs`
-- `run`
-- `tools`
-- `stfu`
-- `tgif-hblink`
-- config files
-- backup files
-- runtime files
-- scripts
-- logs
-- database/cache-style files
-
-PHP can still read needed files locally from the filesystem.
-
-Browsers should not be able to directly download private config/runtime files.
+Recent updates improved connect/disconnect alerts for managed digital modes, including D-Star.
 
 ---
 
-## 🔧 Troubleshooting Basics
+## 🔐 SECURITY HARDENING
 
-### If Audio Stops
+The setup script installs Apache protection for sensitive AllTune2 files and folders.
 
-Try:
+This helps block direct browser access to local config, git, helper, runtime, log, and data files while still allowing the public dashboard and API to work.
+
+This is handled by the installer when Apache is available.
+
+The Apache hardening also blocks direct browser access to private helper areas such as `app`, `data`, `logs`, `run`, `tools`, `stfu`, and `tgif-hblink` while still allowing the dashboard and API to work.
+
+Optional web login protects write/control actions, but you should still use Tailscale/VPN or trusted HTTPS for outside access.
+
+---
+
+## 🔧 TROUBLESHOOTING BASICS
+
+### If audio stops
+
+Try restarting Analog_Bridge:
 
 ```bash
 sudo systemctl restart analog_bridge
 ```
 
-If needed:
-
-```bash
-sudo reboot
-```
-
----
-
-### If TGIF Does Not Connect
+### If TGIF does not connect
 
 Check:
 
-```bash
-/var/www/html/alltune2/config.ini
-/var/www/html/alltune2/tgif-hblink/hblink.cfg
-/var/www/html/alltune2/tgif-hblink/MMDVM_Bridge.hblink.ini
-/opt/MMDVM_Bridge/DVSwitch.ini
-/opt/MMDVM_Bridge/MMDVM_Bridge.ini
-/opt/Analog_Bridge/Analog_Bridge.ini
-```
+- `/var/www/html/alltune2/config.ini`
+- `/var/www/html/alltune2/tgif-hblink/hblink.cfg`
+- `/var/www/html/alltune2/tgif-hblink/MMDVM_Bridge.hblink.ini`
 
-Also confirm TGIF/HBLink identity values are correct.
+TGIF may take longer than other modes to start or stop. Wait for status to finish before clicking repeatedly.
 
----
-
-### If D-Star, P25, or NXDN Does Not Show Up
-
-Check that the mode is enabled in `config.ini`.
-
-Example:
-
-```ini
-DSTAR_ENABLED=1
-P25_ENABLED=1
-NXDN_ENABLED=1
-```
-
-Also confirm the related gateway/service is installed and configured on the DVSwitch side.
-
----
-
-### If Web Login Does Not Work
+### If D-Star, P25, or NXDN does not show up
 
 Check:
+
+- the mode is enabled in `config.ini`
+- your real `MYNODE` and `DVSWITCH_NODE` are set
+- `/opt/MMDVM_Bridge/dvswitch.sh` exists
+- the mode already works in the underlying DVSwitch setup
+
+### If web login does not work
+
+Check the auth settings:
 
 ```bash
 grep -nE 'ALLTUNE2_AUTH_ENABLED|ALLTUNE2_ADMIN_USER|ALLTUNE2_ADMIN_PASSWORD_HASH' /var/www/html/alltune2/config.ini
 ```
 
-To set/change the password:
+To set or change the password:
 
 ```bash
 sudo /var/www/html/alltune2/setup_alltune2.sh --set-admin-password
@@ -973,132 +727,117 @@ To disable login:
 sudo /var/www/html/alltune2/setup_alltune2.sh --disable-auth
 ```
 
-If the browser seems stuck in an old login state, close the browser tab or clear site data for the AllTune2 hostname.
+### If HTTPS shows a certificate warning
 
----
+Make sure you are using the same hostname that the certificate was issued for.
 
-### If HTTPS Shows a Certificate Warning
+A certificate for `node.local` or a snakeoil certificate will not be trusted for a public DDNS name.
 
-Check what certificate is being served:
+For public browser access, use a DDNS/domain hostname with a trusted certificate, or use Tailscale/VPN.
 
-```bash
-openssl s_client -connect your-hostname:443 -servername your-hostname </dev/null 2>/dev/null \
-  | openssl x509 -noout -subject -issuer -dates -ext subjectAltName
-```
+### If an update behaves strangely
 
-If the certificate says `node.local`, `node67040.local`, or `snakeoil`, Apache is still serving a self-signed certificate.
+For code-only updates, `git pull` is usually enough.
 
-Use a DDNS/domain hostname with a trusted certificate, or use Tailscale/VPN.
-
----
-
-### If an Update Behaves Strangely
-
-Run setup again:
-
-```bash
-sudo /var/www/html/alltune2/setup_alltune2.sh
-```
-
-Then reload Apache if needed:
-
-```bash
-sudo systemctl reload apache2
-```
-
-If still strange, reboot:
-
-```bash
-sudo reboot
-```
-
----
-
-## 🧠 Simple Rules
-
-- Do not commit `config.ini`.
-- Do not commit `data/favorites.txt`.
-- Do not commit backup files.
-- Do not post passwords publicly.
-- Do not expose AllTune2 publicly without web login enabled.
-- Prefer Tailscale/VPN for outside access.
-- If using public browser access, use DDNS/domain plus trusted HTTPS.
-- Run normal setup after updates.
-- Use `--set-admin-password` only when changing the web login password.
-- Use `--disable-auth` only when turning login off.
-- Test after every update.
-
----
-
-## ✅ Done
-
-After setup, open:
-
-```text
-/alltune2/public/
-```
-
-Then test the modes you use:
-
-- BrandMeister
-- TGIF
-- YSF
-- D-Star
-- P25
-- NXDN
-- AllStarLink
-- EchoLink
-
-If web login is enabled, also test:
-
-- View Only mode
-- Login
-- Signed In controls
-- Logout
-- disabled controls while logged out
-
----
-
-## Contact
-
-Project by Terry Claiborne / KC3KMV.
-
-GitHub:
-
-```text
-https://github.com/TerryClaiborne/alltune2
-```
-
----
-
-## ⚠️ Important Update Notes
-
-For normal updates:
+If setup, permissions, sudoers, Apache security, or runtime helpers changed, run:
 
 ```bash
 cd /var/www/html/alltune2
-sudo git pull origin main
+sudo ./setup_alltune2.sh
+```
+
+If TGIF/HBLink runtime code changed, rebooting once after the update is recommended.
+
+---
+
+## 🧠 SIMPLE RULES
+
+Edit these:
+
+- `/var/www/html/alltune2/config.ini`
+- `/var/www/html/alltune2/tgif-hblink/hblink.cfg`
+
+Review this if TGIF needs troubleshooting:
+
+- `/var/www/html/alltune2/tgif-hblink/MMDVM_Bridge.hblink.ini`
+
+Leave these alone unless you know why:
+
+- `/opt/MMDVM_Bridge/DVSwitch.ini`
+- `/opt/MMDVM_Bridge/MMDVM_Bridge.ini`
+- `/opt/Analog_Bridge/Analog_Bridge.ini`
+
+Remember:
+
+- do not guess values
+- do not paste passwords publicly
+- do not commit `config.ini`
+- do not commit `data/favorites.txt`
+- do not expose AllTune2 publicly without understanding the risk
+- use Tailscale/VPN or trusted HTTPS for outside access
+- do not assume every update needs setup
+- enable D-Star, P25, or NXDN only when those modes already work on your base system
+
+---
+
+## ✅ DONE
+
+Install → Configure → Open in browser → Connect → Enjoy
+
+---
+
+### Contact
+
+Questions? Email: [kc3kmv@yahoo.com](mailto:kc3kmv@yahoo.com)
+
+---
+
+## ⚠️ IMPORTANT UPDATE NOTES
+
+Recent release series highlights:
+
+- redesigned Control Center
+- dashboard Save Favorite workflow
+- top navigation polish
+- Apache security hardening
+- STFU/BM log rotation support
+- D-Star, P25, and NXDN support when enabled
+- Live Status improvements
+- managed Local Monitor / Transceive link-mode fixes
+- D-Star/P25/NXDN audio-alert improvements
+- TGIF/HBLink stability and retune improvements
+- optional web login and View Only dashboard behavior
+- setup-managed web login password hash
+- disabled Control Center, Live Status disconnect, and Favorites loading while logged out
+- HTTPS/DDNS/Tailscale documentation
+
+For most updates:
+
+```bash
+cd /var/www/html/alltune2
+git pull origin main
+```
+
+Run setup only when the release includes install/setup/system-level changes:
+
+```bash
+sudo ./setup_alltune2.sh
+```
+
+For the 1.21.0 optional web login release, run setup after pulling:
+
+```bash
 sudo /var/www/html/alltune2/setup_alltune2.sh
 ```
 
-Normal setup/update preserves:
-
-- `config.ini`
-- `data/favorites.txt`
-- TGIF/HBLink config
-- web login settings
-- saved password hash
-
-For web login password changes:
+To set or change the web login password:
 
 ```bash
 sudo /var/www/html/alltune2/setup_alltune2.sh --set-admin-password
 ```
 
-For disabling web login:
+To disable web login:
 
 ```bash
 sudo /var/www/html/alltune2/setup_alltune2.sh --disable-auth
 ```
-
-Do not manually create password hashes unless you are doing advanced recovery. Normal users should let setup create the hash automatically.
