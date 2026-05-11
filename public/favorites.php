@@ -15,6 +15,7 @@ $config = new Config(dirname(__DIR__) . '/config.ini');
 $auth = new AppAuth($config);
 $authEnabled = $auth->isEnabled();
 $authLoggedIn = $auth->isLoggedIn();
+$authHttpsWarning = $authEnabled && !\App\Support\AppSession::isHttps();
 $authCanWrite = !$authEnabled || $authLoggedIn;
 $myNode = trim((string) $config->get('MYNODE', ''));
 $nodeStatsUrl = $myNode !== ''
@@ -808,6 +809,12 @@ $navItems = [
             <?php endif; ?>
         </div>
     </header>
+
+    <?php if ($authHttpsWarning): ?>
+        <div class="auth-https-warning">
+            Web login is enabled, but this page is not using HTTPS. Use HTTPS or a VPN before allowing outside access.
+        </div>
+    <?php endif; ?>
 
     <main class="favorites-page-stack">
         <?php if ($message !== ''): ?>

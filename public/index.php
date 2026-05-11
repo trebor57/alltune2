@@ -15,6 +15,7 @@ $config = new Config(dirname(__DIR__) . '/config.ini');
 $auth = new AppAuth($config);
 $authEnabled = $auth->isEnabled();
 $authLoggedIn = $auth->isLoggedIn();
+$authHttpsWarning = $authEnabled && !\App\Support\AppSession::isHttps();
 
 function e(mixed $value): string
 {
@@ -251,6 +252,12 @@ $activityLines[] = [
             <?php endif; ?>
         </div>
     </header>
+
+    <?php if ($authHttpsWarning): ?>
+        <div class="auth-https-warning">
+            Web login is enabled, but this page is not using HTTPS. Use HTTPS or a VPN before allowing outside access.
+        </div>
+    <?php endif; ?>
 
     <?php require __DIR__ . '/alltune2_ribbon_bar.php'; ?>
 

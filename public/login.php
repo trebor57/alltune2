@@ -13,6 +13,7 @@ use App\Support\Config;
 
 $config = new Config(dirname(__DIR__) . '/config.ini');
 $auth = new AppAuth($config);
+$authHttpsWarning = $auth->isEnabled() && !\App\Support\AppSession::isHttps();
 
 function e(mixed $value): string
 {
@@ -109,6 +110,10 @@ if (!$auth->isEnabled()) {
             color: #c7f7d4;
             font-weight: 700;
         }
+        .warning {
+            color: #ffd9a8;
+            font-weight: 800;
+        }
         .links {
             margin-top: 16px;
         }
@@ -117,6 +122,10 @@ if (!$auth->isEnabled()) {
 <body>
     <main class="card">
         <h1>AllTune2 Login</h1>
+
+        <?php if ($authHttpsWarning): ?>
+            <p class="warning">Web login is enabled, but this page is not using HTTPS. Use HTTPS or a VPN before allowing outside access.</p>
+        <?php endif; ?>
 
         <?php if ($message !== ''): ?>
             <p class="message"><?= e($message) ?></p>

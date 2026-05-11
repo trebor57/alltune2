@@ -3022,3 +3022,18 @@ select.control {
     }
 }
 /* End auth status indicator */
+
+/* Auth HTTPS warning */
+.auth-https-warning {
+    margin: 12px auto 0;
+    max-width: 1180px;
+    padding: 10px 14px;
+    border: 1px solid rgba(255, 184, 92, 0.42);
+    border-radius: 14px;
+    background: rgba(76, 45, 12, 0.72);
+    color: #ffd9a8;
+    font-size: 0.88rem;
+    font-weight: 800;
+    text-align: center;
+}
+/* End auth HTTPS warning */
