@@ -1,7 +1,16 @@
 .
+|-- .gitignore
+|-- alltune2-bm-receive.sh
+|-- config.ini.example
+|-- README.md
+|-- screenshot.png
+|-- setup_alltune2.sh
+|-- tree.txt
+|-- VERSION
 |-- api
 |   |-- connect.php
 |   |-- direct_link.php
+|   |-- favorites.php
 |   \-- status.php
 |-- app
 |   |-- Actions
@@ -19,71 +28,46 @@
 |   |   |-- MessageCatalog.php
 |   |   \-- StatusMapper.php
 |   \-- Support
+|       |-- ApiAuthGuard.php
+|       |-- AppAuth.php
+|       |-- AppCsrf.php
+|       |-- AppSession.php
 |       |-- Config.php
 |       \-- Logger.php
 |-- data
 |   \-- favorites.txt
 |-- docs
 |   \-- .gitkeep
+|-- logs
+|   \-- .gitkeep
 |-- public
-|   |-- assets
-|   |   |-- css
-|   |   |   \-- style.css
-|   |   \-- js
-|   |       \-- app.js
 |   |-- alltune2_ribbon_bar.php
 |   |-- favorites.php
-|   \-- index.php
+|   |-- index.php
+|   |-- login.php
+|   |-- logout.php
+|   \-- assets
+|       |-- css
+|       |   \-- style.css
+|       \-- js
+|           \-- app.js
 |-- stfu
-|   |-- DVSwitch.ini
 |   \-- STFU
 |-- tgif-hblink
-|   |-- dmr_utils3
-|   |   |-- dmr_utils3
-|   |   |   |-- __init__.py
-|   |   |   |-- ambe.py
-|   |   |   |-- ambe_utils.py
-|   |   |   |-- bptc.py
-|   |   |   |-- const.py
-|   |   |   |-- crc.py
-|   |   |   |-- decode.py
-|   |   |   |-- encode.py
-|   |   |   |-- golay.py
-|   |   |   |-- golay_tables.py
-|   |   |   |-- hamming.py
-|   |   |   |-- qr.py
-|   |   |   |-- rs129.py
-|   |   |   \-- utils.py
-|   |   |-- get-pip.py
-|   |   |-- install.sh
-|   |   |-- LICENSE
-|   |   |-- README.rst
-|   |   \-- setup.py
 |   |-- alltune2-hblink-audio-helper.sh
 |   |-- bridge.py
 |   |-- config.py
 |   |-- const.py
-|   |-- DVSwitch.ini
-|   |-- hblink.cfg
 |   |-- hblink.cfg.example
 |   |-- hblink.py
 |   |-- log.py
-|   |-- MMDVM_Bridge.hblink.ini
 |   |-- MMDVM_Bridge.hblink.ini.example
-|   |-- MMDVM_Bridge.pre-hblink.ini
 |   |-- README.md
 |   |-- README_START.txt
 |   |-- reporting_const.py
 |   |-- requirements.txt
-|   |-- rules.py
 |   |-- rules.py.template
 |   |-- set_hblink_tg.sh
 |   \-- voice_lib.py
-|-- .gitignore
-|-- alltune2-bm-receive.sh
-|-- config.ini.example
-|-- README.md
-|-- screenshot.png
-|-- setup_alltune2.sh
-|-- tree.txt
-\-- VERSION
+\-- tools
+    \-- alltune2_set_admin_password.php
