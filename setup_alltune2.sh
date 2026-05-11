@@ -56,9 +56,9 @@ case "${1:-}" in
         ;;
     --help|-h)
         echo "Usage:"
-        echo "  sudo ./setup_alltune2.sh"
-        echo "  sudo ./setup_alltune2.sh --set-admin-password"
-        echo "  sudo ./setup_alltune2.sh --disable-auth"
+        echo "  sudo /var/www/html/alltune2/setup_alltune2.sh"
+        echo "  sudo /var/www/html/alltune2/setup_alltune2.sh --set-admin-password"
+        echo "  sudo /var/www/html/alltune2/setup_alltune2.sh --disable-auth"
         echo
         echo "Normal setup/update preserves existing config.ini and auth settings."
         echo "--set-admin-password changes only the AllTune2 web login password."
@@ -69,7 +69,7 @@ case "${1:-}" in
         ;;
     *)
         echo "[ERROR] Unknown option: ${1}" >&2
-        echo "Run: sudo ./setup_alltune2.sh --help" >&2
+        echo "Run: sudo /var/www/html/alltune2/setup_alltune2.sh --help" >&2
         exit 1
         ;;
 esac
@@ -194,14 +194,29 @@ run_auth_password_setup() {
     echo
 
     if [[ -z "$pass1" ]]; then
-        fail "Password cannot be blank for --set-admin-password. Use --disable-auth to turn login off."
+        echo
+        echo "[ERROR] No password was entered."
+        echo "No changes were made."
+        echo
+        echo "Next steps:"
+        echo "- To try again, run: sudo /var/www/html/alltune2/setup_alltune2.sh --set-admin-password"
+        echo "- To turn login off, run: sudo /var/www/html/alltune2/setup_alltune2.sh --disable-auth"
+        echo "- To leave things as they are, do nothing."
+        exit 1
     fi
 
     read -rsp "Confirm admin password: " pass2
     echo
 
     if [[ "$pass1" != "$pass2" ]]; then
-        fail "Passwords did not match. No changes made."
+        echo
+        echo "[ERROR] Passwords did not match."
+        echo "No changes were made."
+        echo
+        echo "Next steps:"
+        echo "- Run sudo /var/www/html/alltune2/setup_alltune2.sh --set-admin-password and try again."
+        echo "- Your old saved password/hash was not changed."
+        exit 1
     fi
 
     hash="$(printf '%s' "$pass1" | php -r '$p = stream_get_contents(STDIN); echo password_hash($p, PASSWORD_DEFAULT), PHP_EOL;')"
@@ -216,8 +231,18 @@ run_auth_password_setup() {
     chown root:"$WEB_GROUP" "$CONFIG_FILE"
 
     echo
-    echo "[OK] Web login enabled for the single admin account."
+    echo "[OK] Web login enabled."
     echo "[OK] Password hash saved to config.ini."
+    echo
+    echo "Next steps:"
+    echo "1. Open /alltune2/public/ in your browser."
+    echo "2. Click Login."
+    echo "3. Enter the password you just set."
+    echo
+    echo "Notes:"
+    echo "- The plain password was not stored."
+    echo "- Running sudo /var/www/html/alltune2/setup_alltune2.sh normally will not change this password."
+    echo "- To disable login later, run: sudo /var/www/html/alltune2/setup_alltune2.sh --disable-auth"
 }
 
 run_auth_disable() {
@@ -235,7 +260,16 @@ run_auth_disable() {
     chmod 0640 "$CONFIG_FILE"
     chown root:"$WEB_GROUP" "$CONFIG_FILE"
 
-    echo "[OK] Web login disabled. Existing password hash was kept."
+    echo "[OK] Web login disabled."
+    echo "[OK] Existing password hash was kept."
+    echo
+    echo "Next steps:"
+    echo "1. Open /alltune2/public/ in your browser."
+    echo "2. AllTune2 should show No Login/Normal mode and work normally."
+    echo
+    echo "To re-enable login later:"
+    echo "- Set ALLTUNE2_AUTH_ENABLED=1 in config.ini to reuse the saved password, or"
+    echo "- Run sudo /var/www/html/alltune2/setup_alltune2.sh --set-admin-password to set a new password."
 }
 
 check_runtime_tools() {
@@ -1189,65 +1223,54 @@ check_tgif_helper_cli() {
 
 show_summary() {
     local version="unknown"
+    local web_login="Disabled"
+    local apache_security="Not installed"
+    local auth_enabled=""
+    local auth_hash=""
 
     if [[ -f "$VERSION_FILE" ]]; then
-        version="$(tr -d '\r\n' < "$VERSION_FILE")"
+        version="$(tr -d '
+' < "$VERSION_FILE")"
+    fi
+
+    if [[ -f "$CONFIG_FILE" ]]; then
+        auth_enabled="$(grep -E '^[[:space:]]*ALLTUNE2_AUTH_ENABLED[[:space:]]*=' "$CONFIG_FILE" 2>/dev/null | tail -n 1 | sed -E 's/^[^=]+=//; s/[[:space:]]//g; s/"//g' || true)"
+        auth_hash="$(grep -E '^[[:space:]]*ALLTUNE2_ADMIN_PASSWORD_HASH[[:space:]]*=' "$CONFIG_FILE" 2>/dev/null | tail -n 1 | sed -E 's/^[^=]+=//; s/^[[:space:]]*//; s/[[:space:]]*$//; s/^"//; s/"$//' || true)"
+
+        if [[ "$auth_enabled" == "1" && -n "$auth_hash" ]]; then
+            web_login="Enabled"
+        fi
+    fi
+
+    if [[ -f "$APACHE_SECURITY_CONF_FILE" ]]; then
+        apache_security="Installed"
     fi
 
     echo
     echo "========================================"
     echo "[OK] $APP_NAME setup completed successfully."
-    echo
-    echo "$APP_NAME setup summary"
     echo "========================================"
-    echo "Version:              ${version}"
-    echo "Installer mode:       ${INSTALLER_MODE}"
-    echo "App directory:        $APP_DIR"
-    echo "Config file:          $CONFIG_FILE"
-    echo "Config example:       $CONFIG_EXAMPLE_FILE"
-    echo "Favorites file:       $FAVORITES_FILE"
-    echo "BM helper:            $BM_RECEIVE_HELPER"
-    echo "Local STFU binary:    $LOCAL_STFU_BIN"
-    echo "TGIF helper:          $TGIF_HELPER"
-    echo "TGIF cfg:             $TGIF_HBLINK_CFG"
-    echo "TGIF cfg example:     $TGIF_HBLINK_CFG_EXAMPLE"
-    echo "TGIF venv:            $TGIF_VENV_DIR"
-    echo "TGIF restore ini:     $TGIF_MMDVM_PRE_HBLINK_INI"
-    echo "TGIF MMDVM example:   $TGIF_MMDVM_HBLINK_INI_EXAMPLE"
-    echo "Web user/group:       $WEB_USER:$WEB_GROUP"
-    echo "Asterisk sudoers:     $ASTERISK_SUDOERS_FILE"
-    echo "BM helper sudoers:    $BM_RECEIVE_SUDOERS_FILE"
-    echo "TGIF helper sudoers:  $TGIF_HELPER_SUDOERS_FILE"
-    echo "BM receive log:       $BM_RECEIVE_LOG_FILE"
-    echo "BM logrotate:         $BM_RECEIVE_LOGROTATE_FILE"
-    echo "STFU logs:            $STFU_LOG_FILE, $BM_STFU_LOG_FILE"
-    echo "STFU logrotate:       $STFU_LOGROTATE_FILE"
-    echo "Apache security conf: $APACHE_SECURITY_CONF_FILE"
+    echo "Version:         ${version}"
+    echo "Dashboard:       /alltune2/public/"
+    echo "Install path:    $APP_DIR"
+    echo "Config:          $CONFIG_FILE"
+    echo "Favorites:       $FAVORITES_FILE"
+    echo "Web login:       $web_login"
+    echo "Apache security: $apache_security"
     echo
 
-    echo "Notes:"
-    echo "- Existing config.ini, favorites.txt, hblink.cfg, and MMDVM_Bridge.pre-hblink.ini are preserved."
-    echo "- Normal setup/update preserves existing AllTune2 web login settings."
-    echo "- To set/change the web login password, run: sudo ./setup_alltune2.sh --set-admin-password"
-    echo "- To disable web login and keep the saved hash, run: sudo ./setup_alltune2.sh --disable-auth"
-    echo "- Apache security hardening blocks direct browser access to config, git, data, logs, run, STFU, and TGIF/HBLink runtime files."
-    echo "- If MMDVM_Bridge.hblink.ini is missing, setup creates it from the repo example file."
-    echo "- BM is one-step and uses the AllTune2-local BM receive helper."
-    echo "- TGIF uses the AllTune2-local HBLink helper and Python venv."
-    echo "- TGIF Python packages are only reinstalled when the venv is new, broken, missing packages, or requirements.txt changes."
-    echo "- The installer does not overwrite /opt/MMDVM_Bridge/MMDVM_Bridge.ini, /opt/MMDVM_Bridge/DVSwitch.ini, or /opt/Analog_Bridge/Analog_Bridge.ini."
-    echo "- TGIF/HBLink often needs both a base DMR ID and a hotspot/repeater-style suffixed radio ID in the HBLink/MMDVM config path."
-    echo "- TGIF/HBLink troubleshooting: if TGIF does not connect, review hblink.cfg and the related MMDVM/HBLink identity values."
+    echo "Important:"
+    echo "- Normal setup/update preserves config.ini, favorites.txt, and web login settings."
+    echo "- To set/change the web login password:"
+    echo "  sudo /var/www/html/alltune2/setup_alltune2.sh --set-admin-password"
+    echo "- To disable web login and keep the saved password hash:"
+    echo "  sudo /var/www/html/alltune2/setup_alltune2.sh --disable-auth"
     echo
 
     echo "Next steps:"
     echo "1. Open /alltune2/public/ in the browser."
-    echo "2. Test BM, TGIF, YSF, AllStarLink, EchoLink, Disconnect DVSwitch, and Disconnect All."
-    echo "3. For new installs only: edit $CONFIG_FILE and $TGIF_HBLINK_CFG if real values have not been set yet."
-    echo "4. For TGIF/HBLink troubleshooting only: review $TGIF_MMDVM_HBLINK_INI and these external DVSwitch files:"
-    echo "   - $DVSWITCH_INI"
-    echo "   - $MMDVM_BRIDGE_INI"
-    echo "   - $ANALOG_BRIDGE_INI"
+    echo "2. New installs: edit $CONFIG_FILE and $TGIF_HBLINK_CFG if placeholder values remain."
+    echo "3. Test your enabled modes."
     echo
 }
 

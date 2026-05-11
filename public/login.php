@@ -205,7 +205,7 @@ if (!$auth->isEnabled()) {
             <form method="post" action="/alltune2/public/login.php">
                 <?= \App\Support\AppCsrf::inputHtml() ?>
 <label for="password">Admin password</label>
-                <input id="password" name="password" type="password" autocomplete="current-password" required>
+                <input id="password" name="password" type="password" autocomplete="current-password" required autofocus>
                 <button type="submit">Sign In</button>
             </form>
         <?php endif; ?>

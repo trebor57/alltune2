@@ -3171,3 +3171,38 @@ select.control {
         0 0 0 2px rgba(216, 108, 242, 0.14) !important;
 }
 /* End auth buttons brighten */
+
+/* Auth buttons dim polish */
+.topbar > .auth-status .auth-pill,
+.topbar > .auth-status .auth-link {
+    box-shadow:
+        0 0 6px rgba(255, 125, 242, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+}
+
+.topbar > .auth-status .auth-pill-view-only {
+    background: linear-gradient(180deg, rgba(180, 116, 38, 0.30), rgba(96, 54, 18, 0.42)) !important;
+    border-color: rgba(255, 184, 92, 0.54) !important;
+    color: #f4d9aa !important;
+}
+
+.topbar > .auth-status .auth-pill-signed-in,
+.topbar > .auth-status .auth-pill-normal {
+    background: linear-gradient(180deg, rgba(42, 150, 84, 0.28), rgba(18, 84, 48, 0.40)) !important;
+    border-color: rgba(78, 235, 139, 0.48) !important;
+    color: #c7f7d4 !important;
+}
+
+.topbar > .auth-status .auth-link {
+    background: linear-gradient(180deg, rgba(99, 52, 151, 0.52), rgba(58, 28, 92, 0.64)) !important;
+    border-color: rgba(216, 108, 242, 0.58) !important;
+    color: #ead8f5 !important;
+}
+
+.topbar > .auth-status .auth-link:hover,
+.topbar > .auth-status .auth-link:focus-visible {
+    background: linear-gradient(180deg, rgba(132, 68, 196, 0.70), rgba(78, 38, 122, 0.78)) !important;
+    border-color: rgba(255, 150, 252, 0.82) !important;
+    color: #ffffff !important;
+}
+/* End auth buttons dim polish */

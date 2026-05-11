@@ -1081,6 +1081,57 @@
         els.sendDtmfButton.style.cursor = enabled ? 'pointer' : 'not-allowed';
     }
 
+    function setControlFieldWriteState(control, enabled) {
+        if (!control) {
+            return;
+        }
+
+        control.disabled = !enabled;
+        control.style.opacity = enabled ? '1' : '0.58';
+        control.style.cursor = enabled ? '' : 'not-allowed';
+
+        if (enabled) {
+            control.removeAttribute('title');
+        } else {
+            control.setAttribute('title', 'Login required to control AllTune2');
+        }
+    }
+
+    function updateControlCenterWriteState() {
+        const enabled = authAllowsActions() && !state.busy;
+
+        [
+            els.targetInput,
+            els.modeSelect,
+            els.autoloadModeSelect,
+            els.disconnectBeforeConnectCheckbox,
+            els.audioAlertsCheckbox,
+            els.dtmfCode,
+        ].forEach((control) => setControlFieldWriteState(control, enabled));
+
+        updateDtmfButtonState();
+    }
+
+    function updateDashboardFavoritesWriteState() {
+        if (!els.favoritesBody) {
+            return;
+        }
+
+        const enabled = authAllowsActions();
+
+        els.favoritesBody.querySelectorAll('tr[data-target][data-mode]').forEach((row) => {
+            row.setAttribute('aria-disabled', enabled ? 'false' : 'true');
+            row.style.cursor = enabled ? 'pointer' : 'not-allowed';
+            row.style.opacity = enabled ? '1' : '0.68';
+
+            if (enabled) {
+                row.removeAttribute('title');
+            } else {
+                row.setAttribute('title', 'Login required to use favorites');
+            }
+        });
+    }
+
     function currentAllstarCount() {
         if (!els.statusAllstar) {
             return 0;
@@ -1432,6 +1483,9 @@
     }
 
     function updateButtonsFromStatus(statusText) {
+        updateControlCenterWriteState();
+        updateDashboardFavoritesWriteState();
+
         if (state.busy) {
             return;
         }
@@ -1455,6 +1509,7 @@
 
     function setBusy(isBusy) {
         state.busy = !!isBusy;
+        updateControlCenterWriteState();
 
         if (state.busy) {
             if (els.connectButton) {
@@ -1698,6 +1753,7 @@
         });
 
         els.favoritesBody.innerHTML = rows.join('');
+        updateDashboardFavoritesWriteState();
         updateFavoritesSortButtons();
     }
 
@@ -1913,14 +1969,15 @@
                 : '';
 
             const pendingDisconnect = pendingDisconnectActive(rawNode);
-            const disableDisconnectButton = state.busy || pendingDisconnect;
+            const actionBlocked = !authAllowsActions();
+            const disableDisconnectButton = actionBlocked || state.busy || pendingDisconnect;
             const actionHtml = isDvSwitchNode
                 ? `
                     <button
                         type="button"
                         class="connected-node-button connected-node-button-dvswitch ${pendingDisconnect ? 'connected-node-button-pending' : ''}"
                         data-disconnect-dvswitch="${node}"
-                        ${disableDisconnectButton ? 'disabled' : ''}
+                        ${disableDisconnectButton ? 'disabled' : ''} ${actionBlocked ? 'title="Login required to control AllTune2"' : ''}
                     >
                         ${pendingDisconnect ? 'Disconnecting...' : 'Disconnect DVSwitch'}
                     </button>
@@ -1930,7 +1987,7 @@
                         type="button"
                         class="connected-node-button allstar-disconnect-button ${pendingDisconnect ? 'connected-node-button-pending' : ''}"
                         data-disconnect-node="${node}"
-                        ${disableDisconnectButton ? 'disabled' : ''}
+                        ${disableDisconnectButton ? 'disabled' : ''} ${actionBlocked ? 'title="Login required to control AllTune2"' : ''}
                     >
                         ${pendingDisconnect ? 'Disconnecting...' : `Disconnect ${node}`}
                     </button>
@@ -2587,7 +2644,18 @@
 
         els.statusAllstarLinks.addEventListener('click', (event) => {
             const dvswitchButton = event.target.closest('[data-disconnect-dvswitch]');
-            if (dvswitchButton && !state.busy) {
+            if (dvswitchButton) {
+                if (!authAllowsActions()) {
+                    setSystemStatus(loginRequiredMessage());
+                    updateActivityValue('Current Status', loginRequiredMessage());
+                    updateButtonsFromStatus(currentStatusText());
+                    return;
+                }
+
+                if (state.busy || dvswitchButton.disabled) {
+                    return;
+                }
+
                 const selectedDvSwitchNode = String(
                     dvswitchButton.getAttribute('data-disconnect-dvswitch') ||
                     configuredDvSwitchNodeFromDom() ||
@@ -2610,7 +2678,18 @@
             }
 
             const button = event.target.closest('[data-disconnect-node]');
-            if (!button || state.busy) {
+            if (!button) {
+                return;
+            }
+
+            if (!authAllowsActions()) {
+                setSystemStatus(loginRequiredMessage());
+                updateActivityValue('Current Status', loginRequiredMessage());
+                updateButtonsFromStatus(currentStatusText());
+                return;
+            }
+
+            if (state.busy || button.disabled) {
                 return;
             }
 
@@ -2677,6 +2756,14 @@
         els.favoritesBody.addEventListener('click', (event) => {
             const row = event.target.closest('tr[data-target][data-mode]');
             if (!row) {
+                return;
+            }
+
+            if (!authAllowsActions()) {
+                setSystemStatus(loginRequiredMessage());
+                updateActivityValue('Current Status', loginRequiredMessage());
+                updateButtonsFromStatus(currentStatusText());
+                updateDashboardFavoritesWriteState();
                 return;
             }
 
@@ -2980,6 +3067,8 @@
         }
 
         rememberPreferredAslUiMode(currentSelectedMode());
+        updateControlCenterWriteState();
+        updateDashboardFavoritesWriteState();
 
         if (els.modeSelect) {
             els.modeSelect.addEventListener('change', () => {
