@@ -15,6 +15,7 @@ LOGS_DIR="$APP_DIR/logs"
 RUN_DIR="$APP_DIR/run"
 LOCAL_STFU_DIR="$APP_DIR/stfu"
 TGIF_DIR="$APP_DIR/tgif-hblink"
+TOOLS_DIR="$APP_DIR/tools"
 
 CONFIG_FILE="$APP_DIR/config.ini"
 CONFIG_EXAMPLE_FILE="$APP_DIR/config.ini.example"
@@ -42,6 +43,36 @@ TGIF_REQUIREMENTS_STATE_FILE="$TGIF_VENV_DIR/.alltune2_requirements.sha256"
 WEB_USER="www-data"
 WEB_GROUP="www-data"
 INSTALLER_MODE="${INSTALLER_MODE:-quiet}"
+AUTH_ACTION="normal"
+
+case "${1:-}" in
+    --set-admin-password|--auth)
+        AUTH_ACTION="set-password"
+        shift
+        ;;
+    --disable-auth)
+        AUTH_ACTION="disable-auth"
+        shift
+        ;;
+    --help|-h)
+        echo "Usage:"
+        echo "  sudo ./setup_alltune2.sh"
+        echo "  sudo ./setup_alltune2.sh --set-admin-password"
+        echo "  sudo ./setup_alltune2.sh --disable-auth"
+        echo
+        echo "Normal setup/update preserves existing config.ini and auth settings."
+        echo "--set-admin-password changes only the AllTune2 web login password."
+        echo "--disable-auth sets ALLTUNE2_AUTH_ENABLED=0 and keeps the saved hash."
+        exit 0
+        ;;
+    "")
+        ;;
+    *)
+        echo "[ERROR] Unknown option: ${1}" >&2
+        echo "Run: sudo ./setup_alltune2.sh --help" >&2
+        exit 1
+        ;;
+esac
 
 ASTERISK_BIN="/usr/sbin/asterisk"
 DVSWITCH_SH="/opt/MMDVM_Bridge/dvswitch.sh"
@@ -105,6 +136,108 @@ require_app_dir() {
     fi
 }
 
+config_has_key() {
+    local key="$1"
+    grep -qE "^[[:space:]]*${key}[[:space:]]*=" "$CONFIG_FILE"
+}
+
+append_config_key_if_missing() {
+    local key="$1"
+    local value="$2"
+
+    if ! config_has_key "$key"; then
+        printf '%s=%s\n' "$key" "$value" >> "$CONFIG_FILE"
+    fi
+}
+
+set_config_key() {
+    local key="$1"
+    local value="$2"
+
+    if [[ ! -f "$CONFIG_FILE" ]]; then
+        fail "Missing config.ini: $CONFIG_FILE"
+    fi
+
+    if config_has_key "$key"; then
+        sed -i "s|^[[:space:]]*${key}[[:space:]]*=.*|${key}=${value}|" "$CONFIG_FILE"
+    else
+        printf '%s=%s\n' "$key" "$value" >> "$CONFIG_FILE"
+    fi
+}
+
+ensure_auth_config_defaults() {
+    if [[ ! -f "$CONFIG_FILE" ]]; then
+        fail "Missing config.ini: $CONFIG_FILE"
+    fi
+
+    # Safe defaults only. Existing values are never changed here.
+    append_config_key_if_missing "ALLTUNE2_AUTH_ENABLED" "0"
+    append_config_key_if_missing "ALLTUNE2_ADMIN_USER" '"admin"'
+    append_config_key_if_missing "ALLTUNE2_ADMIN_PASSWORD_HASH" '""'
+}
+
+run_auth_password_setup() {
+    echo
+    echo "AllTune2 Web Login Password Setup"
+    echo "================================="
+    echo
+    echo "This changes only the AllTune2 web login password."
+    echo "The password hash is created automatically."
+    echo "The plain password is not stored."
+    echo
+
+    local pass1=""
+    local pass2=""
+    local hash=""
+
+    read -rsp "New admin password: " pass1
+    echo
+
+    if [[ -z "$pass1" ]]; then
+        fail "Password cannot be blank for --set-admin-password. Use --disable-auth to turn login off."
+    fi
+
+    read -rsp "Confirm admin password: " pass2
+    echo
+
+    if [[ "$pass1" != "$pass2" ]]; then
+        fail "Passwords did not match. No changes made."
+    fi
+
+    hash="$(printf '%s' "$pass1" | php -r '$p = stream_get_contents(STDIN); echo password_hash($p, PASSWORD_DEFAULT), PHP_EOL;')"
+
+    set_config_key "ALLTUNE2_ADMIN_USER" '"admin"'
+    set_config_key "ALLTUNE2_AUTH_ENABLED" "1"
+    set_config_key "ALLTUNE2_ADMIN_PASSWORD_HASH" "\"${hash}\""
+
+    unset pass1 pass2 hash
+
+    chmod 0640 "$CONFIG_FILE"
+    chown root:"$WEB_GROUP" "$CONFIG_FILE"
+
+    echo
+    echo "[OK] Web login enabled for the single admin account."
+    echo "[OK] Password hash saved to config.ini."
+}
+
+run_auth_disable() {
+    echo
+    echo "AllTune2 Web Login Disable"
+    echo "=========================="
+    echo
+    echo "This changes only ALLTUNE2_AUTH_ENABLED."
+    echo "The existing password hash will be kept."
+    echo
+
+    set_config_key "ALLTUNE2_ADMIN_USER" '"admin"'
+    set_config_key "ALLTUNE2_AUTH_ENABLED" "0"
+
+    chmod 0640 "$CONFIG_FILE"
+    chown root:"$WEB_GROUP" "$CONFIG_FILE"
+
+    echo "[OK] Web login disabled. Existing password hash was kept."
+}
+
 check_runtime_tools() {
     log "Checking runtime tools..."
     command -v php >/dev/null 2>&1 || fail "php is not installed or not in PATH."
@@ -136,7 +269,7 @@ check_web_user() {
 make_dirs() {
     log "Ensuring required directories exist..."
     mkdir -p "$PUBLIC_DIR" "$ASSETS_DIR" "$CSS_DIR" "$JS_DIR" "$API_DIR" "$APP_CODE_DIR"
-    mkdir -p "$DATA_DIR" "$DOCS_DIR" "$LOGS_DIR" "$RUN_DIR" "$LOCAL_STFU_DIR" "$TGIF_DIR"
+    mkdir -p "$DATA_DIR" "$DOCS_DIR" "$LOGS_DIR" "$RUN_DIR" "$LOCAL_STFU_DIR" "$TGIF_DIR" "$TOOLS_DIR"
 }
 
 create_config_example() {
@@ -147,6 +280,9 @@ MYNODE="YOUR NODE"
 DVSWITCH_NODE="YOUR DVSWITCH NODE"
 BM_SelfcarePassword="CHANGE_ME"
 TGIF_HotspotSecurityKey="CHANGE_ME"
+ALLTUNE2_AUTH_ENABLED=0
+ALLTUNE2_ADMIN_USER="admin"
+ALLTUNE2_ADMIN_PASSWORD_HASH=""
 EOF
     else
         log "config.ini.example already exists."
@@ -164,6 +300,9 @@ MYNODE="YOUR NODE"
 DVSWITCH_NODE="YOUR DVSWITCH NODE"
 BM_SelfcarePassword="CHANGE_ME"
 TGIF_HotspotSecurityKey="CHANGE_ME"
+ALLTUNE2_AUTH_ENABLED=0
+ALLTUNE2_ADMIN_USER="admin"
+ALLTUNE2_ADMIN_PASSWORD_HASH=""
 EOF
         warn "Created $CONFIG_FILE with placeholder values. Edit it before using AllTune2."
     else
@@ -651,6 +790,7 @@ set_permissions() {
         "$API_DIR"
         "$PUBLIC_DIR"
         "$DOCS_DIR"
+        "$TOOLS_DIR"
         "$LOCAL_STFU_DIR"
     )
     local dir
@@ -691,6 +831,11 @@ set_permissions() {
 
     chmod 0755 "$TGIF_SET_TG"
     chown root:root "$TGIF_SET_TG"
+
+    if [[ -f "$TOOLS_DIR/alltune2_set_admin_password.php" ]]; then
+        chmod 0750 "$TOOLS_DIR/alltune2_set_admin_password.php"
+        chown root:root "$TOOLS_DIR/alltune2_set_admin_password.php"
+    fi
 
     if [[ -d "$TGIF_VENV_DIR" ]]; then
         set_tree_mode_and_owner "$TGIF_VENV_DIR" 0755 0644 root root
@@ -980,7 +1125,7 @@ create_or_update_apache_security_conf() {
     </FilesMatch>
 </Directory>
 
-<DirectoryMatch "^$APP_DIR/(\.git|app|data|docs|logs|run|stfu|tgif-hblink)(/|$)">
+<DirectoryMatch "^$APP_DIR/(\.git|app|data|docs|logs|run|tools|stfu|tgif-hblink)(/|$)">
     Require all denied
 </DirectoryMatch>
 EOF
@@ -1082,6 +1227,9 @@ show_summary() {
 
     echo "Notes:"
     echo "- Existing config.ini, favorites.txt, hblink.cfg, and MMDVM_Bridge.pre-hblink.ini are preserved."
+    echo "- Normal setup/update preserves existing AllTune2 web login settings."
+    echo "- To set/change the web login password, run: sudo ./setup_alltune2.sh --set-admin-password"
+    echo "- To disable web login and keep the saved hash, run: sudo ./setup_alltune2.sh --disable-auth"
     echo "- Apache security hardening blocks direct browser access to config, git, data, logs, run, STFU, and TGIF/HBLink runtime files."
     echo "- If MMDVM_Bridge.hblink.ini is missing, setup creates it from the repo example file."
     echo "- BM is one-step and uses the AllTune2-local BM receive helper."
@@ -1108,6 +1256,27 @@ main() {
     require_app_dir
     validate_installer_mode
 
+    if [[ "$AUTH_ACTION" == "set-password" ]]; then
+        check_runtime_tools
+        check_web_user
+        make_dirs
+        create_config_example
+        create_config_if_missing
+        ensure_auth_config_defaults
+        run_auth_password_setup
+        exit 0
+    fi
+
+    if [[ "$AUTH_ACTION" == "disable-auth" ]]; then
+        check_web_user
+        make_dirs
+        create_config_example
+        create_config_if_missing
+        ensure_auth_config_defaults
+        run_auth_disable
+        exit 0
+    fi
+
     step "Checking runtime prerequisites..."
     check_runtime_tools
     check_web_user
@@ -1116,6 +1285,7 @@ main() {
     make_dirs
     create_config_example
     create_config_if_missing
+    ensure_auth_config_defaults
     create_favorites_if_missing
     create_tgif_hblink_cfg_example
     create_tgif_hblink_cfg_if_missing

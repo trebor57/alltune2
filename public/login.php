@@ -14,6 +14,7 @@ use App\Support\Config;
 $config = new Config(dirname(__DIR__) . '/config.ini');
 $auth = new AppAuth($config);
 $authHttpsWarning = $auth->isEnabled() && !\App\Support\AppSession::isHttps();
+$adminUser = $auth->adminUser();
 
 function e(mixed $value): string
 {
@@ -24,15 +25,16 @@ $message = '';
 $error = '';
 
 if (!$auth->isEnabled()) {
-    $message = 'Web login is not enabled. AllTune2 is running in normal mode.';
+    $message = 'Web login is disabled. AllTune2 is running in normal mode. To enable login, run sudo php /var/www/html/alltune2/tools/alltune2_set_admin_password.php on the node.';
 } elseif ($auth->isLoggedIn()) {
     $message = 'You are already signed in.';
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $username = $auth->adminUser();
     $password = (string) ($_POST['password'] ?? '');
 
     if (!\App\Support\AppCsrf::validateRequest()) {
         $error = 'Security check failed. Refresh the page and try again.';
-    } elseif ($auth->login($password)) {
+    } elseif ($auth->login($username, $password)) {
         header('Location: /alltune2/public/');
         exit;
     }
@@ -52,21 +54,35 @@ if (!$auth->isEnabled()) {
             margin: 0;
             display: grid;
             place-items: center;
-            background: #100719;
+            background:
+                radial-gradient(circle at top, rgba(122, 44, 191, 0.26), transparent 42%),
+                linear-gradient(180deg, #16091f, #06040a);
             color: #f4eaff;
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
         .card {
-            width: min(420px, calc(100vw - 32px));
-            padding: 28px;
-            border: 1px solid rgba(216, 108, 242, 0.28);
-            border-radius: 22px;
-            background: linear-gradient(180deg, rgba(35, 20, 52, 0.96), rgba(13, 8, 22, 0.98));
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.42);
+            width: min(430px, calc(100vw - 32px));
+            padding: 30px;
+            border: 1px solid rgba(216, 108, 242, 0.34);
+            border-radius: 24px;
+            background:
+                linear-gradient(180deg, rgba(36, 20, 54, 0.97), rgba(10, 7, 18, 0.98));
+            box-shadow:
+                0 22px 70px rgba(0, 0, 0, 0.46),
+                0 0 34px rgba(122, 44, 191, 0.18);
         }
         h1 {
-            margin: 0 0 10px;
-            font-size: 1.4rem;
+            margin: 0;
+            font-size: 1.65rem;
+            letter-spacing: 0.01em;
+        }
+        .login-subtitle {
+            margin: 4px 0 18px;
+            color: #d9c2e6;
+            font-size: 0.95rem;
+            font-weight: 750;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
         }
         p {
             color: #d9c2e6;
@@ -92,15 +108,20 @@ if (!$auth->isEnabled()) {
             align-items: center;
             justify-content: center;
             margin-top: 16px;
-            min-height: 40px;
-            padding: 0 16px;
-            border: 0;
-            border-radius: 13px;
-            background: #7b2cbf;
+            min-height: 42px;
+            padding: 0 18px;
+            border: 1px solid rgba(216, 108, 242, 0.42);
+            border-radius: 14px;
+            background: linear-gradient(180deg, rgba(130, 62, 191, 0.95), rgba(84, 36, 128, 0.96));
             color: #fff;
-            font-weight: 800;
+            font-weight: 850;
             text-decoration: none;
             cursor: pointer;
+            box-shadow: 0 0 18px rgba(122, 44, 191, 0.16);
+        }
+        button:hover, a.button:hover {
+            border-color: rgba(255, 125, 242, 0.74);
+            box-shadow: 0 0 0 3px rgba(216, 108, 242, 0.12);
         }
         .error {
             color: #ffb3b3;
@@ -117,11 +138,56 @@ if (!$auth->isEnabled()) {
         .links {
             margin-top: 16px;
         }
-    </style>
+    
+        /* login-cleanup-polish */
+        body {
+            background:
+                radial-gradient(circle at top, rgba(122, 44, 191, 0.26), transparent 42%),
+                linear-gradient(180deg, #16091f, #06040a);
+        }
+        .card {
+            border-color: rgba(216, 108, 242, 0.34);
+            box-shadow:
+                0 22px 70px rgba(0, 0, 0, 0.46),
+                0 0 34px rgba(122, 44, 191, 0.18);
+        }
+        h1 {
+            margin-bottom: 2px;
+            font-size: 1.65rem;
+        }
+        .login-subtitle {
+            margin: 0 0 18px;
+            color: #d9c2e6;
+            font-size: 0.88rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        button,
+        a.button {
+            border: 1px solid rgba(216, 108, 242, 0.42);
+            background: linear-gradient(180deg, rgba(130, 62, 191, 0.95), rgba(84, 36, 128, 0.96));
+            box-shadow: 0 0 18px rgba(122, 44, 191, 0.16);
+        }
+        button:hover,
+        a.button:hover {
+            border-color: rgba(255, 125, 242, 0.74);
+            box-shadow: 0 0 0 3px rgba(216, 108, 242, 0.12);
+        }
+        
+        .single-admin-note {
+            margin: -8px 0 18px;
+            color: #bda2ce;
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+        </style>
 </head>
 <body>
     <main class="card">
-        <h1>AllTune2 Login</h1>
+        <h1>AllTune2</h1>
+        <p class="login-subtitle">Operator Login</p>
+        <p class="single-admin-note">Single administrator access</p>
 
         <?php if ($authHttpsWarning): ?>
             <p class="warning">Web login is enabled, but this page is not using HTTPS. Use HTTPS or a VPN before allowing outside access.</p>
@@ -138,7 +204,7 @@ if (!$auth->isEnabled()) {
         <?php if ($auth->isEnabled() && !$auth->isLoggedIn()): ?>
             <form method="post" action="/alltune2/public/login.php">
                 <?= \App\Support\AppCsrf::inputHtml() ?>
-                <label for="password">Admin password</label>
+<label for="password">Admin password</label>
                 <input id="password" name="password" type="password" autocomplete="current-password" required>
                 <button type="submit">Sign In</button>
             </form>

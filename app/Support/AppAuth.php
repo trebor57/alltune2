@@ -12,6 +12,12 @@ final class AppAuth
         $this->config = $config ?: new Config(dirname(__DIR__, 2) . '/config.ini');
     }
 
+    public function adminUser(): string
+    {
+        $user = trim($this->config->getString('ALLTUNE2_ADMIN_USER', 'admin'));
+        return $user !== '' ? $user : 'admin';
+    }
+
     public function isEnabled(): bool
     {
         $enabled = strtolower(trim($this->config->getString('ALLTUNE2_AUTH_ENABLED', '0')));
@@ -25,9 +31,16 @@ final class AppAuth
         return !empty($_SESSION['alltune2_authenticated']);
     }
 
-    public function login(string $password): bool
+    public function login(string $username, string $password): bool
     {
         if (!$this->isEnabled()) {
+            return false;
+        }
+
+        $expectedUser = strtolower($this->adminUser());
+        $providedUser = strtolower(trim($username));
+
+        if ($providedUser === '' || !hash_equals($expectedUser, $providedUser)) {
             return false;
         }
 
