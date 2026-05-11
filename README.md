@@ -63,11 +63,10 @@ Recent versions added several important improvements:
 - Disconnect DVSwitch button in Live Status
 - better Local Monitor / Transceive handling for managed DVSwitch modes
 - spoken connect/disconnect alerts for managed modes, including D-Star
-- optional web login with View Only / Signed In behavior
-- disabled Control Center controls while logged out
-- read-only Favorites and Live Status controls while logged out
-- setup commands to set/change or disable the web login password
 - Apache security hardening from the installer
+- optional web login for public or shared dashboards
+- View Only mode when logged out
+- disabled Control Center, Favorites actions, and Live Status disconnect buttons while logged out
 
 The dashboard is designed so you can pick a network, enter or load a target, choose Local Monitor or Transceive, and press **Connect**.
 
@@ -203,25 +202,51 @@ NXDN_ENABLED=0
 ```
 
 **ALLTUNE2_AUTH_ENABLED**  
-Optional web login switch.
+Controls the optional AllTune2 web login.
 
-Use `0` for normal/no-login behavior.
+Use:
 
-Use `1` to require login before control actions are allowed.
+```ini
+ALLTUNE2_AUTH_ENABLED=0
+```
+
+to keep AllTune2 in normal no-login mode.
+
+Use:
+
+```ini
+ALLTUNE2_AUTH_ENABLED=1
+```
+
+to require login before users can control the node.
 
 **ALLTUNE2_ADMIN_USER**  
-The single built-in admin username. Leave this as `admin`.
+The single web login username. AllTune2 currently uses one admin account.
+
+Default:
+
+```ini
+ALLTUNE2_ADMIN_USER="admin"
+```
 
 **ALLTUNE2_ADMIN_PASSWORD_HASH**  
-The saved web-login password hash. Do not type a plain password here.
+The saved password hash for the AllTune2 web login.
 
-Use the setup command below to create or change this hash safely.
+Do **not** type a plain password here.
+
+Normal users should create or change this hash with:
+
+```bash
+sudo /var/www/html/alltune2/setup_alltune2.sh --set-admin-password
+```
+
+The setup script creates the hash automatically. The plain password is not stored.
 
 ---
 
 ## 🔐 OPTIONAL WEB LOGIN
 
-AllTune2 can run in normal mode or optional web-login mode.
+AllTune2 can run with or without web login.
 
 ### No Login / Normal mode
 
@@ -231,39 +256,32 @@ When this is set:
 ALLTUNE2_AUTH_ENABLED=0
 ```
 
-AllTune2 behaves like the normal dashboard. Controls are available without signing in.
+AllTune2 works like the normal dashboard. Controls are available without signing in.
 
 ### View Only mode
 
-When this is set:
-
-```ini
-ALLTUNE2_AUTH_ENABLED=1
-```
-
-and you are not signed in, AllTune2 shows **View Only** mode.
+When web login is enabled and you are logged out, AllTune2 shows View Only behavior.
 
 In View Only mode:
 
-- dashboard status still loads
-- saved Favorites are still visible
-- Control Center controls are disabled
+- the dashboard still loads
+- live status still loads
+- saved Favorites are visible
+- the Control Center is disabled
+- Dashboard Favorites are view-only
 - Live Status disconnect buttons are disabled
-- dashboard Favorites are view-only
-- Favorites page add/edit/remove actions are blocked
-- connect, disconnect, DTMF, save, edit, and remove actions require login
+- Favorites page add/edit/remove actions require login
+- connect, disconnect, DTMF, and save actions are blocked
 
 ### Login / Sign In
 
-Click **Login** on the dashboard.
+Click **Login** and enter the single admin password.
 
-Enter the single admin password.
-
-After login, AllTune2 shows the signed-in/admin state and the controls are available.
+After signing in, the Control Center, Favorites actions, DTMF, connect, and disconnect controls are available.
 
 ### Logout
 
-Click **Logout** to return the dashboard to View Only mode.
+Click **Logout** to return AllTune2 to View Only mode.
 
 ### Set or change the web login password
 
@@ -273,13 +291,7 @@ Run:
 sudo /var/www/html/alltune2/setup_alltune2.sh --set-admin-password
 ```
 
-The setup script asks for the new password and confirmation.
-
-It creates the password hash automatically.
-
-The plain password is not stored.
-
-Users do **not** need to manually generate password hashes.
+This asks for a new admin password, creates the password hash automatically, stores the hash in `config.ini`, and enables web login.
 
 ### Disable web login
 
@@ -295,17 +307,9 @@ This sets:
 ALLTUNE2_AUTH_ENABLED=0
 ```
 
-The saved password hash is kept. If you later set `ALLTUNE2_AUTH_ENABLED=1`, the old saved password can still work.
+The existing password hash is kept, so login can be re-enabled later without creating a new password.
 
-### Normal setup does not change the web password
-
-This normal setup command:
-
-```bash
-sudo /var/www/html/alltune2/setup_alltune2.sh
-```
-
-will not ask for a web password and will not reset the saved web-login password.
+Normal setup/update does **not** ask for a password and does **not** change the saved web login settings.
 
 ---
 
@@ -333,31 +337,101 @@ OPTIONS: StartRef=19750;RelinkTime=60
 **PASSPHRASE**  
 Your TGIF Hotspot Security Key.
 
+This is **not** your TGIF website login password.
+
 **CALLSIGN**  
 Your ham callsign.
+
+Example:
+
+```text
+CALLSIGN: KC3KMV
+```
 
 **RADIO_ID**  
 Usually your DMR / hotspot ID with a suffix. Many setups use the hotspot ID plus 1.
 
-Example:
+This part is very important.
+
+Real example:
 
 ```text
 Your hotspot ID: 330000811
 Use:             330000812
 ```
 
+Another example:
+
+```text
+Your hotspot ID: 3101234
+Use:             3101235
+```
+
+Do **not** use your original hotspot ID unchanged unless your setup specifically requires that.
+
 Do not guess this value. Use what is correct for your DVSwitch / TGIF setup.
 
 **OPTIONS**  
 Optional TGIF startup options, such as a startup talkgroup.
 
+Example:
+
+```text
+StartRef=19750;RelinkTime=60
+```
+
+If you want TGIF to start on a certain talkgroup, that is where you set it.
+
 ### Review this TGIF file too
+
+Review:
 
 ```text
 /var/www/html/alltune2/tgif-hblink/MMDVM_Bridge.hblink.ini
 ```
 
-Make sure the callsign and ID match what your TGIF/HBLink setup needs.
+Example:
+
+```ini
+Callsign=YOURCALL
+Id=330000812
+```
+
+### What these mean
+
+**Callsign**  
+Your ham callsign.
+
+Example:
+
+```text
+Callsign=KC3KMV
+```
+
+**Id**  
+Your DMR / BrandMeister Hotspot ID with the same suffix logic used above.
+
+Real example:
+
+```text
+Your hotspot ID: 330000811
+Use:             330000812
+```
+
+Do **not** use your original hotspot ID unchanged unless your setup specifically requires that.
+
+### Optional values
+
+Most users can leave these as `0`:
+
+```ini
+RXFrequency=0
+TXFrequency=0
+```
+
+These only matter if you run a repeater.
+
+If you do not run a repeater, leaving them at `0` is fine and has no effect on normal operation.
 
 ### Important TGIF note
 
@@ -413,19 +487,11 @@ http://192.168.1.120/alltune2/public/index.php
 
 Replace `192.168.1.120` with your node IP address or hostname.
 
-### HTTPS and outside access
+### Outside access and HTTPS
 
-For local LAN use, normal HTTP may be enough.
+For outside access, the safest recommendation is still Tailscale, a VPN, or another private tunnel you control.
 
-For outside access, the safest recommendation is still **Tailscale** or another VPN/private tunnel.
-
-If you want public browser access, use:
-
-- a real hostname or DDNS name
-- router forwarding for TCP 80 and 443
-- Apache HTTPS
-- a trusted certificate such as Let's Encrypt
-- AllTune2 web login enabled
+If you want public browser access, use a real hostname or DDNS name with a trusted HTTPS certificate.
 
 Example:
 
@@ -433,11 +499,21 @@ Example:
 https://your-ddns-name/alltune2/public/
 ```
 
-DDNS gives you a hostname. It does **not** automatically give you trusted HTTPS.
+A DDNS name alone does not create trusted HTTPS. Apache still needs a trusted certificate for that hostname, such as a Let’s Encrypt certificate.
 
-A self-signed or snakeoil certificate will still show browser warnings. That is fixed by installing a trusted certificate for the hostname you actually use.
+A common Let’s Encrypt / Certbot path is:
 
-Raw public-IP HTTPS is not recommended for normal users because browsers will usually show certificate warnings unless the certificate is valid for that exact IP address.
+```bash
+sudo apt-get install certbot python3-certbot-apache
+sudo certbot --apache -d your-ddns-name
+sudo certbot renew --dry-run
+```
+
+A self-signed or snakeoil certificate can still protect the connection technically, but browsers will show a warning.
+
+Raw public IP HTTPS is not recommended for normal users because browser-trusted certificates are normally issued for hostnames, not plain IP addresses.
+
+If you expose AllTune2 through public 80/443, keep web login enabled.
 
 ---
 
@@ -463,7 +539,7 @@ The Link Mode dropdown controls how the private DVSwitch audio node is linked:
 
 AllTune2 now re-applies the selected Link Mode when changing between supported managed modes, so you should not normally have to press Disconnect DVSwitch just to change Local Monitor / Transceive.
 
-If optional web login is enabled and you are logged out, the Control Center is disabled until you sign in.
+If web login is enabled and you are logged out, the Control Center is disabled until you sign in.
 
 ---
 
@@ -619,7 +695,7 @@ Use it when you manually type a target and want to save it.
 
 If the same target and mode already exist, AllTune2 shows that it found an existing Favorite and lets you update it instead of creating a duplicate.
 
-If optional web login is enabled and you are logged out, Favorites are visible but view-only. Clicking a Favorite will not load it into the Control Center until you sign in.
+When web login is enabled and you are logged out, Favorites are visible but view-only. Clicking a dashboard Favorite does not load it into the Control Center until you sign in.
 
 ---
 
@@ -650,7 +726,7 @@ The **Disconnect DVSwitch** button removes the private DVSwitch link without doi
 
 The **Disconnect All** button performs a full reset and restarts Asterisk.
 
-If optional web login is enabled and you are logged out, Live Status disconnect buttons are disabled.
+When web login is enabled and you are logged out, Live Status remains visible but its disconnect buttons are disabled.
 
 ---
 
@@ -672,9 +748,9 @@ This helps block direct browser access to local config, git, helper, runtime, lo
 
 This is handled by the installer when Apache is available.
 
-The Apache hardening also blocks direct browser access to private helper areas such as `app`, `data`, `logs`, `run`, `tools`, `stfu`, and `tgif-hblink` while still allowing the dashboard and API to work.
+Recent security work also added optional web login, hardened session handling, CSRF protection for write actions, and API guards for control actions.
 
-Optional web login protects write/control actions, but you should still use Tailscale/VPN or trusted HTTPS for outside access.
+The installer also protects the local `tools/` directory from direct browser access.
 
 ---
 
@@ -715,13 +791,13 @@ Check the auth settings:
 grep -nE 'ALLTUNE2_AUTH_ENABLED|ALLTUNE2_ADMIN_USER|ALLTUNE2_ADMIN_PASSWORD_HASH' /var/www/html/alltune2/config.ini
 ```
 
-To set or change the password:
+To set or change the web login password:
 
 ```bash
 sudo /var/www/html/alltune2/setup_alltune2.sh --set-admin-password
 ```
 
-To disable login:
+To disable web login:
 
 ```bash
 sudo /var/www/html/alltune2/setup_alltune2.sh --disable-auth
@@ -729,11 +805,18 @@ sudo /var/www/html/alltune2/setup_alltune2.sh --disable-auth
 
 ### If HTTPS shows a certificate warning
 
-Make sure you are using the same hostname that the certificate was issued for.
+Make sure you are browsing to the same hostname used by the certificate.
 
-A certificate for `node.local` or a snakeoil certificate will not be trusted for a public DDNS name.
+Check the certificate:
 
-For public browser access, use a DDNS/domain hostname with a trusted certificate, or use Tailscale/VPN.
+```bash
+openssl s_client -connect your-hostname:443 -servername your-hostname </dev/null 2>/dev/null \
+  | openssl x509 -noout -subject -issuer -dates -ext subjectAltName
+```
+
+If the certificate says `node.local`, `node67040.local`, or `snakeoil`, Apache is still serving a self-signed certificate.
+
+Use a DDNS/domain hostname with a trusted certificate, or use Tailscale/VPN.
 
 ### If an update behaves strangely
 
@@ -773,9 +856,12 @@ Remember:
 - do not paste passwords publicly
 - do not commit `config.ini`
 - do not commit `data/favorites.txt`
-- do not expose AllTune2 publicly without understanding the risk
-- use Tailscale/VPN or trusted HTTPS for outside access
 - do not assume every update needs setup
+- use `--set-admin-password` to change the web login password
+- use `--disable-auth` to turn web login off
+- keep web login enabled if AllTune2 is exposed through public 80/443
+- prefer Tailscale/VPN for outside access
+- use DDNS/domain plus trusted HTTPS for public browser access
 - enable D-Star, P25, or NXDN only when those modes already work on your base system
 
 ---
@@ -806,10 +892,6 @@ Recent release series highlights:
 - managed Local Monitor / Transceive link-mode fixes
 - D-Star/P25/NXDN audio-alert improvements
 - TGIF/HBLink stability and retune improvements
-- optional web login and View Only dashboard behavior
-- setup-managed web login password hash
-- disabled Control Center, Live Status disconnect, and Favorites loading while logged out
-- HTTPS/DDNS/Tailscale documentation
 
 For most updates:
 
@@ -824,20 +906,17 @@ Run setup only when the release includes install/setup/system-level changes:
 sudo ./setup_alltune2.sh
 ```
 
-For the 1.21.0 optional web login release, run setup after pulling:
-
-```bash
-sudo /var/www/html/alltune2/setup_alltune2.sh
-```
-
-To set or change the web login password:
+For web login password changes:
 
 ```bash
 sudo /var/www/html/alltune2/setup_alltune2.sh --set-admin-password
 ```
 
-To disable web login:
+For disabling web login:
 
 ```bash
 sudo /var/www/html/alltune2/setup_alltune2.sh --disable-auth
 ```
+
+Normal setup/update preserves existing web login settings and does not ask for a web password.
+
