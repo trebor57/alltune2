@@ -1179,6 +1179,164 @@ EOF
     log "Installed Apache security conf: $APACHE_SECURITY_CONF_FILE"
 }
 
+create_or_update_apache_accesslog_filter() {
+    log "Ensuring Apache access log filter exists for AllTune2 polling URLs..."
+
+    if ! command -v apache2ctl >/dev/null 2>&1; then
+        warn "apache2ctl not found. Skipping Apache access log filter install."
+        return
+    fi
+
+    if [[ ! -d /etc/apache2/sites-available && ! -d /etc/apache2/sites-enabled ]]; then
+        warn "Apache site directories not found. Skipping Apache access log filter install."
+        return
+    fi
+
+    local timestamp
+    local backup_dir
+    local patch_output
+    timestamp="$(date +%Y%m%d-%H%M%S)"
+    backup_dir="/root/alltune2-backups/apache-accesslog-filter-${timestamp}"
+
+    if ! patch_output="$(python3 - "$backup_dir" <<'PYAPACHE'
+import pathlib
+import shutil
+import sys
+
+backup_dir = pathlib.Path(sys.argv[1])
+manifest_name = "manifest.tsv"
+
+# The filter suppresses only AllTune2's high-frequency browser polling URLs
+# from Apache access.log. It does not block the requests.
+expr_line = 'CustomLog ${APACHE_LOG_DIR}/access.log combined "expr=!(%{REQUEST_URI} =~ m#^/alltune2/(api/status\\.php|public/alltune2_ribbon_bar\\.php)#)"'
+
+replace_candidates = [
+    'CustomLog ${APACHE_LOG_DIR}/access.log combined env=!dontlog_alltune2_polling',
+    'CustomLog ${APACHE_LOG_DIR}/access.log combined',
+]
+
+candidate_paths = []
+for path_text in (
+    "/etc/apache2/sites-available/000-default.conf",
+    "/etc/apache2/sites-available/default-ssl.conf",
+):
+    candidate_paths.append(pathlib.Path(path_text))
+
+# Include real files behind enabled .conf symlinks on systems with custom vhost names.
+enabled_dir = pathlib.Path("/etc/apache2/sites-enabled")
+if enabled_dir.exists():
+    for item in enabled_dir.glob("*.conf"):
+        try:
+            candidate_paths.append(item.resolve())
+        except Exception:
+            continue
+
+seen = set()
+paths = []
+for path in candidate_paths:
+    key = str(path)
+    if key in seen:
+        continue
+    seen.add(key)
+    if path.exists() and path.is_file():
+        paths.append(path)
+
+changed = []
+skipped = []
+manifest_entries = []
+
+for path in paths:
+    try:
+        text = path.read_text()
+    except Exception as exc:
+        skipped.append(f"{path}: could not read file: {exc}")
+        continue
+
+    if expr_line in text:
+        continue
+
+    replacement = None
+    for candidate in replace_candidates:
+        if candidate in text:
+            replacement = candidate
+            break
+
+    if replacement is None:
+        if "CustomLog" in text and "access.log" in text:
+            skipped.append(f"{path}: CustomLog access.log format not recognized; left unchanged")
+        continue
+
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    backup_name = str(path).lstrip("/").replace("/", "__")
+    backup_path = backup_dir / backup_name
+    shutil.copy2(path, backup_path)
+
+    text = text.replace(replacement, expr_line, 1)
+    path.write_text(text)
+    changed.append(str(path))
+    manifest_entries.append(f"{path}\t{backup_path}\n")
+
+if manifest_entries:
+    (backup_dir / manifest_name).write_text("".join(manifest_entries))
+
+for item in skipped:
+    print(f"SKIPPED {item}")
+for item in changed:
+    print(f"CHANGED {item}")
+if not changed:
+    print("NO_CHANGES")
+PYAPACHE
+)"; then
+        warn "Apache access log filter patch helper failed. Leaving Apache config unchanged."
+        return
+    fi
+
+    if [[ "$patch_output" == *"SKIPPED"* ]]; then
+        while IFS= read -r line; do
+            [[ "$line" == SKIPPED* ]] && warn "${line#SKIPPED }"
+        done <<< "$patch_output"
+    fi
+
+    if [[ "$patch_output" != *"CHANGED"* ]]; then
+        log "Apache access log filter already installed or no standard access.log CustomLog lines were found."
+        return
+    fi
+
+    if ! apache2ctl configtest >/dev/null; then
+        warn "Apache configtest failed after installing AllTune2 access log filter. Restoring Apache site backups."
+        if [[ -f "$backup_dir/manifest.tsv" ]]; then
+            python3 - "$backup_dir/manifest.tsv" <<'PYRESTORE'
+import pathlib
+import shutil
+import sys
+
+manifest = pathlib.Path(sys.argv[1])
+for line in manifest.read_text().splitlines():
+    if not line.strip():
+        continue
+    original, backup = line.split("\t", 1)
+    shutil.copy2(pathlib.Path(backup), pathlib.Path(original))
+PYRESTORE
+        fi
+
+        if apache2ctl configtest >/dev/null; then
+            warn "Restored Apache site backups. Access log filter was not installed."
+            return
+        fi
+
+        fail "Apache configtest still fails after restoring access log filter backups. Manual Apache review is required."
+    fi
+
+    if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet apache2; then
+        systemctl reload apache2 || fail "Failed to reload apache2 after installing AllTune2 access log filter."
+    else
+        warn "Apache service is not active or systemctl is unavailable. Access log filter installed, but Apache was not reloaded automatically."
+    fi
+
+    log "Installed Apache access log filter for AllTune2 status/ribbon polling URLs. Backup: $backup_dir"
+}
+
+
 check_sudoers_requirement() {
     log "Checking installed sudoers files..."
 
@@ -1330,6 +1488,7 @@ main() {
     create_or_update_sudoers_files
     create_or_update_logrotate_files
     create_or_update_apache_security_conf
+    create_or_update_apache_accesslog_filter
 
     step "Running installer self-checks..."
     check_php_syntax
